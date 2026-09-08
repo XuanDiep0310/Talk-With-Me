@@ -19,6 +19,7 @@ Tài liệu chi tiết của dự án được phân chia rõ ràng trong thư m
 | 5 | 🔌 [**External APIs & Integration**](./docs/EXTERNAL_APIS.md) | Chiến lược tích hợp AI/Voice API miễn phí (Gemini API, Web Speech API, Edge-TTS, Groq Whisper). |
 | 6 | 🚀 [**Deployment & DevOps**](./docs/DEPLOYMENT.md) | Hướng dẫn đóng gói Docker Compose, Nginx Reverse Proxy, SSL & Biến môi trường. |
 | 7 | 🗺 [**Development Roadmap**](./docs/DEVELOPMENT_ROADMAP.md) | Lộ trình phát triển qua từng giai đoạn (MVP, Phase 2, Nice-to-Have). |
+| 8 | 🐙 [**GitHub Workflow Rules**](./docs/GITHUB_WORKFLOW_GUIDELINES.md) | Quy tắc đặt tên nhánh 1-Ticket-1-Branch, Commit Conventional, Pull Request & Code Review. |
 
 ---
 
