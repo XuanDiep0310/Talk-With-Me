@@ -1,0 +1,26 @@
+# Dockerfile for Backend Testing & Integration Suite
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python runtime + test dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt pytest pytest-asyncio pytest-cov httpx
+
+# Copy source code, alembic configuration and tests
+COPY alembic.ini pyproject.toml .env.test ./
+COPY alembic ./alembic
+COPY app ./app
+COPY tests ./tests
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+CMD ["pytest", "tests/", "-v"]
