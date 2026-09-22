@@ -1,0 +1,173 @@
+<div class="health-container">
+  <header class="health-header">
+    <div class="brand">
+      <div class="brand-icon">🎙️</div>
+      <div>
+        <h1>TalkWithMe System Health</h1>
+        <p class="subtitle">Monorepo Production Readiness & Service Health Diagnostics</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-refresh" (click)="refreshHealth()" [disabled]="state().isLoading">
+        <span class="refresh-icon" [class.spinning]="state().isLoading">🔄</span>
+        <span>{{ state().isLoading ? 'Checking...' : 'Refresh Status' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Global Status Banner -->
+  <div
+    class="status-banner"
+    [class.status-healthy]="isAllHealthy()"
+    [class.status-warning]="!isAllHealthy() && !state().isLoading"
+    [class.status-loading]="state().isLoading"
+  >
+    <div class="status-indicator">
+      <span class="dot"></span>
+      <span class="status-text">
+        <ng-container *ngIf="state().isLoading">Inspecting system components...</ng-container>
+        <ng-container *ngIf="!state().isLoading && isAllHealthy()">
+          All Systems Operational
+        </ng-container>
+        <ng-container *ngIf="!state().isLoading && !isAllHealthy()">
+          Partial Outage / Degradation Detected
+        </ng-container>
+      </span>
+    </div>
+    <div class="last-checked" *ngIf="state().lastChecked">
+      Last checked: {{ state().lastChecked | date:'mediumTime' }}
+    </div>
+  </div>
+
+  <!-- Component Cards Grid -->
+  <div class="grid">
+    <!-- Backend API Card -->
+    <div class="card" [class.card-healthy]="state().app?.status === 'healthy'">
+      <div class="card-header">
+        <div class="service-meta">
+          <span class="service-icon">⚡</span>
+          <div>
+            <h3>FastAPI Backend</h3>
+            <span class="endpoint-tag">GET /api/v1/health</span>
+          </div>
+        </div>
+        <span
+          class="badge"
+          [class.badge-healthy]="state().app?.status === 'healthy'"
+          [class.badge-unhealthy]="state().app?.status !== 'healthy'"
+        >
+          {{ state().app?.status || 'checking' }}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">App Name:</span>
+          <span class="value">{{ state().app?.app_name || '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Version:</span>
+          <span class="value">{{ state().app?.version || '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Environment:</span>
+          <span class="value badge-subtle">{{ state().app?.environment || '—' }}</span>
+        </div>
+        <div class="info-row" *ngIf="state().app?.timestamp">
+          <span class="label">Timestamp:</span>
+          <span class="value">{{ state().app?.timestamp | date:'HH:mm:ss' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PostgreSQL Card -->
+    <div class="card" [class.card-healthy]="state().database?.status === 'healthy'">
+      <div class="card-header">
+        <div class="service-meta">
+          <span class="service-icon">🐘</span>
+          <div>
+            <h3>PostgreSQL Database</h3>
+            <span class="endpoint-tag">GET /api/v1/health/database</span>
+          </div>
+        </div>
+        <span
+          class="badge"
+          [class.badge-healthy]="state().database?.status === 'healthy'"
+          [class.badge-unhealthy]="state().database?.status !== 'healthy'"
+        >
+          {{ state().database?.status || 'checking' }}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">Service:</span>
+          <span class="value">PostgreSQL 16+</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Latency:</span>
+          <span class="value latency-value" *ngIf="state().database?.latency_ms !== undefined">
+            {{ state().database?.latency_ms }} ms
+          </span>
+          <span class="value" *ngIf="state().database?.latency_ms === undefined">—</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Details:</span>
+          <span class="value detail-text">{{ state().database?.details || '—' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Redis Card -->
+    <div class="card" [class.card-healthy]="state().redis?.status === 'healthy'">
+      <div class="card-header">
+        <div class="service-meta">
+          <span class="service-icon">🟥</span>
+          <div>
+            <h3>Redis Cache & Pub/Sub</h3>
+            <span class="endpoint-tag">GET /api/v1/health/redis</span>
+          </div>
+        </div>
+        <span
+          class="badge"
+          [class.badge-healthy]="state().redis?.status === 'healthy'"
+          [class.badge-unhealthy]="state().redis?.status !== 'healthy'"
+        >
+          {{ state().redis?.status || 'checking' }}
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="label">Service:</span>
+          <span class="value">Redis 7+</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Latency:</span>
+          <span class="value latency-value" *ngIf="state().redis?.latency_ms !== undefined">
+            {{ state().redis?.latency_ms }} ms
+          </span>
+          <span class="value" *ngIf="state().redis?.latency_ms === undefined">—</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Details:</span>
+          <span class="value detail-text">{{ state().redis?.details || '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monorepo Stack Info -->
+  <footer class="stack-footer">
+    <h4>Monorepo Tech Architecture</h4>
+    <div class="tech-tags">
+      <span class="tag">Angular 19 Standalone</span>
+      <span class="tag">TypeScript</span>
+      <span class="tag">RxJS</span>
+      <span class="tag">FastAPI</span>
+      <span class="tag">SQLAlchemy 2.0 Async</span>
+      <span class="tag">Alembic</span>
+      <span class="tag">PostgreSQL</span>
+      <span class="tag">Redis</span>
+      <span class="tag">Docker Compose</span>
+      <span class="tag">GitHub Actions CI/CD</span>
+    </div>
+  </footer>
+</div>
