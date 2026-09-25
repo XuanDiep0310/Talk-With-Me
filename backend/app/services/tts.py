@@ -38,4 +38,3 @@ class TTSService:
             if isinstance(e, AppException):
                 raise e
             raise AppException(detail=f"TTS synthesis error: {str(e)}", status_code=500) from e
-

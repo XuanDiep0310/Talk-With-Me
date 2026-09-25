@@ -29,9 +29,7 @@ async def generate_tts(
     tts_service: TTSService = Depends(get_tts_service),
 ) -> TTSResponse:
     """REST endpoint to synthesize text to speech returning Base64 MP3."""
-    audio_bytes = await tts_service.generate_audio_bytes(
-        text=request.text, voice=request.voice
-    )
+    audio_bytes = await tts_service.generate_audio_bytes(text=request.text, voice=request.voice)
     audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
     return TTSResponse(
         audio_b64=audio_b64,
@@ -47,9 +45,7 @@ async def generate_tts_stream(
     tts_service: TTSService = Depends(get_tts_service),
 ) -> Response:
     """REST endpoint to synthesize text to speech returning direct audio/mpeg Response."""
-    audio_bytes = await tts_service.generate_audio_bytes(
-        text=request.text, voice=request.voice
-    )
+    audio_bytes = await tts_service.generate_audio_bytes(text=request.text, voice=request.voice)
     return Response(content=audio_bytes, media_type="audio/mpeg")
 
 
@@ -73,9 +69,7 @@ async def voice_websocket_endpoint(
             try:
                 payload: dict[str, Any] = json.loads(raw_data)
             except json.JSONDecodeError:
-                await websocket.send_json(
-                    {"type": "error", "message": "Invalid JSON format"}
-                )
+                await websocket.send_json({"type": "error", "message": "Invalid JSON format"})
                 continue
 
             msg_type = payload.get("type", "")
@@ -90,9 +84,7 @@ async def voice_websocket_endpoint(
                     )
                     continue
                 try:
-                    audio_bytes = await tts_service.generate_audio_bytes(
-                        text=text, voice=voice
-                    )
+                    audio_bytes = await tts_service.generate_audio_bytes(text=text, voice=voice)
                     audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
                     await websocket.send_json(
                         {
