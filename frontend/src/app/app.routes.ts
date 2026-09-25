@@ -14,7 +14,15 @@ export const routes: Routes = [
       )
   },
   {
+    path: 'voice',
+    loadComponent: () =>
+      import('./features/voice-demo/voice-demo.component').then(
+        (m) => m.VoiceDemoComponent
+      )
+  },
+  {
     path: '**',
     redirectTo: 'health'
   }
 ];
+
