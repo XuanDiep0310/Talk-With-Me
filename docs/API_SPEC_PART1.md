@@ -2,19 +2,19 @@
 
 ## Authentication, User Profile & AI Coach WebSocket (`/ws/ai-coach`)
 
-| | |
-|---|---|
-| **Dự án** | TalkWithMe |
-| **Tài liệu** | `docs/API_SPEC_PART1.md` |
-| **Phiên bản** | 1.0 |
-| **Phạm vi** | Authentication API, User Profile API, WebSocket `/ws/ai-coach` (AI Coach — F-01) |
-| **Liên quan** | `SRS_TalkWithMe_v2.md` (F-01, mục 2.2, mục 6), `docs/API_SPEC_PART2.md` (Lessons & Gamification API), `DATA_DICTIONARY.md` |
+|               |                                                                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Dự án**     | TalkWithMe                                                                                                                          |
+| **Tài liệu**  | `docs/API_SPEC_PART1.md`                                                                                                            |
+| **Phiên bản** | 1.0                                                                                                                                 |
+| **Phạm vi**   | Authentication API, User Profile API, WebSocket `/ws/ai-coach` (AI Coach — F-01)                                                    |
+| **Liên quan** | `DETAILED_FEATURE_SRS_PART2.md` (F-01, mục 2.2, mục 6), `docs/API_SPEC_PART2.md` (Lessons & Gamification API), `DATA_DICTIONARY.md` |
 
 ---
 
 ## 0. Quy ước chung (Conventions)
 
-Áp dụng thống nhất với `docs/API_SPEC_PART2.md`.
+Áp dụng thống nhất với `DETAILED_FEATURE_SRS_PART2.md`.
 
 ### 0.1. Base URL
 
@@ -35,9 +35,9 @@ WebSocket không dùng header `Authorization` (do giới hạn của một số 
 
 ### 0.3. Access Token & Refresh Token
 
-| Token | Thời hạn | Vai trò |
-|---|---|---|
-| `accessToken` | 15 phút | Dùng cho `Authorization` header của REST và bước `auth` của WebSocket |
+| Token          | Thời hạn                     | Vai trò                                                                               |
+| -------------- | ---------------------------- | ------------------------------------------------------------------------------------- |
+| `accessToken`  | 15 phút                      | Dùng cho `Authorization` header của REST và bước `auth` của WebSocket                 |
 | `refreshToken` | 30 ngày, rotate mỗi lần dùng | Dùng để lấy `accessToken` mới qua `POST /auth/refresh`, lưu ở client (secure storage) |
 
 JWT payload (accessToken):
@@ -65,25 +65,25 @@ JWT payload (accessToken):
 }
 ```
 
-| HTTP Status | Ý nghĩa |
-|---|---|
-| 400 | Request không hợp lệ |
-| 401 | Chưa xác thực / token hết hạn hoặc sai |
-| 403 | Không có quyền / tài khoản bị khoá |
-| 404 | Không tìm thấy resource |
-| 409 | Xung đột trạng thái (VD: email đã tồn tại) |
-| 422 | Business rule violation |
-| 429 | Vượt rate limit |
-| 500 | Lỗi hệ thống |
+| HTTP Status | Ý nghĩa                                    |
+| ----------- | ------------------------------------------ |
+| 400         | Request không hợp lệ                       |
+| 401         | Chưa xác thực / token hết hạn hoặc sai     |
+| 403         | Không có quyền / tài khoản bị khoá         |
+| 404         | Không tìm thấy resource                    |
+| 409         | Xung đột trạng thái (VD: email đã tồn tại) |
+| 422         | Business rule violation                    |
+| 429         | Vượt rate limit                            |
+| 500         | Lỗi hệ thống                               |
 
 ### 0.5. Headers chung
 
-| Header | Bắt buộc | Mô tả |
-|---|---|---|
-| `Authorization` | Có (trừ endpoint public) | `Bearer <JWT>` |
-| `Content-Type` | Có (POST/PATCH) | `application/json` |
-| `X-Request-Id` | Không | UUID do client sinh, dùng để trace log |
-| `X-Device-Id` | Khuyến nghị | Định danh thiết bị, dùng để quản lý phiên đăng nhập đa thiết bị |
+| Header          | Bắt buộc                 | Mô tả                                                           |
+| --------------- | ------------------------ | --------------------------------------------------------------- |
+| `Authorization` | Có (trừ endpoint public) | `Bearer <JWT>`                                                  |
+| `Content-Type`  | Có (POST/PATCH)          | `application/json`                                              |
+| `X-Request-Id`  | Không                    | UUID do client sinh, dùng để trace log                          |
+| `X-Device-Id`   | Khuyến nghị              | Định danh thiết bị, dùng để quản lý phiên đăng nhập đa thiết bị |
 
 ---
 
@@ -98,15 +98,15 @@ User (1) ──< RefreshToken (N)   (quản lý session đăng nhập đa thiế
 
 ### 1.2. Danh sách Endpoint
 
-| # | Method | Path | Mô tả |
-|---|---|---|---|
-| 1.2.1 | POST | `/auth/register` | Đăng ký tài khoản bằng email/mật khẩu |
-| 1.2.2 | POST | `/auth/login` | Đăng nhập bằng email/mật khẩu |
-| 1.2.3 | POST | `/auth/oauth/{provider}` | Đăng nhập/đăng ký qua Google hoặc Apple |
-| 1.2.4 | POST | `/auth/refresh` | Lấy `accessToken` mới từ `refreshToken` |
-| 1.2.5 | POST | `/auth/logout` | Thu hồi `refreshToken` hiện tại |
-| 1.2.6 | POST | `/auth/forgot-password` | Gửi email đặt lại mật khẩu |
-| 1.2.7 | POST | `/auth/reset-password` | Đặt lại mật khẩu bằng token từ email |
+| #     | Method | Path                     | Mô tả                                   |
+| ----- | ------ | ------------------------ | --------------------------------------- |
+| 1.2.1 | POST   | `/auth/register`         | Đăng ký tài khoản bằng email/mật khẩu   |
+| 1.2.2 | POST   | `/auth/login`            | Đăng nhập bằng email/mật khẩu           |
+| 1.2.3 | POST   | `/auth/oauth/{provider}` | Đăng nhập/đăng ký qua Google hoặc Apple |
+| 1.2.4 | POST   | `/auth/refresh`          | Lấy `accessToken` mới từ `refreshToken` |
+| 1.2.5 | POST   | `/auth/logout`           | Thu hồi `refreshToken` hiện tại         |
+| 1.2.6 | POST   | `/auth/forgot-password`  | Gửi email đặt lại mật khẩu              |
+| 1.2.7 | POST   | `/auth/reset-password`   | Đặt lại mật khẩu bằng token từ email    |
 
 ---
 
@@ -132,7 +132,11 @@ User (1) ──< RefreshToken (N)   (quản lý session đăng nhập đa thiế
 **Request ví dụ:**
 
 ```json
-{ "email": "arka@example.com", "password": "Str0ngP@ss!", "fullName": "Arka Maulana" }
+{
+  "email": "arka@example.com",
+  "password": "Str0ngP@ss!",
+  "fullName": "Arka Maulana"
+}
 ```
 
 **Response 201 JSON Schema:**
@@ -141,14 +145,24 @@ User (1) ──< RefreshToken (N)   (quản lý session đăng nhập đa thiế
 {
   "$id": "AuthTokenResponse",
   "type": "object",
-  "required": ["userId", "email", "fullName", "accessToken", "refreshToken", "expiresIn"],
+  "required": [
+    "userId",
+    "email",
+    "fullName",
+    "accessToken",
+    "refreshToken",
+    "expiresIn"
+  ],
   "properties": {
     "userId": { "type": "string", "format": "uuid" },
     "email": { "type": "string", "format": "email" },
     "fullName": { "type": "string" },
     "accessToken": { "type": "string" },
     "refreshToken": { "type": "string" },
-    "expiresIn": { "type": "integer", "description": "Số giây accessToken còn hiệu lực" }
+    "expiresIn": {
+      "type": "integer",
+      "description": "Số giây accessToken còn hiệu lực"
+    }
   }
 }
 ```
@@ -167,6 +181,7 @@ User (1) ──< RefreshToken (N)   (quản lý session đăng nhập đa thiế
 ```
 
 **Business rules:**
+
 - Mật khẩu tối thiểu 8 ký tự, phải chứa ít nhất 1 chữ hoa, 1 chữ số (validate ở tầng backend, không chỉ frontend).
 - Tự động tạo bản ghi `user_profiles` rỗng (`onboarding_completed = false`) và `gamification_profiles` khởi tạo (`xp = 0, level = 'A1'`) ngay khi tạo `users`.
 
@@ -221,7 +236,10 @@ User (1) ──< RefreshToken (N)   (quản lý session đăng nhập đa thiế
   "type": "object",
   "required": ["idToken"],
   "properties": {
-    "idToken": { "type": "string", "description": "ID token trả về từ Google/Apple SDK phía client" }
+    "idToken": {
+      "type": "string",
+      "description": "ID token trả về từ Google/Apple SDK phía client"
+    }
   }
 }
 ```
@@ -229,6 +247,7 @@ User (1) ──< RefreshToken (N)   (quản lý session đăng nhập đa thiế
 **Response 200:** giống `AuthTokenResponse`, thêm field `isNewUser: boolean` (`true` nếu đây là lần đầu đăng nhập, hệ thống vừa tạo tài khoản mới).
 
 **Business rules:**
+
 - Backend xác thực `idToken` trực tiếp với Google/Apple trước khi tin tưởng email trong token.
 - Nếu email từ OAuth trùng với một tài khoản `local` đã tồn tại, liên kết tài khoản OAuth vào `users` hiện có (cập nhật `auth_provider`), không tạo tài khoản trùng.
 
@@ -264,13 +283,17 @@ User (1) ──< RefreshToken (N)   (quản lý session đăng nhập đa thiế
   "required": ["accessToken", "refreshToken", "expiresIn"],
   "properties": {
     "accessToken": { "type": "string" },
-    "refreshToken": { "type": "string", "description": "refreshToken mới (rotate) — client phải thay thế token cũ" },
+    "refreshToken": {
+      "type": "string",
+      "description": "refreshToken mới (rotate) — client phải thay thế token cũ"
+    },
     "expiresIn": { "type": "integer" }
   }
 }
 ```
 
 **Business rules:**
+
 - Áp dụng **refresh token rotation**: mỗi lần refresh thành công, `refreshToken` cũ bị vô hiệu hoá ngay lập tức và trả về token mới. Nếu một `refreshToken` đã bị vô hiệu hoá được dùng lại (dấu hiệu bị đánh cắp), thu hồi toàn bộ token của user và yêu cầu đăng nhập lại.
 
 **Lỗi:**
@@ -321,7 +344,9 @@ User (1) ──< RefreshToken (N)   (quản lý session đăng nhập đa thiế
 **Response 200 (luôn trả cùng một thông điệp, kể cả khi email không tồn tại — chống dò email):**
 
 ```json
-{ "message": "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu." }
+{
+  "message": "Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu."
+}
 ```
 
 **Business rules:** token đặt lại mật khẩu (gửi qua email) có hiệu lực 15 phút, dùng một lần.
@@ -371,13 +396,13 @@ Tương ứng bảng `users` + `user_profiles` trong `DATA_DICTIONARY.md`.
 
 ### 2.2. Danh sách Endpoint
 
-| # | Method | Path | Mô tả |
-|---|---|---|---|
-| 2.2.1 | GET | `/users/me` | Lấy thông tin tài khoản hiện tại |
-| 2.2.2 | GET | `/users/me/profile` | Lấy hồ sơ học tập hiện tại |
-| 2.2.3 | PATCH | `/users/me/profile` | Cập nhật một phần hồ sơ học tập |
-| 2.2.4 | POST | `/users/me/onboarding` | Hoàn tất khảo sát ban đầu, khởi tạo hồ sơ học tập |
-| 2.2.5 | DELETE | `/users/me` | Yêu cầu xoá tài khoản |
+| #     | Method | Path                   | Mô tả                                             |
+| ----- | ------ | ---------------------- | ------------------------------------------------- |
+| 2.2.1 | GET    | `/users/me`            | Lấy thông tin tài khoản hiện tại                  |
+| 2.2.2 | GET    | `/users/me/profile`    | Lấy hồ sơ học tập hiện tại                        |
+| 2.2.3 | PATCH  | `/users/me/profile`    | Cập nhật một phần hồ sơ học tập                   |
+| 2.2.4 | POST   | `/users/me/onboarding` | Hoàn tất khảo sát ban đầu, khởi tạo hồ sơ học tập |
+| 2.2.5 | DELETE | `/users/me`            | Yêu cầu xoá tài khoản                             |
 
 ---
 
@@ -391,7 +416,14 @@ Tương ứng bảng `users` + `user_profiles` trong `DATA_DICTIONARY.md`.
 {
   "$id": "UserResponse",
   "type": "object",
-  "required": ["userId", "email", "fullName", "authProvider", "status", "createdAt"],
+  "required": [
+    "userId",
+    "email",
+    "fullName",
+    "authProvider",
+    "status",
+    "createdAt"
+  ],
   "properties": {
     "userId": { "type": "string", "format": "uuid" },
     "email": { "type": "string", "format": "email" },
@@ -461,9 +493,17 @@ Cập nhật một phần hồ sơ. Chỉ gửi các field cần thay đổi.
   "type": "object",
   "minProperties": 1,
   "properties": {
-    "interests": { "type": "array", "items": { "type": "string" }, "maxItems": 10 },
+    "interests": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 10
+    },
     "communicationGoal": { "type": "string", "maxLength": 500 },
-    "preferredTopics": { "type": "array", "items": { "type": "string" }, "maxItems": 10 }
+    "preferredTopics": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 10
+    }
   },
   "additionalProperties": false
 }
@@ -472,6 +512,7 @@ Cập nhật một phần hồ sơ. Chỉ gửi các field cần thay đổi.
 **Response 200:** `UserProfileResponse` (mục 2.2.2) đã cập nhật.
 
 **Business rules:**
+
 - `level` **không** nằm trong schema cho phép cập nhật thủ công qua endpoint này — Level chỉ được thay đổi qua `POST /gamification/level/recompute` **[Internal]** (xem `docs/API_SPEC_PART2.md`, mục 2.3.7), trừ lần khởi tạo ban đầu ở bước Onboarding (mục 2.2.4).
 - `weakPoints` cũng không cho client tự sửa — chỉ được hệ thống ghi nhận tự động từ AI Analysis Service.
 
@@ -496,10 +537,21 @@ Hoàn tất khảo sát ban đầu (chọn trình độ tự đánh giá hoặc 
   "type": "object",
   "required": ["initialLevel", "communicationGoal"],
   "properties": {
-    "initialLevel": { "type": "string", "enum": ["A1", "A2", "B1", "B2", "C1"] },
-    "interests": { "type": "array", "items": { "type": "string" }, "maxItems": 10 },
+    "initialLevel": {
+      "type": "string",
+      "enum": ["A1", "A2", "B1", "B2", "C1"]
+    },
+    "interests": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 10
+    },
     "communicationGoal": { "type": "string", "maxLength": 500 },
-    "preferredTopics": { "type": "array", "items": { "type": "string" }, "maxItems": 10 }
+    "preferredTopics": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 10
+    }
   }
 }
 ```
@@ -507,6 +559,7 @@ Hoàn tất khảo sát ban đầu (chọn trình độ tự đánh giá hoặc 
 **Response 200:** `UserProfileResponse` với `onboardingCompleted = true`.
 
 **Business rules:**
+
 - Gọi endpoint này lần thứ 2 trở đi sẽ trả lỗi `409 ONBOARDING_ALREADY_COMPLETED` — muốn đổi `level`/sở thích sau đó, dùng `PATCH /users/me/profile` (trừ `level`, vốn do hệ thống tự quản lý từ thời điểm này trở đi).
 
 **Lỗi:**
@@ -594,7 +647,10 @@ Client                                   Server
   "required": ["type", "token"],
   "properties": {
     "type": { "const": "auth" },
-    "token": { "type": "string", "description": "accessToken JWT, giống REST Authorization header" }
+    "token": {
+      "type": "string",
+      "description": "accessToken JWT, giống REST Authorization header"
+    }
   }
 }
 ```
@@ -621,15 +677,33 @@ Client                                   Server
 {
   "$id": "WsAudioChunkMessage",
   "type": "object",
-  "required": ["type", "sessionId", "seq", "audioBase64", "format", "sampleRate"],
+  "required": [
+    "type",
+    "sessionId",
+    "seq",
+    "audioBase64",
+    "format",
+    "sampleRate"
+  ],
   "properties": {
     "type": { "const": "audio_chunk" },
     "sessionId": { "type": "string", "format": "uuid" },
-    "seq": { "type": "integer", "minimum": 0, "description": "Số thứ tự chunk, tăng dần, dùng để phát hiện mất gói" },
-    "audioBase64": { "type": "string", "description": "Dữ liệu audio đã encode base64" },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Số thứ tự chunk, tăng dần, dùng để phát hiện mất gói"
+    },
+    "audioBase64": {
+      "type": "string",
+      "description": "Dữ liệu audio đã encode base64"
+    },
     "format": { "type": "string", "enum": ["opus", "pcm16"] },
     "sampleRate": { "type": "integer", "enum": [16000, 48000] },
-    "isLast": { "type": "boolean", "default": false, "description": "true nếu đây là chunk cuối của một lượt nói (kết thúc utterance)" }
+    "isLast": {
+      "type": "boolean",
+      "default": false,
+      "description": "true nếu đây là chunk cuối của một lượt nói (kết thúc utterance)"
+    }
   }
 }
 ```
@@ -646,7 +720,11 @@ Client                                   Server
   "properties": {
     "type": { "const": "end_session" },
     "sessionId": { "type": "string", "format": "uuid" },
-    "reason": { "type": "string", "enum": ["USER_ENDED", "TIMEOUT", "ERROR_RECOVERY"], "default": "USER_ENDED" }
+    "reason": {
+      "type": "string",
+      "enum": ["USER_ENDED", "TIMEOUT", "ERROR_RECOVERY"],
+      "default": "USER_ENDED"
+    }
   }
 }
 ```
@@ -654,7 +732,12 @@ Client                                   Server
 #### 3.4.5. `ping`
 
 ```json
-{ "$id": "WsPingMessage", "type": "object", "required": ["type"], "properties": { "type": { "const": "ping" } } }
+{
+  "$id": "WsPingMessage",
+  "type": "object",
+  "required": ["type"],
+  "properties": { "type": { "const": "ping" } }
+}
 ```
 
 ---
@@ -687,8 +770,14 @@ Client                                   Server
     "type": { "const": "session_started" },
     "sessionId": { "type": "string", "format": "uuid" },
     "status": { "const": "ACTIVE" },
-    "aiOpeningText": { "type": "string", "description": "Câu mở đầu của AI theo topic/level" },
-    "aiOpeningAudioUrl": { "type": ["string", "null"], "description": "TTS audio của câu mở đầu, null nếu client tự dùng TTS phía client" }
+    "aiOpeningText": {
+      "type": "string",
+      "description": "Câu mở đầu của AI theo topic/level"
+    },
+    "aiOpeningAudioUrl": {
+      "type": ["string", "null"],
+      "description": "TTS audio của câu mở đầu, null nếu client tự dùng TTS phía client"
+    }
   }
 }
 ```
@@ -718,7 +807,15 @@ Client                                   Server
 {
   "$id": "WsTranscriptFinalMessage",
   "type": "object",
-  "required": ["type", "sessionId", "segmentId", "speaker", "text", "startTime", "isFinal"],
+  "required": [
+    "type",
+    "sessionId",
+    "segmentId",
+    "speaker",
+    "text",
+    "startTime",
+    "isFinal"
+  ],
   "properties": {
     "type": { "const": "transcript_final" },
     "sessionId": { "type": "string", "format": "uuid" },
@@ -761,7 +858,10 @@ Dùng để frontend hiển thị UX state "Processing" (SRS mục 5.1) trong l�
     "sessionId": { "type": "string", "format": "uuid" },
     "segmentId": { "type": "string", "format": "uuid" },
     "text": { "type": "string" },
-    "audioUrl": { "type": ["string", "null"], "description": "TTS audio của câu trả lời AI" }
+    "audioUrl": {
+      "type": ["string", "null"],
+      "description": "TTS audio của câu trả lời AI"
+    }
   }
 }
 ```
@@ -807,7 +907,10 @@ Server tự động ghi message này vào `transcript_segments` với `speaker_t
   "properties": {
     "type": { "const": "feedback_ready" },
     "sessionId": { "type": "string", "format": "uuid" },
-    "resultStatus": { "type": "string", "enum": ["READY", "INSUFFICIENT_DATA", "FAILED"] }
+    "resultStatus": {
+      "type": "string",
+      "enum": ["READY", "INSUFFICIENT_DATA", "FAILED"]
+    }
   }
 }
 ```
@@ -825,7 +928,10 @@ Server tự động ghi message này vào `transcript_segments` với `speaker_t
     "type": { "const": "error" },
     "code": { "type": "string" },
     "message": { "type": "string" },
-    "recoverable": { "type": "boolean", "description": "true nếu client có thể tự retry (VD lỗi STT tạm thời), false nếu cần đóng và mở lại kết nối" }
+    "recoverable": {
+      "type": "boolean",
+      "description": "true nếu client có thể tự retry (VD lỗi STT tạm thời), false nếu cần đóng và mở lại kết nối"
+    }
   }
 }
 ```
@@ -833,35 +939,41 @@ Server tự động ghi message này vào `transcript_segments` với `speaker_t
 #### 3.5.10. `pong`
 
 ```json
-{ "$id": "WsPongMessage", "type": "object", "required": ["type"], "properties": { "type": { "const": "pong" } } }
+{
+  "$id": "WsPongMessage",
+  "type": "object",
+  "required": ["type"],
+  "properties": { "type": { "const": "pong" } }
+}
 ```
 
 ---
 
 ### 3.6. Mã lỗi & Close Code cho WebSocket
 
-| Code (trong message `error`) | recoverable | Mô tả | Tương ứng EC trong SRS |
-|---|---|---|---|
-| `AUTH_FAILED` | false | Token không hợp lệ/hết hạn khi gửi `auth` | — |
-| `PROFILE_INCOMPLETE` | false | Chưa hoàn tất Onboarding | mục 4 SRS |
-| `STT_TIMEOUT` | true | Dịch vụ STT không phản hồi kịp, server sẽ tự retry | STT timeout |
-| `AI_RESPONSE_TIMEOUT` | true | AI Language Model không phản hồi kịp, server sẽ tự retry | AI response timeout |
-| `AUDIO_FORMAT_INVALID` | false | `format`/`sampleRate` không được hỗ trợ | — |
-| `SESSION_NOT_FOUND` | false | `sessionId` không khớp với session đang mở trên kết nối này | — |
-| `RATE_LIMITED` | true | Gửi `audio_chunk` quá nhanh so với giới hạn | — |
-| `INTERNAL_ERROR` | true | Lỗi hệ thống không xác định, có thể thử lại | — |
+| Code (trong message `error`) | recoverable | Mô tả                                                       | Tương ứng EC trong SRS |
+| ---------------------------- | ----------- | ----------------------------------------------------------- | ---------------------- |
+| `AUTH_FAILED`                | false       | Token không hợp lệ/hết hạn khi gửi `auth`                   | —                      |
+| `PROFILE_INCOMPLETE`         | false       | Chưa hoàn tất Onboarding                                    | mục 4 SRS              |
+| `STT_TIMEOUT`                | true        | Dịch vụ STT không phản hồi kịp, server sẽ tự retry          | STT timeout            |
+| `AI_RESPONSE_TIMEOUT`        | true        | AI Language Model không phản hồi kịp, server sẽ tự retry    | AI response timeout    |
+| `AUDIO_FORMAT_INVALID`       | false       | `format`/`sampleRate` không được hỗ trợ                     | —                      |
+| `SESSION_NOT_FOUND`          | false       | `sessionId` không khớp với session đang mở trên kết nối này | —                      |
+| `RATE_LIMITED`               | true        | Gửi `audio_chunk` quá nhanh so với giới hạn                 | —                      |
+| `INTERNAL_ERROR`             | true        | Lỗi hệ thống không xác định, có thể thử lại                 | —                      |
 
-| WebSocket Close Code | Ý nghĩa |
-|---|---|
-| `1000` | Đóng bình thường (client hoặc server chủ động kết thúc đúng luồng) |
-| `1011` | Lỗi server không mong muốn |
-| `4401` | Xác thực thất bại hoặc không gửi `auth` trong 5 giây đầu |
-| `4409` | Có kết nối `/ws/ai-coach` khác của cùng user đang ACTIVE |
-| `4429` | Vượt rate limit kết nối/message |
+| WebSocket Close Code | Ý nghĩa                                                            |
+| -------------------- | ------------------------------------------------------------------ |
+| `1000`               | Đóng bình thường (client hoặc server chủ động kết thúc đúng luồng) |
+| `1011`               | Lỗi server không mong muốn                                         |
+| `4401`               | Xác thực thất bại hoặc không gửi `auth` trong 5 giây đầu           |
+| `4409`               | Có kết nối `/ws/ai-coach` khác của cùng user đang ACTIVE           |
+| `4429`               | Vượt rate limit kết nối/message                                    |
 
 ### 3.7. Ghi chú xử lý mất kết nối (Reconnect)
 
 Theo EC "Mất mạng khi đang nói" trong SRS mục 7: khi client phát hiện kết nối WebSocket đóng đột ngột (không phải do nhận `session_ended`), client:
+
 1. Hiển thị trạng thái `Reconnecting`.
 2. Thử kết nối lại theo backoff (1s → 2s → 4s → tối đa 16s, tối đa 5 lần).
 3. Sau khi kết nối lại và `auth` thành công, gửi lại `start_session` **không kèm topic mới** mà kèm `sessionId` cũ (mở rộng schema `start_session` với field `resumeSessionId` tuỳ chọn) để server khôi phục session `ACTIVE` hiện có thay vì tạo mới, tránh tạo `CoachSession` trùng lặp.
@@ -871,20 +983,20 @@ Theo EC "Mất mạng khi đang nói" trong SRS mục 7: khi client phát hiện
 
 ## 4. Bảng mã lỗi REST tổng hợp (Authentication & User Profile)
 
-| Code | HTTP | Áp dụng cho |
-|---|---|---|
-| `VALIDATION_ERROR` | 400 | Mọi endpoint POST/PATCH |
-| `WEAK_PASSWORD` | 400 | `/auth/register`, `/auth/reset-password` |
-| `UNAUTHORIZED` | 401 | Mọi endpoint yêu cầu Bearer JWT |
-| `INVALID_CREDENTIALS` | 401 | `/auth/login` |
-| `INVALID_OAUTH_TOKEN` | 401 | `/auth/oauth/{provider}` |
-| `REFRESH_TOKEN_INVALID` \| `REFRESH_TOKEN_EXPIRED` \| `REFRESH_TOKEN_REUSE_DETECTED` | 401 | `/auth/refresh` |
-| `RESET_TOKEN_INVALID` \| `RESET_TOKEN_EXPIRED` | 401 | `/auth/reset-password` |
-| `ACCOUNT_SUSPENDED` | 403 | `/auth/login` và mọi endpoint khác nếu `users.status = SUSPENDED` |
-| `EMAIL_ALREADY_EXISTS` | 409 | `/auth/register` |
-| `ONBOARDING_ALREADY_COMPLETED` | 409 | `/users/me/onboarding` |
-| `RATE_LIMITED` | 429 | Mọi endpoint public (đặc biệt `/auth/login`, `/auth/forgot-password`) |
-| `INTERNAL_ERROR` | 500 | Mọi endpoint |
+| Code                                                                                 | HTTP | Áp dụng cho                                                           |
+| ------------------------------------------------------------------------------------ | ---- | --------------------------------------------------------------------- |
+| `VALIDATION_ERROR`                                                                   | 400  | Mọi endpoint POST/PATCH                                               |
+| `WEAK_PASSWORD`                                                                      | 400  | `/auth/register`, `/auth/reset-password`                              |
+| `UNAUTHORIZED`                                                                       | 401  | Mọi endpoint yêu cầu Bearer JWT                                       |
+| `INVALID_CREDENTIALS`                                                                | 401  | `/auth/login`                                                         |
+| `INVALID_OAUTH_TOKEN`                                                                | 401  | `/auth/oauth/{provider}`                                              |
+| `REFRESH_TOKEN_INVALID` \| `REFRESH_TOKEN_EXPIRED` \| `REFRESH_TOKEN_REUSE_DETECTED` | 401  | `/auth/refresh`                                                       |
+| `RESET_TOKEN_INVALID` \| `RESET_TOKEN_EXPIRED`                                       | 401  | `/auth/reset-password`                                                |
+| `ACCOUNT_SUSPENDED`                                                                  | 403  | `/auth/login` và mọi endpoint khác nếu `users.status = SUSPENDED`     |
+| `EMAIL_ALREADY_EXISTS`                                                               | 409  | `/auth/register`                                                      |
+| `ONBOARDING_ALREADY_COMPLETED`                                                       | 409  | `/users/me/onboarding`                                                |
+| `RATE_LIMITED`                                                                       | 429  | Mọi endpoint public (đặc biệt `/auth/login`, `/auth/forgot-password`) |
+| `INTERNAL_ERROR`                                                                     | 500  | Mọi endpoint                                                          |
 
 ---
 
