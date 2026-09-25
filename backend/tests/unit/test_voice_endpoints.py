@@ -2,6 +2,7 @@ import base64
 from unittest.mock import AsyncMock
 
 import pytest
+from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
 from app.api.deps import get_tts_service
@@ -59,42 +60,38 @@ async def test_tts_stream_endpoint(mock_tts_service):
     app.dependency_overrides.clear()
 
 
-@pytest.mark.asyncio
-async def test_voice_websocket_endpoint(mock_tts_service):
+def test_voice_websocket_endpoint(mock_tts_service):
     app.dependency_overrides[get_tts_service] = lambda: mock_tts_service
-    from fastapi.testclient import TestClient
 
-    with (
-        TestClient(app) as test_client,
-        test_client.websocket_connect("/api/v1/voice/ws") as websocket,
-    ):
-        # Test ping
-        websocket.send_json({"type": "ping"})
-        data = websocket.receive_json()
-        assert data == {"type": "pong"}
+    with TestClient(app) as test_client:
+        with test_client.websocket_connect("/api/v1/voice/ws") as websocket:
+            # Test ping
+            websocket.send_json({"type": "ping"})
+            data = websocket.receive_json()
+            assert data == {"type": "pong"}
 
-        # Test invalid JSON
-        websocket.send_text("invalid json")
-        data = websocket.receive_json()
-        assert data["type"] == "error"
+            # Test invalid JSON
+            websocket.send_text("invalid json")
+            data = websocket.receive_json()
+            assert data["type"] == "error"
 
-        # Test missing text
-        websocket.send_json({"type": "generate_tts", "text": ""})
-        data = websocket.receive_json()
-        assert data["type"] == "error"
+            # Test missing text
+            websocket.send_json({"type": "generate_tts", "text": ""})
+            data = websocket.receive_json()
+            assert data["type"] == "error"
 
-        # Test unknown type
-        websocket.send_json({"type": "unknown_action"})
-        data = websocket.receive_json()
-        assert data["type"] == "error"
+            # Test unknown type
+            websocket.send_json({"type": "unknown_action"})
+            data = websocket.receive_json()
+            assert data["type"] == "error"
 
-        # Test valid TTS generation
-        websocket.send_json(
-            {"type": "generate_tts", "text": "Hello WS", "voice": "vi-VN-HoaiMyNeural"}
-        )
-        data = websocket.receive_json()
-        assert data["type"] == "audio_response"
-        assert data["text"] == "Hello WS"
-        assert base64.b64decode(data["audio_b64"]) == b"fake_mp3_binary_data"
+            # Test valid TTS generation
+            websocket.send_json(
+                {"type": "generate_tts", "text": "Hello WS", "voice": "vi-VN-HoaiMyNeural"}
+            )
+            data = websocket.receive_json()
+            assert data["type"] == "audio_response"
+            assert data["text"] == "Hello WS"
+            assert base64.b64decode(data["audio_b64"]) == b"fake_mp3_binary_data"
 
     app.dependency_overrides.clear()
