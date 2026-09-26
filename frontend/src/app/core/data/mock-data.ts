@@ -1,4 +1,4 @@
-import type { Achievement, AiCoachSkillMetric, AiCoachTopicGroup, CommunityRoomMember, ConversationLine, DashboardShortcut, DashboardSkill, FaqItem, LevelRequirement, LoginFeature, Mission, ProgressSessionHistory, QuickGuide, RecommendedExercise, RoomListing, Scenario, ScenarioCatalogItem, ScenarioChunk, ScenarioGroup, ScenarioTaskResult, Session, Settings, SkillProgress, SummaryMetric, ThemeOption, UsefulPhrase, User, XpHistoryEntry } from '../models/app.models';
+import type { Achievement, AiCoachSkillMetric, AiCoachTopicGroup, CommunityRoomMember, ConversationLine, DashboardShortcut, DashboardSkill, FaqItem, LevelRequirement, LoginFeature, Mission, ProgressSessionHistory, QuickGuide, RecommendedExercise, RoomListing, Scenario, ScenarioChunk, ScenarioGroup, ScenarioTaskResult, Session, Settings, SkillProgress, SummaryMetric, ThemeOption, UsefulPhrase, User, XpHistoryEntry } from '../models/app.models';
 
 export const MOCK_USER: User = {
   name: "Minh Anh",
