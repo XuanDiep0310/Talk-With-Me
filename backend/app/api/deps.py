@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.core.redis import get_redis
 from app.repositories.health import HealthRepository
 from app.services.health import HealthService
+from app.services.tts import TTSService
 
 
 def get_health_repository(
@@ -21,3 +22,7 @@ def get_health_service(
     settings: Settings = Depends(get_settings),
 ) -> HealthService:
     return HealthService(repository=repository, settings=settings)
+
+
+def get_tts_service() -> TTSService:
+    return TTSService()
