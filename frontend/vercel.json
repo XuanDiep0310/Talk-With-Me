@@ -1,4 +1,5 @@
 {
+  "outputDirectory": "dist/talk-with-me-frontend/browser",
   "rewrites": [
     {
       "source": "/(.*)",
