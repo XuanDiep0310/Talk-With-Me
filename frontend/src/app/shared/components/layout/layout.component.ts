@@ -19,10 +19,12 @@ interface NavItem {
     <div class="flex h-screen overflow-hidden" style="background: #F0F6FB">
       <!-- Mobile overlay -->
       @if (sidebarOpen()) {
-        <div
-          class="fixed inset-0 z-40 bg-black/30 lg:hidden"
+        <button
+          type="button"
+          class="fixed inset-0 z-40 bg-black/30 lg:hidden w-full h-full border-0 cursor-default"
           (click)="toggleSidebar(false)"
-        ></div>
+          aria-label="Close sidebar"
+        ></button>
       }
 
       <!-- Sidebar -->
@@ -33,8 +35,13 @@ interface NavItem {
         style="background: #fff; border-right: 1px solid #E2F0F9"
       >
         <!-- Logo -->
-        <div class="flex items-center gap-3 px-5 py-5 border-b cursor-pointer" style="border-color: #E2F0F9" (click)="navigate('dashboard')">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: #286FB4">
+        <button
+          type="button"
+          class="flex items-center gap-3 px-5 py-5 border-b cursor-pointer w-full text-left bg-transparent"
+          style="border-color: #E2F0F9"
+          (click)="navigate('dashboard')"
+        >
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background: #286FB4">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth="2.5">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
@@ -44,7 +51,7 @@ interface NavItem {
             <div class="font-800 text-base leading-tight" style="color: #286FB4; font-weight: 800">TalkWithMe</div>
             <div class="text-xs" style="color: #94a3b8">AI English Coach</div>
           </div>
-        </div>
+        </button>
 
         <!-- Main Nav -->
         <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
@@ -92,8 +99,9 @@ interface NavItem {
         </div>
 
         <!-- User section -->
-        <div
-          class="flex items-center gap-3 px-4 py-4 cursor-pointer border-t"
+        <button
+          type="button"
+          class="flex items-center gap-3 px-4 py-4 cursor-pointer border-t w-full text-left bg-transparent"
           style="border-color: #E2F0F9"
           (click)="navigate('profile')"
         >
@@ -102,7 +110,7 @@ interface NavItem {
             <div class="text-sm font-600 truncate" style="color: #1e293b; font-weight: 600">{{ appState.appUser().name }}</div>
             <div class="text-xs" style="color: #94a3b8">Học viên tích cực</div>
           </div>
-        </div>
+        </button>
       </aside>
 
       <!-- Main container -->
@@ -138,13 +146,19 @@ interface NavItem {
             <span class="absolute top-1 right-1 w-2 h-2 rounded-full" style="background: #DF4C73"></span>
           </button>
 
-          <img
-            [src]="appState.appUser().avatar"
-            [alt]="appState.appUser().name"
-            class="w-9 h-9 rounded-full object-cover cursor-pointer"
-            style="outline: 2px solid #B0DDE4"
+          <button
+            type="button"
+            class="rounded-full cursor-pointer focus:outline-none p-0 border-0 bg-transparent"
             (click)="navigate('profile')"
-          />
+            aria-label="User profile"
+          >
+            <img
+              [src]="appState.appUser().avatar"
+              [alt]="appState.appUser().name"
+              class="w-9 h-9 rounded-full object-cover"
+              style="outline: 2px solid #B0DDE4"
+            />
+          </button>
         </header>
 
         <!-- Dynamic Content Slot -->
