@@ -47,15 +47,18 @@ import { AppStateService } from '../../core/services/app-state.service';
           <div class="space-y-4">
             <div>
               <label for="reg-name" class="text-sm font-600 block mb-1.5" style="color: #374151; font-weight: 600">Họ và tên</label>
-              <input id="reg-name" class="input-field" type="text" placeholder="Nguyễn Văn A" [value]="name()" (input)="updateName($event)" />
+              <input id="reg-name" class="input-field" type="text" autocomplete="name" required placeholder="Nguyễn Văn A" [value]="name()" (input)="updateName($event)" />
+              @if (submitted() && name().trim().length <= 1) { <p class="mt-1 text-xs text-rose-600">Vui lòng nhập họ tên.</p> }
             </div>
             <div>
               <label for="reg-email" class="text-sm font-600 block mb-1.5" style="color: #374151; font-weight: 600">Email</label>
-              <input id="reg-email" class="input-field" type="email" placeholder="email@gmail.com" [value]="email()" (input)="updateEmail($event)" />
+              <input id="reg-email" class="input-field" type="email" autocomplete="email" required placeholder="email@gmail.com" [value]="email()" (input)="updateEmail($event)" />
+              @if (submitted() && !isEmailValid()) { <p class="mt-1 text-xs text-rose-600">Vui lòng nhập email hợp lệ.</p> }
             </div>
             <div>
               <label for="reg-password" class="text-sm font-600 block mb-1.5" style="color: #374151; font-weight: 600">Mật khẩu</label>
-              <input id="reg-password" class="input-field" type="password" placeholder="Tối thiểu 6 ký tự" [value]="password()" (input)="updatePassword($event)" />
+              <input id="reg-password" class="input-field" type="password" autocomplete="new-password" required placeholder="Tối thiểu 6 ký tự" [value]="password()" (input)="updatePassword($event)" />
+              @if (submitted() && password().length < 6) { <p class="mt-1 text-xs text-rose-600">Mật khẩu cần ít nhất 6 ký tự.</p> }
               <div class="flex gap-1 mt-2">
                 @for (bar of passwordBars(); track bar.index) {
                   <div class="flex-1 h-1 rounded-full transition-all" [style.background]="bar.color"></div>
@@ -74,6 +77,7 @@ import { AppStateService } from '../../core/services/app-state.service';
                 <span class="underline" style="color: #286FB4">Chính sách bảo mật</span>
               </span>
             </label>
+            @if (submitted() && !agree()) { <p class="text-xs text-rose-600" role="alert">Bạn cần đồng ý với điều khoản để tiếp tục.</p> }
 
             <button
               class="btn-primary w-full justify-center py-3 text-base cursor-pointer"
@@ -117,6 +121,7 @@ export class RegisterComponent {
   readonly password = signal("");
   readonly agree = signal(false);
   readonly loading = signal(false);
+  readonly submitted = signal(false);
 
   readonly highlights = [
     "✅ Phân tích phát âm chi tiết",
@@ -127,7 +132,7 @@ export class RegisterComponent {
 
   readonly valid = computed(() => {
     return this.name().trim().length > 1 &&
-      this.email().includes("@") &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email().trim()) &&
       this.password().length >= 6 &&
       this.agree();
   });
@@ -165,12 +170,26 @@ export class RegisterComponent {
     this.agree.update(v => !v);
   }
 
+  isEmailValid(): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email().trim());
+  }
+
   handleRegister(): void {
+    this.submitted.set(true);
     if (!this.valid()) return;
     this.loading.set(true);
     setTimeout(() => {
       this.loading.set(false);
-      this.appState.go("onboarding");
+      this.appState.register({
+        ...this.appState.appUser(),
+        name: this.name().trim(),
+        email: this.email().trim(),
+        xp: 0,
+        streak: 0,
+        interests: [],
+        goals: [],
+        weaknesses: []
+      });
     }, 600);
   }
 }

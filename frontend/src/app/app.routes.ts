@@ -1,4 +1,12 @@
 import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { AppStateService } from './core/services/app-state.service';
+
+const requireAuth = () => {
+  const state = inject(AppStateService);
+  return state.isLoggedIn() || inject(Router).createUrlTree(['/login']);
+};
 
 export const routes: Routes = [
   // Standalone pages without app layout shell
@@ -25,6 +33,7 @@ export const routes: Routes = [
   },
   {
     path: 'onboarding',
+    canActivate: [requireAuth],
     loadComponent: () =>
       import('./features/onboarding/onboarding.component').then((m) => m.OnboardingComponent)
   },
@@ -42,6 +51,7 @@ export const routes: Routes = [
   },
   {
     path: '',
+    canActivate: [requireAuth],
     loadComponent: () =>
       import('./shared/components/layout/layout.component').then(
         (m) => m.LayoutComponent
