@@ -4,6 +4,7 @@ export const routes: Routes = [
   // Standalone pages without app layout shell
   {
     path: '',
+    pathMatch: 'full',
     loadComponent: () =>
       import('./features/landing/landing.component').then((m) => m.LandingComponent)
   },
@@ -38,6 +39,120 @@ export const routes: Routes = [
       import('./features/voice-demo/voice-demo.component').then(
         (m) => m.VoiceDemoComponent
       )
+  },
+  {
+    path: '',
+    loadComponent: () =>
+      import('./shared/components/layout/layout.component').then(
+        (m) => m.LayoutComponent
+      ),
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/dashboard/dashboard.component').then(
+            (m) => m.DashboardComponent
+          )
+      },
+      {
+        path: 'ai-coach',
+        loadComponent: () =>
+          import('./features/ai-coach/ai-coach.component').then(
+            (m) => m.AiCoachComponent
+          )
+      },
+      {
+        path: 'ai-coach-report',
+        loadComponent: () =>
+          import('./features/ai-coach/ai-coach-report.component').then(
+            (m) => m.AiCoachReportComponent
+          )
+      },
+      {
+        path: 'scenarios',
+        loadComponent: () =>
+          import('./features/scenarios/scenarios.component').then(
+            (m) => m.ScenariosComponent
+          )
+      },
+      {
+        path: 'scenario-detail',
+        loadComponent: () =>
+          import('./features/scenarios/scenario-detail.component').then(
+            (m) => m.ScenarioDetailComponent
+          )
+      },
+      {
+        path: 'scenario-roleplay',
+        loadComponent: () =>
+          import('./features/scenarios/scenario-roleplay.component').then(
+            (m) => m.ScenarioRoleplayComponent
+          )
+      },
+      {
+        path: 'scenario-result',
+        loadComponent: () =>
+          import('./features/scenarios/scenario-result.component').then(
+            (m) => m.ScenarioResultComponent
+          )
+      },
+      {
+        path: 'community',
+        loadComponent: () =>
+          import('./features/community/community.component').then(
+            (m) => m.CommunityComponent
+          )
+      },
+      {
+        path: 'community-room',
+        loadComponent: () =>
+          import('./features/community/community-room.component').then(
+            (m) => m.CommunityRoomComponent
+          )
+      },
+      {
+        path: 'progress',
+        loadComponent: () =>
+          import('./features/progress/progress.component').then(
+            (m) => m.ProgressComponent
+          )
+      },
+      {
+        path: 'achievements',
+        loadComponent: () =>
+          import('./features/achievements/achievements.component').then(
+            (m) => m.AchievementsComponent
+          )
+      },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./features/profile/profile.component').then(
+            (m) => m.ProfileComponent
+          )
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./features/settings/settings.component').then(
+            (m) => m.SettingsComponent
+          )
+      },
+      {
+        path: 'help',
+        loadComponent: () =>
+          import('./features/help/help.component').then(
+            (m) => m.HelpComponent
+          )
+      },
+      {
+        path: 'health',
+        loadComponent: () =>
+          import('./features/health/health-check.component').then(
+            (m) => m.HealthCheckComponent
+          )
+      }
+    ]
   },
   {
     path: '**',
