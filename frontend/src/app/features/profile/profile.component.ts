@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@a
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
 import { AppUser } from '../../core/models/app.models';
-import { USER_GOALS, USER_INTERESTS } from '../../core/mock/mock-data';
+import { MOCK_PROFILE_GOALS, MOCK_PROFILE_INTERESTS } from '../../core/data/mock-data';
 
 
 @Component({
@@ -106,16 +106,16 @@ import { USER_GOALS, USER_INTERESTS } from '../../core/mock/mock-data';
   `
 })
 export class ProfileComponent {
-  readonly ALL_INTERESTS = USER_INTERESTS;
-  readonly ALL_GOALS = USER_GOALS;
+  readonly ALL_INTERESTS = MOCK_PROFILE_INTERESTS;
+  readonly ALL_GOALS = MOCK_PROFILE_GOALS;
   readonly appState = inject(AppStateService);
 
   readonly editing = signal(false);
   readonly saved = signal(false);
 
   readonly editName = signal(this.appState.appUser().name);
-  readonly allInterests = USER_INTERESTS;
-  readonly allGoals = USER_GOALS;
+  readonly allInterests = MOCK_PROFILE_INTERESTS;
+  readonly allGoals = MOCK_PROFILE_GOALS;
 
   readonly userStats = computed(() => [
     { label: "Level hiện tại", value: this.appState.appUser().level, emoji: "🎓", color: "#286FB4" },

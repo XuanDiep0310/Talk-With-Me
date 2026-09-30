@@ -1,11 +1,11 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
-import { Achievement, AchievementMission } from '../../core/models/app.models';
-import { MOCK_ACHIEVEMENTS, MOCK_MISSIONS } from '../../core/mock/mock-data';
+import { Achievement, Mission } from '../../core/models/app.models';
+import { MOCK_ACHIEVEMENTS, MOCK_DAILY_MISSIONS } from '../../core/data/mock-data';
 
 export const BADGES: Achievement[] = MOCK_ACHIEVEMENTS;
-export const MISSIONS: AchievementMission[] = MOCK_MISSIONS;
+export const MISSIONS: Mission[] = MOCK_DAILY_MISSIONS;
 
 export const XP_HISTORY = [
   { date: "Hôm nay", xp: 70, source: "AI Coach + Streak" },

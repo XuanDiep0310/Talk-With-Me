@@ -47,7 +47,7 @@ services:
       APP_NAME: ${APP_NAME:-Talk-With-Me API}
       APP_VERSION: ${APP_VERSION:-0.1.0}
       ENVIRONMENT: ${ENVIRONMENT:-development}
-      DEBUG: ${DEBUG:-True}
+      DEBUG: ${TALK_WITH_ME_DEBUG:-false}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
