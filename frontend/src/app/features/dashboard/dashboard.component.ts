@@ -1,8 +1,8 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
-import { AppPage, PracticeSession, AchievementMission } from '../../core/models/app.models';
-import { MOCK_MISSIONS, MOCK_SESSIONS } from '../../core/mock/mock-data';
+import { AppPage, Session, Mission } from '../../core/models/app.models';
+import { MOCK_DAILY_MISSIONS, MOCK_RECENT_SESSIONS } from '../../core/data/mock-data';
 
 interface Skill {
   label: string;
@@ -196,7 +196,7 @@ interface Shortcut {
 export class DashboardComponent {
   readonly appState = inject(AppStateService);
 
-  readonly missions = signal<AchievementMission[]>(MOCK_MISSIONS.map(mission => ({ ...mission })));
+  readonly missions = signal<Mission[]>(MOCK_DAILY_MISSIONS.map(mission => ({ ...mission })));
 
   readonly skills: Skill[] = [
     { label: "Fluency", value: 72, color: "#286FB4" },
@@ -206,7 +206,7 @@ export class DashboardComponent {
     { label: "Phát âm", value: 64, color: "#22c55e" }
   ];
 
-  readonly recentSessions: PracticeSession[] = MOCK_SESSIONS;
+  readonly recentSessions: Session[] = MOCK_RECENT_SESSIONS;
 
   readonly shortcuts: Shortcut[] = [
     { id: "ai-coach", label: "AI Coach", desc: "Nói chuyện với AI", emoji: "🎙️", color: "#286FB4", bg: "#E2F0F9" },

@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
-import { MOCK_SETTINGS, THEME_OPTIONS } from '../../core/mock/mock-data';
+import { MOCK_SETTINGS, THEME_OPTIONS } from '../../core/data/mock-data';
 
 @Component({
   selector: 'app-settings',
