@@ -116,6 +116,21 @@ export const GROUPS: ScenarioGroup[] = [
             </button>
           }
         </div>
+        <div class="flex gap-2">
+          @for (status of completionFilters; track status.value) {
+            <button
+              class="px-3 py-2 rounded-xl text-sm font-600 transition-all cursor-pointer"
+              [style.background]="completion() === status.value ? '#286FB4' : '#fff'"
+              [style.color]="completion() === status.value ? '#fff' : '#64748b'"
+              [style.borderColor]="completion() === status.value ? '#286FB4' : '#E2F0F9'"
+              [attr.aria-pressed]="completion() === status.value"
+              style="border-width: 1.5px"
+              (click)="completion.set(status.value)"
+            >
+              {{ status.label }}
+            </button>
+          }
+        </div>
       </div>
 
       <!-- Group Category filter tabs -->
@@ -156,7 +171,7 @@ export const GROUPS: ScenarioGroup[] = [
                 @for (s of g.scenarios; track s.id) {
                   <button
                     class="card p-5 flex flex-col text-left hover:shadow-md transition-all cursor-pointer"
-                    (click)="selectScenario(s)"
+                    (click)="selectScenario(s, g)"
                   >
                     <div class="flex items-start justify-between mb-3">
                       <span class="text-2xl">{{ s.emoji }}</span>
@@ -199,27 +214,38 @@ export class ScenariosComponent {
   readonly search = signal("");
   readonly level = signal("Tất cả");
   readonly selectedGroup = signal<string | null>(null);
+  readonly completion = signal<"all" | "completed" | "incomplete">("all");
 
   readonly levels = ["Tất cả", "A2", "B1", "B2", "C1"];
+  readonly completionFilters = [
+    { value: "all", label: "Mọi trạng thái" },
+    { value: "completed", label: "Đã hoàn thành" },
+    { value: "incomplete", label: "Chưa hoàn thành" }
+  ] as const;
   readonly groups = GROUPS;
 
   readonly allScenarios = computed(() => this.groups.flatMap(g => g.scenarios));
   readonly totalCount = computed(() => this.allScenarios().length);
   readonly totalDone = computed(() => this.allScenarios().filter(s => s.done).length);
   readonly totalRemaining = computed(() => this.totalCount() - this.totalDone());
-  readonly totalProgressPct = computed(() => Math.round((this.totalDone() / this.totalCount()) * 100));
+  readonly totalProgressPct = computed(() => this.totalCount()
+    ? Math.round((this.totalDone() / this.totalCount()) * 100)
+    : 0);
 
   readonly filteredGroups = computed(() => {
     const query = this.search().toLowerCase().trim();
     const curLevel = this.level();
     const curGroup = this.selectedGroup();
+    const curCompletion = this.completion();
 
     return this.groups.map(g => {
       const scenarios = g.scenarios.filter(s => {
         const matchLevel = curLevel === "Tất cả" || s.level === curLevel;
         const matchQuery = !query || s.title.toLowerCase().includes(query) || s.desc.toLowerCase().includes(query);
         const matchGroup = !curGroup || g.id === curGroup;
-        return matchLevel && matchQuery && matchGroup;
+        const matchCompletion = curCompletion === "all"
+          || (curCompletion === "completed" ? s.done : !s.done);
+        return matchLevel && matchQuery && matchGroup && matchCompletion;
       });
       const doneCount = scenarios.filter(s => s.done).length;
       return { ...g, scenarios, doneCount };
@@ -234,11 +260,11 @@ export class ScenariosComponent {
     this.selectedGroup.update(g => g === groupId ? null : groupId);
   }
 
-  selectScenario(scenario: ScenarioItem): void {
+  selectScenario(scenario: ScenarioItem, group: ScenarioGroup): void {
     const scModel: Scenario = {
       id: String(scenario.id),
       title: scenario.title,
-      category: "Đời sống",
+      category: group.label,
       level: scenario.level,
       duration: scenario.duration,
       description: scenario.desc,
@@ -253,5 +279,6 @@ export class ScenariosComponent {
     this.search.set("");
     this.level.set("Tất cả");
     this.selectedGroup.set(null);
+    this.completion.set("all");
   }
 }
