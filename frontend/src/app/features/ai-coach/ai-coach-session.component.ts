@@ -33,6 +33,13 @@ export const USEFUL_PHRASES = [
   imports: [CommonModule, FormatTimePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (!appState.selectedTopic()) {
+      <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center" style="background: #0f172a; color: #fff">
+        <h1 class="text-xl font-700 mb-2" style="font-weight: 700">No topic selected</h1>
+        <p class="text-sm mb-5" style="color: #cbd5e1">Please choose a topic before starting a session.</p>
+        <button type="button" class="btn-primary cursor-pointer" (click)="appState.go('ai-coach')">Choose a topic</button>
+      </div>
+    } @else {
     <div class="fixed inset-0 flex flex-col z-50" style="background: #0f172a">
       <!-- Session Header -->
       <div class="flex items-center gap-4 px-5 py-4 shrink-0" style="background: #1e293b; border-bottom: 1px solid #334155">
@@ -134,6 +141,7 @@ export const USEFUL_PHRASES = [
         </div>
       }
     </div>
+    }
   `
 })
 export class AiCoachSessionComponent implements OnInit, OnDestroy {
@@ -152,6 +160,11 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   private timerInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
+    const topic = this.appState.selectedTopic();
+    if (!topic) return;
+    this.transcript.update(lines => lines.map((line, index) => index === 0
+      ? { ...line, text: `Hello! Great to have you here today. Let's talk about ${topic}. What would you like to share?` }
+      : line));
     this.timerInterval = setInterval(() => {
       this.timer.update(t => t + 1);
     }, 1000);

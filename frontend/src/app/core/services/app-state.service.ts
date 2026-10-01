@@ -2,7 +2,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AppPage, User, Scenario, CommunityRoom } from '../models/app.models';
-import { MOCK_USER } from '../data/mock-data';
+import { MOCK_USER, MOCK_AI_COACH_TOPIC_GROUPS } from '../data/mock-data';
 
 const VALID_PAGES: AppPage[] = [
   "landing", "login", "register", "onboarding",
@@ -37,7 +37,13 @@ export class AppStateService {
 
   readonly currentPage = signal<AppPage>(getInitialPage());
   readonly user = signal<User | null>(getStoredUser());
-  readonly selectedTopic = signal<string>("Giao tiếp hằng ngày");
+  readonly selectedTopicId = signal<string | null>(null);
+  readonly selectedTopic = computed(() => {
+    const selectedId = this.selectedTopicId();
+    if (!selectedId) return null;
+    return MOCK_AI_COACH_TOPIC_GROUPS.flatMap(group => group.topics)
+      .find(topic => topic.label === selectedId)?.label ?? null;
+  });
   readonly selectedScenario = signal<Scenario | null>(null);
   readonly selectedRoom = signal<CommunityRoom | null>(null);
 
@@ -102,8 +108,10 @@ export class AppStateService {
     if (typeof window !== 'undefined') window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
   }
 
-  startAiCoachSession(topic: string): void {
-    this.selectedTopic.set(topic);
+  startAiCoachSession(topicId: string): void {
+    const exists = MOCK_AI_COACH_TOPIC_GROUPS.some(group => group.topics.some(topic => topic.label === topicId));
+    if (!exists) return;
+    this.selectedTopicId.set(topicId);
     this.go("ai-coach-session");
   }
 
