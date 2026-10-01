@@ -10,6 +10,17 @@ const VALID_PAGES: AppPage[] = [
   "scenarios", "scenario-detail", "scenario-roleplay", "scenario-result",
   "community", "community-room", "progress", "achievements", "profile", "settings", "help", "health"
 ];
+const AUTH_STORAGE_KEY = 'talk-with-me.mock-user';
+
+function getStoredUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    return value ? JSON.parse(value) as User : null;
+  } catch {
+    return null;
+  }
+}
 
 function getInitialPage(): AppPage {
   if (typeof window === 'undefined') return "landing";
@@ -25,7 +36,7 @@ export class AppStateService {
   private readonly router = inject(Router);
 
   readonly currentPage = signal<AppPage>(getInitialPage());
-  readonly user = signal<User | null>(MOCK_USER);
+  readonly user = signal<User | null>(getStoredUser());
   readonly selectedTopic = signal<string>("Giao tiếp hằng ngày");
   readonly selectedScenario = signal<Scenario | null>(null);
   readonly selectedRoom = signal<CommunityRoom | null>(null);
@@ -64,17 +75,31 @@ export class AppStateService {
   }
 
   login(user?: User): void {
-    this.user.set(user || MOCK_USER);
+    const authenticatedUser = user || MOCK_USER;
+    this.user.set(authenticatedUser);
+    this.persistUser(authenticatedUser);
     this.go("dashboard");
+  }
+
+  register(user: User): void {
+    this.user.set(user);
+    this.persistUser(user);
+    this.go("onboarding");
   }
 
   logout(): void {
     this.user.set(null);
+    if (typeof window !== 'undefined') window.localStorage.removeItem(AUTH_STORAGE_KEY);
     this.go("landing");
   }
 
   setUser(user: User): void {
     this.user.set(user);
+    this.persistUser(user);
+  }
+
+  private persistUser(user: User): void {
+    if (typeof window !== 'undefined') window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
   }
 
   startAiCoachSession(topic: string): void {
