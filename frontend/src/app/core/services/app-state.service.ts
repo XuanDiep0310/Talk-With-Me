@@ -1,8 +1,8 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { AppPage, User, Scenario, CommunityRoom } from '../models/app.models';
-import { MOCK_USER, MOCK_AI_COACH_TOPIC_GROUPS } from '../data/mock-data';
+import { AppPage, User, Scenario, CommunityRoom, Settings } from '../models/app.models';
+import { MOCK_USER, MOCK_SETTINGS, MOCK_AI_COACH_TOPIC_GROUPS } from '../data/mock-data';
 
 const VALID_PAGES: AppPage[] = [
   "landing", "login", "register", "onboarding",
@@ -11,6 +11,25 @@ const VALID_PAGES: AppPage[] = [
   "community", "community-room", "progress", "achievements", "profile", "settings", "help", "health"
 ];
 const AUTH_STORAGE_KEY = 'talk-with-me.mock-user';
+const SETTINGS_STORAGE_KEY = 'talk-with-me.mock-settings';
+
+function getStoredSettings(): Settings {
+  if (typeof window === 'undefined') return { ...MOCK_SETTINGS };
+  try {
+    const value = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!value) return { ...MOCK_SETTINGS };
+    const parsed = JSON.parse(value) as Partial<Settings>;
+    return {
+      notifications: typeof parsed.notifications === 'boolean' ? parsed.notifications : MOCK_SETTINGS.notifications,
+      dailyReminder: typeof parsed.dailyReminder === 'boolean' ? parsed.dailyReminder : MOCK_SETTINGS.dailyReminder,
+      aiVoice: ['female', 'male', 'neutral'].includes(parsed.aiVoice ?? '') ? parsed.aiVoice! : MOCK_SETTINGS.aiVoice,
+      aiSpeed: ['slow', 'normal', 'fast'].includes(parsed.aiSpeed ?? '') ? parsed.aiSpeed! : MOCK_SETTINGS.aiSpeed,
+      theme: ['light', 'dark', 'system'].includes(parsed.theme ?? '') ? parsed.theme! : MOCK_SETTINGS.theme,
+    };
+  } catch {
+    return { ...MOCK_SETTINGS };
+  }
+}
 
 function getStoredUser(): User | null {
   if (typeof window === 'undefined') return null;
@@ -37,6 +56,7 @@ export class AppStateService {
 
   readonly currentPage = signal<AppPage>(getInitialPage());
   readonly user = signal<User | null>(getStoredUser());
+  readonly settings = signal<Settings>(getStoredSettings());
   readonly selectedTopicId = signal<string | null>(null);
   readonly selectedTopic = computed(() => {
     const selectedId = this.selectedTopicId();
@@ -102,6 +122,19 @@ export class AppStateService {
   setUser(user: User): void {
     this.user.set(user);
     this.persistUser(user);
+  }
+
+  updateUserProfile(profile: Pick<User, 'name' | 'interests' | 'goals' | 'avatar'>): void {
+    const current = this.user() ?? this.appUser();
+    this.setUser({ ...current, ...profile, interests: [...profile.interests], goals: [...profile.goals] });
+  }
+
+  updateSettings(patch: Partial<Settings>): void {
+    const next = { ...this.settings(), ...patch };
+    this.settings.set(next);
+    if (typeof window !== 'undefined') {
+      try { window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next)); } catch { /* Storage may be unavailable. */ }
+    }
   }
 
   private persistUser(user: User): void {
