@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
 import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
+import { MOCK_SCENARIO_CHUNKS } from '../../core/data/mock-data';
 
 export interface Chunk {
   id: string;
@@ -212,18 +213,43 @@ export const GENERIC_CHUNKS: Chunk[] = [
                     <span class="font-600">Bạn đã nói:</span> {{ recognizedSpeech() }}
                   </div>
                 }
+                @if (isChunkCompleted(c.id)) {
+                  <p class="text-sm font-600 text-emerald-700">COMPLETED</p>
+                }
+                <p class="text-sm text-slate-500" aria-live="polite">
+                  Đã hoàn thành {{ completedChunkIds().length }}/{{ chunks.length }} chunks ({{ drillProgressPct() }}%).
+                  @if (drillComplete()) { Bạn đã hoàn thành phần Drill. }
+                </p>
                 @if (microphoneError()) {
                   <p class="max-w-lg text-sm text-rose-600" role="alert">{{ microphoneError() }}</p>
                 }
 
                 <div class="flex flex-wrap justify-center gap-3">
-                  <button class="btn-secondary cursor-pointer" (click)="skipChunk()">
-                    Bỏ qua chunk này →
+                  <button class="btn-secondary cursor-pointer" type="button" (click)="repeatCurrentChunk()">
+                    🔄 Nói lại
                   </button>
+                  @if (drillIdx() < chunks.length - 1) {
+                    <button class="btn-primary cursor-pointer" type="button" (click)="nextChunk()">
+                      → Câu tiếp theo
+                    </button>
+                  } @else if (drillComplete()) {
+                    <span class="inline-flex items-center rounded-xl bg-emerald-50 px-4 py-2 text-sm font-600 text-emerald-700" role="status">
+                      Đã hoàn thành tất cả
+                    </span>
+                  }
+                </div>
+                @if (chunkNavigationMessage()) {
+                  <p class="text-sm font-600 text-amber-700" role="alert">{{ chunkNavigationMessage() }}</p>
+                }
+
+                <div class="flex flex-wrap justify-center gap-3">
                   <button class="btn-primary px-6 py-3 text-base cursor-pointer" (click)="startRoleplay()">
                     🎭 Bắt đầu Roleplay ngay!
                   </button>
                 </div>
+                @if (roleplayMessage()) {
+                  <p class="text-sm font-600 text-amber-700" role="alert">{{ roleplayMessage() }}</p>
+                }
               </div>
             }
           </div>
@@ -241,29 +267,38 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   readonly isListening = signal(false);
   readonly recognizedSpeech = signal("");
   readonly microphoneError = signal("");
-  readonly chunks = GENERIC_CHUNKS;
+  readonly chunks = MOCK_SCENARIO_CHUNKS;
   private readonly speechSubscriptions = new Subscription();
+  readonly completedChunkIds = signal<string[]>([]);
+  readonly drillResult = signal<'correct' | 'incorrect' | null>(null);
+  readonly drillComplete = computed(() => this.chunks.length > 0 && this.completedChunkIds().length === this.chunks.length);
+  readonly drillProgressPct = computed(() => this.chunks.length ? Math.round((this.completedChunkIds().length / this.chunks.length) * 1000) / 10 : 0);
+  readonly roleplayMessage = signal('');
+  readonly chunkNavigationMessage = signal('');
+  private ignoreNextSpeechResult = false;
 
-  readonly title = computed(() => this.appState.selectedScenario()?.title || "Đặt bàn tại nhà hàng");
-  readonly category = computed(() => this.appState.selectedScenario()?.category || "Tình huống thực tế");
-  readonly level = computed(() => this.appState.selectedScenario()?.level || "A2");
-  readonly desc = computed(() => this.appState.selectedScenario()?.description || "Luyện tập đặt bàn, yêu cầu món ăn và giao tiếp với nhân viên phục vụ nhà hàng.");
-
-  readonly objectives = computed(() => this.appState.selectedScenario()?.objectives ?? [
-    "Chào hỏi và yêu cầu vị trí bàn",
-    "Đặt món ăn và giải thích yêu cầu chế độ ăn",
-    "Hỏi thông tin về các món ăn trong thực đơn",
-    "Yêu cầu tính tiền và thanh toán gọn gàng"
-  ]);
+  readonly title = computed(() => this.appState.selectedScenario()?.title ?? '');
+  readonly category = computed(() => this.appState.selectedScenario()?.category ?? '');
+  readonly level = computed(() => this.appState.selectedScenario()?.level ?? '');
+  readonly desc = computed(() => this.appState.selectedScenario()?.description ?? '');
+  readonly objectives = computed(() => this.appState.selectedScenario()?.objectives ?? []);
 
   readonly currentChunk = computed(() => this.chunks[this.drillIdx()]);
 
   ngOnInit(): void {
-    this.speechSubscriptions.add(this.speechService.isListening$.subscribe(listening => this.isListening.set(listening)));
+    this.speechSubscriptions.add(this.speechService.isListening$.subscribe(listening => {
+      this.isListening.set(listening);
+      if (!listening && this.ignoreNextSpeechResult) this.ignoreNextSpeechResult = false;
+    }));
     this.speechSubscriptions.add(this.speechService.speechResult$.subscribe(result => {
+      if (this.ignoreNextSpeechResult) {
+        this.ignoreNextSpeechResult = false;
+        return;
+      }
       if (result.text.trim()) {
         this.recognizedSpeech.set(result.text.trim());
         this.speechService.stopListening();
+        this.mockSuccessfulDrillResult();
       }
     }));
     this.speechSubscriptions.add(this.speechService.error$.subscribe(error => this.microphoneError.set(error)));
@@ -288,12 +323,53 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     await this.speechService.startListening("en-US");
   }
 
-  skipChunk(): void {
-    this.drillIdx.update(index => (index + 1) % this.chunks.length);
-    this.recognizedSpeech.set("");
+  isChunkCompleted(chunkId: string): boolean {
+    return this.completedChunkIds().includes(chunkId);
   }
 
-  startRoleplay(): void {
-    this.appState.go("scenario-roleplay");
+  repeatCurrentChunk(): void {
+    if (this.isListening()) {
+      this.ignoreNextSpeechResult = true;
+      this.speechService.stopListening();
+    }
+    this.recognizedSpeech.set('');
+    this.microphoneError.set('');
+    this.drillResult.set(null);
+    this.chunkNavigationMessage.set('');
+  }
+
+  nextChunk(): void {
+    const chunk = this.currentChunk();
+    if (!chunk || !this.isChunkCompleted(chunk.id)) {
+      this.chunkNavigationMessage.set('Bạn cần hoàn thành câu này trước khi chuyển sang câu tiếp theo.');
+      return;
+    }
+
+    if (this.drillIdx() >= this.chunks.length - 1) return;
+    this.drillIdx.update(index => index + 1);
+    this.recognizedSpeech.set('');
+    this.drillResult.set(null);
+    this.microphoneError.set('');
+    this.chunkNavigationMessage.set('');
+  }
+
+  private mockSuccessfulDrillResult(): void {
+    const chunk = this.currentChunk();
+    if (!chunk || this.isChunkCompleted(chunk.id)) return;
+
+    this.drillResult.set('correct');
+    this.completedChunkIds.update(ids => [...ids, chunk.id]);
+    this.roleplayMessage.set('');
+    this.chunkNavigationMessage.set('');
+  }
+
+  async startRoleplay(): Promise<void> {
+    if (this.completedChunkIds().length !== this.chunks.length) {
+      this.roleplayMessage.set('Bạn cần hoàn thành 6/6 chunks trước khi bắt đầu Roleplay.');
+      return;
+    }
+    this.roleplayMessage.set('');
+    const navigated = await this.appState.go("scenario-roleplay");
+    if (!navigated) this.roleplayMessage.set('Không thể mở Roleplay. Hãy thử lại.');
   }
 }

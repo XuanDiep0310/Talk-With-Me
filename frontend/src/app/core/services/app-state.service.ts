@@ -146,13 +146,14 @@ export class AppStateService {
       });
   }
 
-  go(page: AppPage): void {
+  go(page: AppPage): Promise<boolean> {
     this.currentPage.set(page);
     const targetUrl = page === "landing" ? "/" : `/${page}`;
-    this.router.navigateByUrl(targetUrl);
+    const navigation = this.router.navigateByUrl(targetUrl);
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+    return navigation;
   }
 
   login(user?: User): void {

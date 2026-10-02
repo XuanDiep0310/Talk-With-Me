@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@a
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
 import { Scenario } from '../../core/models/app.models';
+import { MOCK_SCENARIO_DETAILS } from '../../core/data/mock-data';
 
 export interface ScenarioItem {
   id: number;
@@ -264,13 +265,11 @@ export class ScenariosComponent {
     const scModel: Scenario = {
       id: String(scenario.id),
       title: scenario.title,
+      ...MOCK_SCENARIO_DETAILS,
       category: group.label,
       level: scenario.level,
       duration: scenario.duration,
       description: scenario.desc,
-      objectives: ["Hoàn thành cuộc hội thoại thực tế", "Dùng từ vựng đúng ngữ cảnh"],
-      vocabulary: [{ word: "Reservation", meaning: "Đặt chỗ trước" }],
-      image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=200&fit=crop"
     };
     this.appState.selectScenario(scModel);
   }
