@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { AppPage, User, Scenario, CommunityRoom } from '../models/app.models';
+import { AppPage, User, Scenario, CommunityRoom, AiCoachCompletedSession } from '../models/app.models';
 import { MOCK_USER, MOCK_AI_COACH_TOPIC_GROUPS } from '../data/mock-data';
 
 const VALID_PAGES: AppPage[] = [
@@ -38,6 +38,8 @@ export class AppStateService {
   readonly currentPage = signal<AppPage>(getInitialPage());
   readonly user = signal<User | null>(getStoredUser());
   readonly selectedTopicId = signal<string | null>(null);
+  readonly completedAiCoachSessions = signal<AiCoachCompletedSession[]>([]);
+  readonly latestAiCoachSession = computed(() => this.completedAiCoachSessions()[0] ?? null);
   readonly selectedTopic = computed(() => {
     const selectedId = this.selectedTopicId();
     if (!selectedId) return null;
@@ -113,6 +115,10 @@ export class AppStateService {
     if (!exists) return;
     this.selectedTopicId.set(topicId);
     this.go("ai-coach-session");
+  }
+
+  completeAiCoachSession(session: AiCoachCompletedSession): void {
+    this.completedAiCoachSessions.update(sessions => [session, ...sessions]);
   }
 
   selectScenario(scenario: Scenario): void {
