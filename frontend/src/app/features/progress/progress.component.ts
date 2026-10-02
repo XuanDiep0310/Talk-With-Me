@@ -154,7 +154,7 @@ export const LEVEL_REQUIREMENTS: LevelRequirement[] = [
       <!-- History Tab -->
       @if (tab() === 'history') {
         <div class="space-y-3">
-          @for (s of sessionHistory; track s.topic) {
+          @for (s of sessionHistory(); track s.topic) {
             <div class="card p-5 flex items-center gap-4">
               <div class="text-2xl">{{ s.emoji }}</div>
               <div class="flex-1 min-w-0">
@@ -207,7 +207,13 @@ export class ProgressComponent {
 
   readonly tab = signal<"skills" | "history" | "roadmap">("skills");
   readonly skills = SKILL_DATA;
-  readonly sessionHistory = SESSION_HISTORY;
+  readonly sessionHistory = computed(() => [
+    ...this.appState.completedAiCoachSessions().map(session => ({
+      date: session.date, topic: session.topic, type: 'AI Coach', duration: session.duration,
+      score: session.score, emoji: session.emoji
+    })),
+    ...SESSION_HISTORY
+  ]);
   readonly levelRequirements = LEVEL_REQUIREMENTS;
 
   readonly overall = computed(() => {

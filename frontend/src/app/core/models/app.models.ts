@@ -164,6 +164,17 @@ export interface ProgressSessionHistory {
   emoji: string;
 }
 
+export interface AiCoachCompletedSession extends ProgressSessionHistory {
+  id: string;
+  completedAt: string;
+  xp: number;
+  status: 'completed';
+  overallScore: number;
+  skills: { label: string; score: number }[];
+  strengths: string[];
+  improvements: string[];
+}
+
 export interface LevelRequirement {
   level: string;
   done: boolean;

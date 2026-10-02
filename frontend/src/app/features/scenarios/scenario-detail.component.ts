@@ -1,6 +1,8 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
+import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
 
 export interface Chunk {
   id: string;
@@ -81,7 +83,7 @@ export const GENERIC_CHUNKS: Chunk[] = [
         </button>
         <div>
           <h1 class="text-2xl font-800" style="font-weight: 800; color: #1e293b">{{ title() }}</h1>
-          <p class="text-sm" style="color: #64748b">Tình huống thực tế · Level {{ level() }}</p>
+          <p class="text-sm" style="color: #64748b">{{ category() }} · Level {{ level() }}</p>
         </div>
       </div>
 
@@ -125,7 +127,7 @@ export const GENERIC_CHUNKS: Chunk[] = [
             <div>
               <h3 class="font-700 text-base mb-3" style="font-weight: 700; color: #1e293b">Mục tiêu bài luyện</h3>
               <div class="space-y-2">
-                @for (obj of objectives; track obj) {
+                @for (obj of objectives(); track obj) {
                   <div class="flex items-center gap-2 text-sm text-slate-700">
                     <span class="text-emerald-500 font-bold">✓</span>
                     <span>{{ obj }}</span>
@@ -188,10 +190,40 @@ export const GENERIC_CHUNKS: Chunk[] = [
                 <div class="italic">"{{ c.example }}"</div>
               </div>
 
-              <div class="flex justify-center gap-4 pt-4">
-                <button class="btn-primary px-8 py-3.5 text-base cursor-pointer" (click)="startRoleplay()">
-                  🎭 Bắt đầu Roleplay ngay!
-                </button>
+              <div class="flex flex-col items-center gap-4 pt-2">
+                <div class="flex flex-col items-center gap-2">
+                  <button
+                    type="button"
+                    class="w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white transition-colors cursor-pointer"
+                    [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
+                    [attr.aria-label]="isListening() ? 'Dừng ghi âm' : 'Bắt đầu luyện nói bằng microphone'"
+                    [attr.aria-pressed]="isListening()"
+                    (click)="toggleMicrophone()"
+                  >
+                    {{ isListening() ? '⏹' : '🎙️' }}
+                  </button>
+                  <span class="text-sm text-slate-500">
+                    {{ isListening() ? 'Đang nghe, hãy đọc lại mẫu câu...' : 'Nhấn mic để đọc lại mẫu câu' }}
+                  </span>
+                </div>
+
+                @if (recognizedSpeech()) {
+                  <div class="w-full max-w-lg rounded-xl border border-sky-100 bg-sky-50 p-3 text-sm text-sky-900" aria-live="polite">
+                    <span class="font-600">Bạn đã nói:</span> {{ recognizedSpeech() }}
+                  </div>
+                }
+                @if (microphoneError()) {
+                  <p class="max-w-lg text-sm text-rose-600" role="alert">{{ microphoneError() }}</p>
+                }
+
+                <div class="flex flex-wrap justify-center gap-3">
+                  <button class="btn-secondary cursor-pointer" (click)="skipChunk()">
+                    Bỏ qua chunk này →
+                  </button>
+                  <button class="btn-primary px-6 py-3 text-base cursor-pointer" (click)="startRoleplay()">
+                    🎭 Bắt đầu Roleplay ngay!
+                  </button>
+                </div>
               </div>
             }
           </div>
@@ -200,25 +232,66 @@ export const GENERIC_CHUNKS: Chunk[] = [
     </div>
   `
 })
-export class ScenarioDetailComponent {
+export class ScenarioDetailComponent implements OnInit, OnDestroy {
   readonly appState = inject(AppStateService);
+  readonly speechService = inject(SpeechRecognitionService);
 
   readonly step = signal<DetailStep>("context");
   readonly drillIdx = signal(0);
+  readonly isListening = signal(false);
+  readonly recognizedSpeech = signal("");
+  readonly microphoneError = signal("");
   readonly chunks = GENERIC_CHUNKS;
+  private readonly speechSubscriptions = new Subscription();
 
   readonly title = computed(() => this.appState.selectedScenario()?.title || "Đặt bàn tại nhà hàng");
+  readonly category = computed(() => this.appState.selectedScenario()?.category || "Tình huống thực tế");
   readonly level = computed(() => this.appState.selectedScenario()?.level || "A2");
   readonly desc = computed(() => this.appState.selectedScenario()?.description || "Luyện tập đặt bàn, yêu cầu món ăn và giao tiếp với nhân viên phục vụ nhà hàng.");
 
-  readonly objectives = [
+  readonly objectives = computed(() => this.appState.selectedScenario()?.objectives ?? [
     "Chào hỏi và yêu cầu vị trí bàn",
     "Đặt món ăn và giải thích yêu cầu chế độ ăn",
     "Hỏi thông tin về các món ăn trong thực đơn",
     "Yêu cầu tính tiền và thanh toán gọn gàng"
-  ];
+  ]);
 
   readonly currentChunk = computed(() => this.chunks[this.drillIdx()]);
+
+  ngOnInit(): void {
+    this.speechSubscriptions.add(this.speechService.isListening$.subscribe(listening => this.isListening.set(listening)));
+    this.speechSubscriptions.add(this.speechService.speechResult$.subscribe(result => {
+      if (result.text.trim()) {
+        this.recognizedSpeech.set(result.text.trim());
+        this.speechService.stopListening();
+      }
+    }));
+    this.speechSubscriptions.add(this.speechService.error$.subscribe(error => this.microphoneError.set(error)));
+  }
+
+  ngOnDestroy(): void {
+    if (this.isListening()) this.speechService.stopListening();
+    this.speechSubscriptions.unsubscribe();
+  }
+
+  async toggleMicrophone(): Promise<void> {
+    this.microphoneError.set("");
+    if (this.isListening()) {
+      this.speechService.stopListening();
+      return;
+    }
+    if (!this.speechService.isSupported) {
+      this.microphoneError.set("Trình duyệt này chưa hỗ trợ nhận diện giọng nói.");
+      return;
+    }
+    this.recognizedSpeech.set("");
+    await this.speechService.startListening("en-US");
+  }
+
+  skipChunk(): void {
+    this.drillIdx.update(index => (index + 1) % this.chunks.length);
+    this.recognizedSpeech.set("");
+  }
 
   startRoleplay(): void {
     this.appState.go("scenario-roleplay");

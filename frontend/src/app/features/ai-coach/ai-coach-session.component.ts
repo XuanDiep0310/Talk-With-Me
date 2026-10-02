@@ -1,185 +1,136 @@
-import { Component, ChangeDetectionStrategy, signal, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { AppStateService } from '../../core/services/app-state.service';
+import { AiCoachCompletedSession } from '../../core/models/app.models';
 import { FormatTimePipe } from '../../shared/pipes/app-pipes';
 
-export type SessionState = "mic-permission" | "connecting" | "ready" | "ai-speaking" | "user-speaking" | "processing" | "error-mic" | "error-network";
+export type SessionState = 'ready' | 'user-speaking' | 'processing' | 'ai-speaking' | 'error';
+interface TranscriptLine { id: number; speaker: 'User' | 'AI'; text: string; time: string; }
 
-export interface TranscriptLine {
-  id: number;
-  speaker: "AI" | "Bạn";
-  text: string;
-  translation?: string;
-  time: string;
-  final: boolean;
-}
-
-export const AI_LINES: TranscriptLine[] = [
-  { id: 1, speaker: "AI", text: "Hello! Great to have you here today. Let's talk about travel. What's a place you've always wanted to visit?", translation: "Xin chào! Hôm nay chúng ta hãy nói về du lịch. Có nơi nào bạn luôn muốn đến không?", time: "00:05", final: true },
-  { id: 2, speaker: "Bạn", text: "I would really love to visit Japan someday. I'm fascinated by the culture.", translation: "", time: "00:22", final: true },
-  { id: 3, speaker: "AI", text: "Japan is a wonderful choice! What specifically draws you to Japanese culture?", translation: "Nhật Bản là lựa chọn tuyệt vời! Điều gì trong văn hóa Nhật Bản thu hút bạn?", time: "00:35", final: true },
-  { id: 4, speaker: "Bạn", text: "I love the food, especially sushi and ramen. And the temples are beautiful.", translation: "", time: "00:55", final: true }
+const MOCK_ANSWERS = [
+  'I enjoy this topic because it gives me a chance to share my experiences and learn something new.',
+  'One example that comes to mind is a memorable day with my friends. We had a great time together.',
+  'In the future, I would like to explore this more because it helps me understand different perspectives.'
 ];
-
-export const USEFUL_PHRASES = [
-  { en: "I've always wanted to...", vi: "Tôi luôn muốn..." },
-  { en: "What I find fascinating is...", vi: "Điều tôi thấy thú vị là..." },
-  { en: "Could you say that again?", vi: "Bạn có thể nhắc lại không?" }
+const MOCK_AI_RESPONSES = [
+  'That is a thoughtful answer. Could you tell me a little more about what made that experience special?',
+  'I see what you mean. How do you think this might change in the future?',
+  'That sounds interesting! What would you recommend to someone new to this topic?'
 ];
 
 @Component({
-  selector: 'app-ai-coach-session',
-  standalone: true,
-  imports: [CommonModule, FormatTimePipe],
+  selector: 'app-ai-coach-session', standalone: true, imports: [CommonModule, FormatTimePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 flex flex-col z-50" style="background: #0f172a">
-      <!-- Session Header -->
-      <div class="flex items-center gap-4 px-5 py-4 shrink-0" style="background: #1e293b; border-bottom: 1px solid #334155">
-        <div>
-          <div class="text-white font-700 text-sm" style="font-weight: 700">{{ appState.selectedTopic() }}</div>
-          <div class="flex items-center gap-2">
-            @if (state() === 'connecting') {
-              <span class="text-xs" style="color: #f59e0b">⏳ Đang kết nối...</span>
-            } @else if (state() === 'ai-speaking') {
-              <span class="flex items-center gap-1 text-xs" style="color: #38bdf8">
-                <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span> AI đang nói...
-              </span>
-            } @else if (state() === 'user-speaking') {
-              <span class="flex items-center gap-1 text-xs" style="color: #4ade80">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Lắng nghe bạn...
-              </span>
-            } @else {
-              <span class="text-xs" style="color: #94a3b8">Đã sẵn sàng</span>
-            }
+    @if (appState.selectedTopic()) {
+      <main class="fixed inset-0 z-50 flex flex-col" style="background:#0f172a;color:white">
+        <header class="flex items-center gap-4 px-6 py-4" style="background:#1e293b;border-bottom:1px solid #334155">
+          <div><h1 class="font-700">{{ appState.selectedTopic() }}</h1><p class="text-sm" aria-live="polite">{{ stateLabel() }}</p></div>
+          <div class="ml-auto flex items-center gap-4"><span class="font-mono text-lg">{{ timer() | formatTime }}</span>
+            <button class="btn-accent cursor-pointer" (click)="showEndModal.set(true)">End Session</button></div>
+        </header>
+        <section class="flex-1 overflow-y-auto p-6 max-w-3xl w-full mx-auto" aria-label="Conversation transcript" aria-live="polite">
+          @for (line of transcript(); track line.id) {
+            <article class="my-4 flex" [class.justify-end]="line.speaker === 'User'">
+              <div class="max-w-xl rounded-2xl p-4" [style.background]="line.speaker === 'AI' ? '#1e293b' : '#064e3b'">
+                <div class="text-xs opacity-70">{{ line.speaker }} · {{ line.time }}</div><p>{{ line.text }}</p>
+              </div>
+            </article>
+          }
+        </section>
+        <footer class="p-6 flex flex-col items-center gap-3" style="background:#1e293b">
+          <p class="text-sm" aria-live="polite">Mock microphone: <strong>{{ micActive() ? 'On' : 'Off' }}</strong></p>
+          @if (state() === 'error') { <p role="alert" class="text-rose-300">The mock response could not be completed. Please try again.</p><button class="btn-secondary cursor-pointer" (click)="retry()">Retry</button> }
+          <div class="flex flex-wrap justify-center gap-3">
+            <button class="btn-secondary cursor-pointer" (click)="toggleMic()">{{ micActive() ? 'Turn microphone off' : 'Turn microphone on' }}</button>
+            <button class="btn-primary cursor-pointer" [disabled]="state() !== 'user-speaking'" (click)="submitMockAnswer()">Submit mock answer</button>
+            <button class="btn-secondary cursor-pointer" (click)="triggerMockError()">Simulate mock error</button>
           </div>
-        </div>
-
-        <div class="ml-auto flex items-center gap-3">
-          <div class="px-3 py-1.5 rounded-xl font-mono text-sm font-700 text-white" style="background: #334155; font-weight: 700">
-            {{ timer() | formatTime }}
-          </div>
-          <button class="btn-accent text-xs py-2 px-3.5 cursor-pointer" (click)="showEndModal.set(true)">
-            Kết thúc
-          </button>
-        </div>
-      </div>
-
-      <!-- Main transcript chat body -->
-      <div class="flex-1 overflow-y-auto p-5 space-y-4 max-w-3xl mx-auto w-full">
-        @for (line of transcript(); track line.id) {
-          <div class="flex gap-3" [class.flex-row-reverse]="line.speaker === 'Bạn'">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-700 text-xs text-white" [style.background]="line.speaker === 'AI' ? '#286FB4' : '#059669'">
-              {{ line.speaker === 'AI' ? 'AI' : 'Bạn' }}
-            </div>
-            <div class="max-w-md rounded-2xl p-4 text-sm" [style.background]="line.speaker === 'AI' ? '#1e293b' : '#064e3b'" [style.color]="'#fff'">
-              <div>{{ line.text }}</div>
-              @if (line.translation) {
-                <div class="text-xs mt-1 text-slate-400 border-t border-slate-700 pt-1">{{ line.translation }}</div>
-              }
-            </div>
+        </footer>
+        @if (showEndModal()) {
+          <div class="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" role="presentation">
+            <section class="card p-6 max-w-md w-full text-center" role="dialog" aria-modal="true" aria-labelledby="end-title">
+              <h2 id="end-title" class="text-xl font-700 mb-3">End this session?</h2><p class="mb-6">Your practice report will be saved to your learning history.</p>
+              <div class="flex justify-center gap-3"><button class="btn-secondary cursor-pointer" (click)="showEndModal.set(false)">Continue</button><button class="btn-primary cursor-pointer" (click)="endSession()">End Session</button></div>
+            </section>
           </div>
         }
-
-        @if (interim()) {
-          <div class="flex gap-3 flex-row-reverse">
-            <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs text-white">Bạn</div>
-            <div class="max-w-md rounded-2xl p-4 text-sm bg-emerald-950/80 text-emerald-200 border border-emerald-800 animate-pulse">
-              {{ interim() }}...
-            </div>
-          </div>
-        }
-      </div>
-
-      <!-- Interactive Controls Footer -->
-      <div class="p-6 shrink-0 flex flex-col items-center gap-4" style="background: #1e293b; border-top: 1px solid #334155">
-        <div class="flex items-center gap-6">
-          <button class="p-4 rounded-full bg-slate-700 text-white cursor-pointer hover:bg-slate-600" (click)="toggleMic()">
-            @if (micMuted()) { 🔇 } @else { 🎙️ }
-          </button>
-          <button class="btn-primary px-8 py-3.5 rounded-full text-base font-600 cursor-pointer" (click)="simulateSpeechCycle()">
-            🗣️ Thử trả lời
-          </button>
-          <button class="p-4 rounded-full bg-slate-700 text-white cursor-pointer hover:bg-slate-600" (click)="togglePhrases()">
-            💡
-          </button>
-        </div>
-
-        @if (showPhrases()) {
-          <div class="p-4 rounded-2xl bg-slate-800 border border-slate-700 max-w-md w-full">
-            <div class="text-xs font-700 text-slate-400 mb-2 uppercase">Mẫu câu gợi ý</div>
-            <div class="space-y-2">
-              @for (p of usefulPhrases; track p.en) {
-                <div class="text-xs text-slate-200">
-                  <strong class="text-sky-400">{{ p.en }}</strong> — {{ p.vi }}
-                </div>
-              }
-            </div>
-          </div>
-        }
-      </div>
-
-      <!-- Exit Confirmation Modal -->
-      @if (showEndModal()) {
-        <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div class="card p-6 max-w-sm w-full bg-slate-800 text-white border-slate-700 text-center">
-            <div class="text-4xl mb-3">🛑</div>
-            <h3 class="text-lg font-700 mb-2">Kết thúc buổi luyện nói?</h3>
-            <p class="text-xs text-slate-400 mb-6">Kết quả buổi luyện sẽ được lưu lại trong báo cáo AI Coach của bạn.</p>
-            <div class="flex gap-3 justify-center">
-              <button class="btn-secondary text-sm cursor-pointer" (click)="showEndModal.set(false)">Hủy</button>
-              <button class="btn-primary text-sm cursor-pointer" (click)="endSession()">Xem báo cáo kết quả</button>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
+      </main>
+    }
   `
 })
 export class AiCoachSessionComponent implements OnInit, OnDestroy {
   readonly appState = inject(AppStateService);
-
-  readonly state = signal<SessionState>("ready");
+  private readonly router = inject(Router);
+  readonly state = signal<SessionState>('ready');
   readonly timer = signal(0);
-  readonly micMuted = signal(false);
-  readonly transcript = signal<TranscriptLine[]>(AI_LINES);
-  readonly interim = signal("");
-  readonly showPhrases = signal(false);
+  readonly micActive = signal(false);
+  readonly transcript = signal<TranscriptLine[]>([]);
   readonly showEndModal = signal(false);
-
-  readonly usefulPhrases = USEFUL_PHRASES;
-
   private timerInterval: ReturnType<typeof setInterval> | null = null;
+  private pendingTimeout: ReturnType<typeof setTimeout> | null = null;
+  private startedAt = 0;
+  private turn = 0;
 
   ngOnInit(): void {
-    this.timerInterval = setInterval(() => {
-      this.timer.update(t => t + 1);
-    }, 1000);
+    const topic = this.appState.selectedTopic();
+    if (!topic) { void this.router.navigateByUrl('/ai-coach'); return; }
+    this.startedAt = Date.now();
+    this.transcript.set([{ id: 1, speaker: 'AI', text: `Welcome! Let’s practice ${topic}. What would you like to share about it?`, time: '00:00' }]);
+    this.timerInterval = setInterval(() => this.timer.set(Math.floor((Date.now() - this.startedAt) / 1000)), 1000);
   }
 
-  ngOnDestroy(): void {
-    if (this.timerInterval) clearInterval(this.timerInterval);
+  ngOnDestroy(): void { this.stopResources(); }
+
+  stateLabel(): string {
+    return ({ ready: 'Ready · turn the mock microphone on to answer', 'user-speaking': 'You are speaking · mock microphone is active', processing: 'Processing your mock answer…', 'ai-speaking': 'AI is responding…', error: 'Mock error · retry available' } as Record<SessionState, string>)[this.state()];
   }
 
   toggleMic(): void {
-    this.micMuted.update(m => !m);
+    if (this.state() === 'processing' || this.state() === 'ai-speaking' || this.state() === 'error') return;
+    const active = !this.micActive();
+    this.micActive.set(active);
+    this.state.set(active ? 'user-speaking' : 'ready');
   }
 
-  togglePhrases(): void {
-    this.showPhrases.update(value => !value);
+  submitMockAnswer(): void {
+    if (this.state() !== 'user-speaking') return;
+    this.micActive.set(false);
+    this.state.set('processing');
+    const answer = MOCK_ANSWERS[this.turn % MOCK_ANSWERS.length];
+    this.transcript.update(lines => [...lines, { id: lines.length + 1, speaker: 'User', text: answer, time: this.formatElapsed() }]);
+    this.pendingTimeout = setTimeout(() => {
+      this.pendingTimeout = null;
+      this.state.set('ai-speaking');
+      const response = MOCK_AI_RESPONSES[this.turn % MOCK_AI_RESPONSES.length];
+      this.transcript.update(lines => [...lines, { id: lines.length + 1, speaker: 'AI', text: response, time: this.formatElapsed() }]);
+      this.turn++;
+      this.pendingTimeout = setTimeout(() => { this.pendingTimeout = null; this.state.set('ready'); }, 900);
+    }, 900);
   }
 
-  simulateSpeechCycle(): void {
-    this.state.set("user-speaking");
-    this.interim.set("I would really love to visit Japan...");
-    setTimeout(() => {
-      this.interim.set("");
-      this.state.set("ai-speaking");
-    }, 1500);
-  }
+  triggerMockError(): void { this.clearPendingTimeout(); this.micActive.set(false); this.state.set('error'); }
+  retry(): void { this.state.set('ready'); }
 
   endSession(): void {
     this.showEndModal.set(false);
-    this.appState.go("ai-coach-report");
+    this.stopResources();
+    const duration = this.timer();
+    const session: AiCoachCompletedSession = {
+      id: `${Date.now()}`, topic: this.appState.selectedTopic() ?? 'AI Coach', type: 'ai-coach',
+      date: new Date().toLocaleString(), completedAt: new Date().toISOString(), duration: this.formatTime(duration),
+      score: 82, overallScore: 82, xp: 120, status: 'completed', emoji: '🎙️',
+      skills: [{ label: 'Fluency', score: 84 }, { label: 'Vocabulary', score: 82 }, { label: 'Grammar', score: 79 }, { label: 'Pronunciation', score: 83 }],
+      strengths: ['Good vocabulary usage', 'Clear responses', 'Good conversation flow'],
+      improvements: ['Practice past tense', 'Reduce hesitation', 'Improve pronunciation consistency']
+    };
+    this.appState.completeAiCoachSession(session);
+    void this.router.navigateByUrl('/ai-coach-report');
   }
+
+  private formatElapsed(): string { return `${String(Math.floor(this.timer() / 60)).padStart(2, '0')}:${String(this.timer() % 60).padStart(2, '0')}`; }
+  private formatTime(seconds: number): string { return `${Math.floor(seconds / 60)}m ${seconds % 60}s`; }
+  private clearPendingTimeout(): void { if (this.pendingTimeout) clearTimeout(this.pendingTimeout); this.pendingTimeout = null; }
+  private stopResources(): void { if (this.timerInterval) clearInterval(this.timerInterval); this.timerInterval = null; this.clearPendingTimeout(); }
 }
