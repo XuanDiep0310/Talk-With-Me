@@ -1,7 +1,7 @@
-import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
-import { MOCK_SETTINGS, THEME_OPTIONS } from '../../core/data/mock-data';
+import { THEME_OPTIONS } from '../../core/data/mock-data';
 
 @Component({
   selector: 'app-settings',
@@ -94,7 +94,7 @@ import { MOCK_SETTINGS, THEME_OPTIONS } from '../../core/data/mock-data';
                 class="px-3 py-1.5 rounded-lg text-xs font-600 transition-all cursor-pointer"
                 [style.background]="theme() === t.val ? '#286FB4' : '#E2F0F9'"
                 [style.color]="theme() === t.val ? '#fff' : '#286FB4'"
-                (click)="theme.set(t.val)"
+                (click)="setTheme(t.val)"
               >
                 {{ t.label }}
               </button>
@@ -132,26 +132,28 @@ import { MOCK_SETTINGS, THEME_OPTIONS } from '../../core/data/mock-data';
 export class SettingsComponent {
   readonly appState = inject(AppStateService);
 
-  readonly notifications = signal(MOCK_SETTINGS.notifications);
-  readonly dailyReminder = signal(MOCK_SETTINGS.dailyReminder);
-  readonly aiVoice = signal(MOCK_SETTINGS.aiVoice);
-  readonly aiSpeed = signal(MOCK_SETTINGS.aiSpeed);
-  readonly theme = signal(MOCK_SETTINGS.theme);
+  readonly notifications = computed(() => this.appState.settings().notifications);
+  readonly dailyReminder = computed(() => this.appState.settings().dailyReminder);
+  readonly aiVoice = computed(() => this.appState.settings().aiVoice);
+  readonly aiSpeed = computed(() => this.appState.settings().aiSpeed);
+  readonly theme = computed(() => this.appState.settings().theme);
   readonly themeOptions = THEME_OPTIONS;
 
   updateAiVoice(event: Event): void {
-    this.aiVoice.set((event.target as HTMLSelectElement).value);
+    this.appState.updateSettings({ aiVoice: (event.target as HTMLSelectElement).value });
   }
 
   updateAiSpeed(event: Event): void {
-    this.aiSpeed.set((event.target as HTMLSelectElement).value);
+    this.appState.updateSettings({ aiSpeed: (event.target as HTMLSelectElement).value });
   }
 
   toggleNotifications(): void {
-    this.notifications.update(value => !value);
+    this.appState.updateSettings({ notifications: !this.notifications() });
   }
 
   toggleDailyReminder(): void {
-    this.dailyReminder.update(value => !value);
+    this.appState.updateSettings({ dailyReminder: !this.dailyReminder() });
   }
+
+  setTheme(theme: 'light' | 'dark' | 'system'): void { this.appState.updateSettings({ theme }); }
 }

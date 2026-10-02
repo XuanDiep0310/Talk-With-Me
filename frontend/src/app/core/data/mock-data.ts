@@ -360,6 +360,13 @@ export const MOCK_PROFILE_INTERESTS: string[] = ["Du lịch", "Công nghệ", "�
 
 export const MOCK_PROFILE_GOALS: string[] = ["Giao tiếp hằng ngày tự nhiên", "Thuyết trình công việc", "Phỏng vấn xin việc", "Học tập ở nước ngoài", "Du lịch tự túc"];
 
+export const MOCK_PROFILE_AVATARS: string[] = [
+  "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=80&h=80&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&h=80&fit=crop&auto=format"
+];
+
 export const MOCK_LOGIN_DEFAULT_EMAIL = "minhanh@gmail.com";
 export const MOCK_LOGIN_DEFAULT_PASSWORD = "••••••••";
 
