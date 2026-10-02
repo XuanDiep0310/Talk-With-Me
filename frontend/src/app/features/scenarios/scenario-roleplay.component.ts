@@ -1,7 +1,10 @@
-import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
+import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
 import { FormatTimePipe } from '../../shared/pipes/app-pipes';
+import { GENERIC_CHUNKS } from './scenario-detail.component';
 
 export interface Line {
   id: number;
@@ -46,6 +49,15 @@ export const SCRIPT: Line[] = [
         </span>
 
         <button
+          class="text-xs py-1.5 px-3 rounded-lg cursor-pointer shrink-0"
+          [style.background]="showHints() ? '#334155' : '#0f172a'"
+          [attr.aria-expanded]="showHints()"
+          (click)="toggleHints()"
+        >
+          🧩 Chunks
+        </button>
+
+        <button
           class="btn-accent text-xs py-1.5 px-3 cursor-pointer shrink-0"
           (click)="showEndModal.set(true)"
         >
@@ -53,30 +65,79 @@ export const SCRIPT: Line[] = [
         </button>
       </div>
 
-      <!-- Transcript body -->
-      <div class="flex-1 overflow-y-auto p-5 space-y-4 max-w-3xl mx-auto w-full">
-        @for (line of transcript(); track line.id) {
-          <div class="flex gap-3" [class.flex-row-reverse]="line.speaker === 'Bạn'">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-700 text-xs text-white" [style.background]="line.speaker === 'AI' ? '#286FB4' : '#059669'">
-              {{ line.speaker === 'AI' ? 'AI' : 'Bạn' }}
+      <!-- Transcript and live practice hints -->
+      <div class="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
+        <div class="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 max-w-3xl mx-auto w-full">
+          @for (line of transcript(); track line.id) {
+            <div class="flex gap-3" [class.flex-row-reverse]="line.speaker === 'Bạn'">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-700 text-xs text-white" [style.background]="line.speaker === 'AI' ? '#286FB4' : '#7c3aed'">
+                {{ line.speaker === 'AI' ? 'AI' : 'Bạn' }}
+              </div>
+              <div class="max-w-md rounded-2xl p-4 text-sm" [style.background]="line.speaker === 'AI' ? '#243b5e' : '#31215f'" [style.color]="'#fff'">
+                <div>{{ line.text }}</div>
+                @if (line.translation) {
+                  <div class="text-xs mt-1 text-slate-400 border-t border-slate-700 pt-1">{{ line.translation }}</div>
+                }
+              </div>
             </div>
-            <div class="max-w-md rounded-2xl p-4 text-sm" [style.background]="line.speaker === 'AI' ? '#1e293b' : '#064e3b'" [style.color]="'#fff'">
-              <div>{{ line.text }}</div>
-              @if (line.translation) {
-                <div class="text-xs mt-1 text-slate-400 border-t border-slate-700 pt-1">{{ line.translation }}</div>
-              }
-            </div>
-          </div>
+          }
+        </div>
+
+        @if (showHints()) {
+          <aside class="w-full lg:w-80 max-h-48 lg:max-h-none shrink-0 overflow-y-auto p-4 space-y-5" style="background: #111c30; border-top: 1px solid #334155; border-left: 1px solid #334155">
+            <section>
+              <div class="flex items-center justify-between mb-2 text-xs font-700 text-slate-400">
+                <span>🎯 NHIỆM VỤ</span>
+                <span>{{ completedTaskCount() }}/{{ tasks.length }}</span>
+              </div>
+              <div class="h-1.5 rounded-full bg-slate-700 overflow-hidden mb-3">
+                <div class="h-full rounded-full transition-all" style="background: #3b82f6" [style.width.%]="taskProgressPct()"></div>
+              </div>
+              <div class="space-y-2">
+                @for (task of taskStates(); track task.id) {
+                  <div class="flex items-center gap-2 text-xs" [style.color]="task.done ? '#94a3b8' : '#e2e8f0'">
+                    <span class="w-4 h-4 rounded flex items-center justify-center shrink-0" [style.background]="task.done ? '#22c55e' : '#334155'" [style.color]="'#fff'">
+                      {{ task.done ? '✓' : '' }}
+                    </span>
+                    <span [class.line-through]="task.done">{{ task.label }}</span>
+                  </div>
+                }
+              </div>
+            </section>
+
+            <section>
+              <h2 class="text-xs font-700 text-slate-400 mb-2">🧩 CHUNKS MỤC TIÊU</h2>
+              <div class="space-y-2">
+                @for (chunk of targetChunks; track chunk.id) {
+                  <div class="rounded-lg p-2.5" style="background: #0f172a; border: 1px solid #334155">
+                    <span class="inline-block rounded-full px-2 py-0.5 text-[10px] font-600 mb-1" [style.background]="chunk.bg" [style.color]="chunk.color">{{ chunk.label }}</span>
+                    <div class="text-xs italic text-slate-200">"{{ chunk.chunk }}"</div>
+                  </div>
+                }
+              </div>
+            </section>
+          </aside>
         }
       </div>
 
       <!-- Footer controls -->
-      <div class="p-6 shrink-0 flex flex-col items-center gap-4" style="background: #1e293b; border-top: 1px solid #334155">
-        <div class="flex items-center gap-4">
-          <button class="btn-primary px-8 py-3.5 rounded-full text-base font-600 cursor-pointer" (click)="nextSpeechStep()">
-            🎙️ Nhấn để nói câu tiếp theo
+      <div class="p-4 shrink-0 flex flex-col items-center gap-2" style="background: #1e293b; border-top: 1px solid #334155">
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <button
+            class="btn-primary px-7 py-3 rounded-full text-base font-600 cursor-pointer"
+            [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
+            [attr.aria-pressed]="isListening()"
+            (click)="toggleMicrophone()"
+          >
+            {{ isListening() ? '⏹ Dừng nghe' : '🎙️ Nhấn để nói' }}
+          </button>
+          <button class="btn-secondary text-xs cursor-pointer" [disabled]="scriptIdx() >= scriptLength" (click)="nextSpeechStep()">
+            ⏭️ Tiếp câu mẫu
           </button>
         </div>
+        @if (speechError()) {
+          <p class="text-xs text-rose-300" role="alert">{{ speechError() }}</p>
+        }
       </div>
 
       <!-- End Confirmation Modal -->
@@ -98,22 +159,92 @@ export const SCRIPT: Line[] = [
 })
 export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
   readonly appState = inject(AppStateService);
+  readonly speechService = inject(SpeechRecognitionService);
 
   readonly timer = signal(0);
   readonly transcript = signal<Line[]>([SCRIPT[0]]);
   readonly showEndModal = signal(false);
   readonly scriptIdx = signal(1);
+  readonly isListening = signal(false);
+  readonly speechError = signal('');
+  readonly showHints = signal(true);
+  readonly targetChunks = GENERIC_CHUNKS;
+  readonly scriptLength = SCRIPT.length;
+  readonly tasks = [
+    { id: 'reservation', label: 'Yêu cầu đặt bàn', requiredUserTurns: 1 },
+    { id: 'menu', label: 'Hỏi menu / gợi ý', requiredUserTurns: 2 },
+    { id: 'drink', label: 'Gọi đồ uống', requiredUserTurns: 2 },
+    { id: 'order', label: 'Gọi ít nhất 2 món', requiredUserTurns: 3 },
+    { id: 'bill', label: 'Yêu cầu thanh toán' }
+  ];
+  readonly userTurnCount = computed(() => this.transcript().filter(line => line.speaker === 'Bạn').length);
+  readonly taskStates = computed(() => this.tasks.map(task => ({
+    ...task,
+    done: task.requiredUserTurns !== undefined && this.userTurnCount() >= task.requiredUserTurns
+  })));
+  readonly completedTaskCount = computed(() => this.taskStates().filter(task => task.done).length);
+  readonly taskProgressPct = computed(() => Math.round((this.completedTaskCount() / this.tasks.length) * 100));
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
+  private readonly speechSubscriptions = new Subscription();
+
+  toggleHints(): void {
+    this.showHints.update(visible => !visible);
+  }
 
   ngOnInit(): void {
     this.timerInterval = setInterval(() => {
       this.timer.update(t => t + 1);
     }, 1000);
+    this.speechSubscriptions.add(this.speechService.isListening$.subscribe(listening => this.isListening.set(listening)));
+    this.speechSubscriptions.add(this.speechService.speechResult$.subscribe(result => {
+      if (result.text.trim()) {
+        this.appendRecognizedSpeech(result.text.trim());
+        this.speechService.stopListening();
+      }
+    }));
+    this.speechSubscriptions.add(this.speechService.error$.subscribe(error => this.speechError.set(error)));
   }
 
   ngOnDestroy(): void {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.isListening()) this.speechService.stopListening();
+    this.speechSubscriptions.unsubscribe();
+  }
+
+  async toggleMicrophone(): Promise<void> {
+    this.speechError.set('');
+    if (this.isListening()) {
+      this.speechService.stopListening();
+      return;
+    }
+    if (!this.speechService.isSupported) {
+      this.speechError.set('Trình duyệt này chưa hỗ trợ nhận diện giọng nói. Bạn có thể dùng câu mẫu.');
+      return;
+    }
+    await this.speechService.startListening('en-US');
+  }
+
+  private appendRecognizedSpeech(text: string): void {
+    const userLine: Line = {
+      id: Date.now(),
+      speaker: 'Bạn',
+      text,
+      time: this.formatElapsedTime()
+    };
+    const nextScriptIndex = this.scriptIdx();
+    const nextLine = SCRIPT[nextScriptIndex + (SCRIPT[nextScriptIndex]?.speaker === 'Bạn' ? 1 : 0)];
+    const reply = nextLine?.speaker === 'AI' ? nextLine : undefined;
+
+    this.transcript.update(lines => reply ? [...lines, userLine, reply] : [...lines, userLine]);
+    this.scriptIdx.set(reply ? nextScriptIndex + 2 : nextScriptIndex + 1);
+  }
+
+  private formatElapsedTime(): string {
+    const totalSeconds = this.timer();
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
   }
 
   nextSpeechStep(): void {
