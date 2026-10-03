@@ -144,7 +144,7 @@ export const GROUPS: ScenarioGroup[] = [
         >
           🗂️ Tất cả nhóm
         </button>
-        @for (g of groups; track g.id) {
+        @for (g of groups(); track g.id) {
           <button
             class="px-4 py-2 rounded-full text-sm font-500 whitespace-nowrap shrink-0 transition-all cursor-pointer"
             [style.background]="selectedGroup() === g.id ? '#286FB4' : '#E2F0F9'"
@@ -223,9 +223,15 @@ export class ScenariosComponent {
     { value: "completed", label: "Đã hoàn thành" },
     { value: "incomplete", label: "Chưa hoàn thành" }
   ] as const;
-  readonly groups = GROUPS;
+  readonly groups = computed(() => GROUPS.map(group => ({
+    ...group,
+    scenarios: group.scenarios.map(scenario => ({
+      ...scenario,
+      done: scenario.done || this.appState.completedScenarioIds().includes(String(scenario.id))
+    }))
+  })));
 
-  readonly allScenarios = computed(() => this.groups.flatMap(g => g.scenarios));
+  readonly allScenarios = computed(() => this.groups().flatMap(g => g.scenarios));
   readonly totalCount = computed(() => this.allScenarios().length);
   readonly totalDone = computed(() => this.allScenarios().filter(s => s.done).length);
   readonly totalRemaining = computed(() => this.totalCount() - this.totalDone());
@@ -239,7 +245,7 @@ export class ScenariosComponent {
     const curGroup = this.selectedGroup();
     const curCompletion = this.completion();
 
-    return this.groups.map(g => {
+    return this.groups().map(g => {
       const scenarios = g.scenarios.filter(s => {
         const matchLevel = curLevel === "Tất cả" || s.level === curLevel;
         const matchQuery = !query || s.title.toLowerCase().includes(query) || s.desc.toLowerCase().includes(query);
@@ -265,6 +271,7 @@ export class ScenariosComponent {
     const scModel: Scenario = {
       id: String(scenario.id),
       title: scenario.title,
+      xp: scenario.xp,
       ...MOCK_SCENARIO_DETAILS,
       category: group.label,
       level: scenario.level,

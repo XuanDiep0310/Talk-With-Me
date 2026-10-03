@@ -2,21 +2,6 @@ import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
 
-interface TaskResult {
-  id: string;
-  label: string;
-  pass: boolean;
-  feedback: string;
-}
-
-export const MOCK_TASK_RESULTS: TaskResult[] = [
-  { id: "t1", label: "Yêu cầu đặt bàn", pass: true, feedback: "Dùng chunk 'Mở đầu' tự nhiên và lịch sự." },
-  { id: "t2", label: "Hỏi menu / gợi ý", pass: true, feedback: "Câu hỏi rõ ràng, chunk 'Làm rõ' dùng đúng chức năng." },
-  { id: "t3", label: "Gọi đồ uống", pass: true, feedback: "Đã gọi nước uống trong lượt đầu." },
-  { id: "t4", label: "Gọi ít nhất 2 món", pass: true, feedback: "Đã gọi cá hồi và salad — đủ điều kiện." },
-  { id: "t5", label: "Yêu cầu thanh toán", pass: false, feedback: "Chưa hoàn thành — buổi kết thúc trước khi gọi bill." }
-];
-
 @Component({
   selector: 'app-scenario-result',
   standalone: true,
@@ -31,7 +16,7 @@ export const MOCK_TASK_RESULTS: TaskResult[] = [
         </button>
         <div>
           <h1 class="text-2xl font-800" style="font-weight: 800; color: #1e293b">Kết quả Roleplay</h1>
-          <p class="text-sm" style="color: #64748b">{{ appState.selectedScenario()?.title || 'Roleplay Tình huống' }}</p>
+          <p class="text-sm" style="color: #64748b">{{ result()?.scenarioTitle || appState.selectedScenario()?.title || 'Roleplay Tình huống' }}</p>
         </div>
       </div>
 
@@ -44,15 +29,15 @@ export const MOCK_TASK_RESULTS: TaskResult[] = [
         <div class="text-4xl font-800 text-white mb-1" style="font-weight: 800">
           {{ passed() ? 'PASS' : 'CHƯA ĐẠT' }}
         </div>
-        <div class="text-white/80 mb-4">{{ passCount() }}/{{ taskResults.length }} mục tiêu giao tiếp đạt</div>
+        <div class="text-white/80 mb-4">{{ result()?.passCount ?? 0 }}/{{ result()?.totalTasks ?? 0 }} tasks passed</div>
         <div class="flex items-center justify-center gap-6 pt-4 border-t border-white/20">
           <div class="text-white text-center">
-            <div class="font-700 text-xl" style="font-weight: 700">+{{ xpEarned() }} XP</div>
+            <div class="font-700 text-xl" style="font-weight: 700">+{{ result()?.xp ?? 0 }} XP</div>
             <div class="text-xs opacity-70">nhận được</div>
           </div>
           <div class="text-white text-center">
-            <div class="font-700 text-xl" style="font-weight: 700">3/6</div>
-            <div class="text-xs opacity-70">chunks đã dùng</div>
+              <div class="font-700 text-xl" style="font-weight: 700">{{ result()?.totalTasks ?? 0 }}</div>
+            <div class="text-xs opacity-70">total tasks</div>
           </div>
         </div>
       </div>
@@ -64,7 +49,7 @@ export const MOCK_TASK_RESULTS: TaskResult[] = [
             🎯 Kết quả từng mục tiêu
           </h2>
           <div class="space-y-3">
-            @for (t of taskResults; track t.id) {
+            @for (t of taskResults(); track t.id) {
               <div
                 class="flex items-start gap-4 p-4 rounded-xl"
                 [style.background]="t.pass ? '#F0FDF4' : '#FFF5F5'"
@@ -81,7 +66,7 @@ export const MOCK_TASK_RESULTS: TaskResult[] = [
                 </div>
                 <div class="flex-1">
                   <div class="font-700 text-sm" style="font-weight: 700; color: #1e293b">{{ t.label }}</div>
-                  <div class="text-xs mt-0.5" [style.color]="t.pass ? '#166534' : '#9f1239'">{{ t.feedback }}</div>
+                  <div class="text-xs mt-0.5" [style.color]="t.pass ? '#166534' : '#9f1239'">{{ t.pass ? 'Objective achieved.' : 'Not completed.' }}</div>
                 </div>
                 <span
                   class="badge shrink-0"
@@ -89,7 +74,7 @@ export const MOCK_TASK_RESULTS: TaskResult[] = [
                   [style.color]="t.pass ? '#166534' : '#9f1239'"
                   style="font-size: 11px; font-weight: 700"
                 >
-                  {{ t.pass ? 'PASS' : 'FAIL' }}
+                  {{ t.pass ? 'PASS' : 'NOT PASSED' }}
                 </span>
               </div>
             }
@@ -137,9 +122,8 @@ export const MOCK_TASK_RESULTS: TaskResult[] = [
 export class ScenarioResultComponent {
   readonly appState = inject(AppStateService);
 
-  readonly taskResults = MOCK_TASK_RESULTS;
-
-  readonly passCount = computed(() => this.taskResults.filter(t => t.pass).length);
-  readonly passed = computed(() => this.passCount() >= Math.ceil(this.taskResults.length * 0.6));
-  readonly xpEarned = computed(() => this.passed() ? 40 : 20);
+  readonly result = computed(() => this.appState.roleplayResult());
+  readonly taskResults = computed(() => this.result()?.tasks ?? []);
+  readonly passCount = computed(() => this.result()?.passCount ?? 0);
+  readonly passed = computed(() => this.result()?.status === 'PASS');
 }

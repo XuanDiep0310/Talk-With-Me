@@ -93,6 +93,7 @@ export interface UsefulPhrase {
 
 export interface Scenario {
   id: string;
+  xp?: number;
   title: string;
   category: string;
   level: string;
