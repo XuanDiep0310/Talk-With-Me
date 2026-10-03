@@ -142,6 +142,7 @@ export interface CommunityRoom {
   level: string;
   members: number;
   maxMembers: number;
+  active: boolean;
   host: string;
   hostAvatar: string;
   tags: string[];
