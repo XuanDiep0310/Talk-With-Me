@@ -69,7 +69,7 @@ const ROOM_LEVELS = ['A2', 'B1', 'B2', 'C1'];
 
       @if (showCreate()) {
         <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <section role="dialog" aria-modal="true" aria-labelledby="create-room-title" class="card bg-white p-6 w-full max-w-md">
+            <section role="dialog" aria-modal="true" aria-labelledby="create-room-title" class="card bg-white p-5 sm:p-6 w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div class="flex justify-between items-center mb-5"><h2 id="create-room-title" class="text-xl font-700" style="color:#1e293b">Tạo phòng mới</h2><button type="button" aria-label="Đóng" class="cursor-pointer text-xl" (click)="closeCreate()">×</button></div>
             <form class="space-y-4" (submit)="$event.preventDefault(); createRoom()" novalidate>
               <label class="block text-sm font-600">Tên phòng<input class="mt-1 w-full rounded-lg border px-3 py-2" maxlength="80" [value]="roomName()" (input)="roomName.set($any($event.target).value)" (blur)="submitted.set(true)" />

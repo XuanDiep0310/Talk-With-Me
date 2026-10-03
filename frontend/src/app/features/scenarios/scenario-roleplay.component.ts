@@ -32,7 +32,7 @@ export const SCRIPT: Line[] = [
   template: `
     <div class="fixed inset-0 flex flex-col z-50" style="background: #0f172a">
       <!-- Header -->
-      <div class="flex items-center gap-3 px-4 py-3 shrink-0" style="background: #1e293b; border-bottom: 1px solid #334155">
+      <div class="flex flex-wrap items-center gap-3 px-3 sm:px-4 py-3 shrink-0" style="background: #1e293b; border-bottom: 1px solid #334155">
         <div class="text-xl">🎭</div>
         <div class="flex-1 min-w-0">
           <div class="text-white font-700 text-sm truncate" style="font-weight: 700">
@@ -73,7 +73,7 @@ export const SCRIPT: Line[] = [
               <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-700 text-xs text-white" [style.background]="line.speaker === 'AI' ? '#286FB4' : '#7c3aed'">
                 {{ line.speaker }}
               </div>
-              <div class="max-w-md rounded-2xl p-4 text-sm" [style.background]="line.speaker === 'AI' ? '#243b5e' : '#31215f'" [style.color]="'#fff'">
+              <div class="min-w-0 max-w-[90%] sm:max-w-md rounded-2xl p-4 text-sm break-words" [style.background]="line.speaker === 'AI' ? '#243b5e' : '#31215f'" [style.color]="'#fff'">
                 <div>{{ line.text }}</div>
                 @if (line.translation) {
                   <div class="text-xs mt-1 text-slate-400 border-t border-slate-700 pt-1">{{ line.translation }}</div>
@@ -144,7 +144,7 @@ export const SCRIPT: Line[] = [
       <!-- End Confirmation Modal -->
       @if (showEndModal()) {
         <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div class="card p-6 max-w-sm w-full bg-slate-800 text-white border-slate-700 text-center">
+          <section role="dialog" aria-modal="true" aria-label="Finish roleplay confirmation" class="card p-5 sm:p-6 max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto bg-slate-800 text-white border-slate-700 text-center">
             <div class="text-4xl mb-3">🎉</div>
             <h3 class="text-lg font-700 mb-2">Hoàn thành Roleplay?</h3>
             <p class="text-xs text-slate-400 mb-6">Bạn đã sử dụng thành công các Chunks trong tình huống này.</p>
@@ -152,7 +152,7 @@ export const SCRIPT: Line[] = [
               <button class="btn-secondary text-sm cursor-pointer" (click)="showEndModal.set(false)">Tiếp tục</button>
               <button class="btn-primary text-sm cursor-pointer" (click)="finishRoleplay()">Xem kết quả</button>
             </div>
-          </div>
+          </section>
         </div>
       }
     </div>
