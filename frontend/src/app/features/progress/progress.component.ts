@@ -2,24 +2,6 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@a
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
 
-export interface SkillProgress {
-  label: string;
-  current: number;
-  prev: number;
-  color: string;
-  desc: string;
-  history: number[];
-}
-
-export interface SessionHistory {
-  date: string;
-  topic: string;
-  type: string;
-  duration: string;
-  score: number;
-  emoji: string;
-}
-
 export interface LevelRequirement {
   level: string;
   done: boolean;
@@ -29,22 +11,6 @@ export interface LevelRequirement {
   minFluency: number;
   progress?: { sessions: number; scenarios: number; fluency: number } | null;
 }
-
-export const SKILL_DATA: SkillProgress[] = [
-  { label: "Fluency", current: 72, prev: 60, color: "#286FB4", desc: "Nói trơn tru, ít dừng và ngập ngừng", history: [45, 52, 58, 60, 63, 68, 72] },
-  { label: "Listening", current: 68, prev: 58, color: "#22c55e", desc: "Nghe hiểu và phản hồi đúng ý", history: [40, 48, 53, 57, 58, 62, 68] },
-  { label: "Vocabulary", current: 61, prev: 55, color: "#DF4C73", desc: "Vốn từ đa dạng và phù hợp ngữ cảnh", history: [38, 44, 49, 52, 55, 58, 61] },
-  { label: "Tốc độ P.H", current: 55, prev: 48, color: "#f59e0b", desc: "Thời gian suy nghĩ và phản hồi", history: [30, 36, 40, 44, 47, 51, 55] },
-  { label: "Phát âm", current: 64, prev: 56, color: "#7c3aed", desc: "Độ chuẩn xác của phát âm", history: [40, 46, 50, 54, 56, 60, 64] }
-];
-
-export const SESSION_HISTORY: SessionHistory[] = [
-  { date: "Hôm nay", topic: "Kể về công việc", type: "AI Coach", duration: "18 phút", score: 74, emoji: "🎙️" },
-  { date: "Hôm qua", topic: "Đặt bàn nhà hàng", type: "Tình huống", duration: "12 phút", score: 82, emoji: "🎭" },
-  { date: "2 ngày trước", topic: "Small Talk at Work", type: "Cộng đồng", duration: "25 phút", score: 70, emoji: "👥" },
-  { date: "3 ngày trước", topic: "Du lịch mơ ước", type: "AI Coach", duration: "20 phút", score: 78, emoji: "🎙️" },
-  { date: "5 ngày trước", topic: "Check-in khách sạn", type: "Tình huống", duration: "14 phút", score: 68, emoji: "🎭" }
-];
 
 export const LEVEL_REQUIREMENTS: LevelRequirement[] = [
   { level: "A1", done: true, sessions: 10, scenarios: 5, minFluency: 40 },
@@ -119,7 +85,7 @@ export const LEVEL_REQUIREMENTS: LevelRequirement[] = [
       @if (tab() === 'skills') {
         @defer (on viewport) {
           <div class="space-y-4">
-            @for (s of skills; track s.label) {
+            @for (s of skills(); track s.label) {
               <div class="card p-6">
                 <div class="flex items-center justify-between flex-wrap gap-4">
                   <div class="flex-1 min-w-48">
@@ -206,23 +172,22 @@ export class ProgressComponent {
   readonly appState = inject(AppStateService);
 
   readonly tab = signal<"skills" | "history" | "roadmap">("skills");
-  readonly skills = SKILL_DATA;
-  readonly sessionHistory = computed(() => [
-    ...this.appState.completedAiCoachSessions().map(session => ({
-      date: session.date, topic: session.topic, type: 'AI Coach', duration: session.duration,
-      score: session.score, emoji: session.emoji
-    })),
-    ...SESSION_HISTORY
-  ]);
+  readonly skills = this.appState.skillProgress;
+  readonly sessionHistory = computed(() => this.appState.learningActivities().map(activity => ({
+    date: activity.date, topic: activity.topic,
+    type: activity.type === 'AI_COACH' ? 'AI Coach' : activity.type === 'SCENARIO' ? 'Tình huống' : 'Cộng đồng',
+    duration: activity.duration, score: activity.score, emoji: activity.emoji,
+  })));
   readonly levelRequirements = LEVEL_REQUIREMENTS;
 
   readonly overall = computed(() => {
-    return Math.round(this.skills.reduce((acc, s) => acc + s.current, 0) / this.skills.length);
+    const skills = this.skills();
+    return Math.round(skills.reduce((acc, skill) => acc + skill.current, 0) / skills.length);
   });
 
   readonly metrics = computed(() => [
-    { val: "47", label: "Buổi luyện" },
-    { val: "12 ngày", label: "Streak hiện tại" },
+    { val: `${this.appState.totalXp().toLocaleString()} XP`, label: "Total XP" },
+    { val: `${this.appState.currentStreak()} days`, label: "Current streak" },
     { val: this.appState.appUser().level, label: "Level" }
   ]);
 }
