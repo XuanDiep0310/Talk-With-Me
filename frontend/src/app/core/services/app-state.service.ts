@@ -95,6 +95,7 @@ function getInitialPage(): AppPage {
 })
 export class AppStateService {
   private readonly router = inject(Router);
+  private joinedRoomId: number | null = null;
 
   readonly currentPage = signal<AppPage>(getInitialPage());
   readonly user = signal<User | null>(getStoredUser());
@@ -256,12 +257,30 @@ export class AppStateService {
       level: updatedRoom.level,
       members: updatedRoom.members,
       maxMembers: updatedRoom.max,
+      active: updatedRoom.active,
       host: updatedRoom.host,
       hostAvatar: MOCK_ROOM_HOST_AVATAR,
       tags: [updatedRoom.topic, updatedRoom.level],
     });
+    this.joinedRoomId = updatedRoom.id;
     void this.go("community-room");
     return true;
+  }
+
+  leaveRoom(): void {
+    const roomId = this.joinedRoomId;
+    if (roomId !== null) {
+      const room = this.communityRooms().find((item) => item.id === roomId);
+      if (room) {
+        const updatedRoom = { ...room, members: Math.max(0, room.members - 1) };
+        this.communityRooms.update((rooms) =>
+          rooms.map((item) => item.id === roomId ? updatedRoom : item),
+        );
+      }
+    }
+    this.joinedRoomId = null;
+    this.selectedRoom.set(null);
+    void this.go("community");
   }
 
   createCommunityRoom(room: Omit<RoomListing, "id">): void {

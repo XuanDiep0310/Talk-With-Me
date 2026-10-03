@@ -1,7 +1,9 @@
-import { Component, ChangeDetectionStrategy, signal, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
 import { FormatTimePipe } from '../../shared/pipes/app-pipes';
+import { MOCK_COMMUNITY_MEMBERS, MOCK_COMMUNITY_TRANSCRIPT } from '../../core/data/mock-data';
+import { CommunityRoomMember } from '../../core/models/app.models';
 
 export interface RoomMember {
   name: string;
@@ -52,6 +54,10 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
               {{ appState.selectedRoom()?.topic || 'Daily Talk' }}
             </span>
           </div>
+          <div class="text-xs text-slate-300 mt-1">
+            {{ members().length }} / {{ appState.selectedRoom()?.maxMembers ?? 0 }} members
+            · {{ appState.selectedRoom()?.active ? 'Active' : 'Inactive' }}
+          </div>
         </div>
         <div class="ml-auto flex items-center gap-3">
           <div class="font-700 text-lg font-mono" style="color: #286FB4; font-weight: 700">
@@ -69,19 +75,20 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
           <!-- Active Speakers Circle -->
           <div class="shrink-0 p-6" style="background: #1e293b; border-bottom: 1px solid #334155">
             <div class="flex items-center justify-center gap-8">
-              @for (m of members; track m.name; let i = $index) {
+              @for (m of members(); track m.name; let i = $index) {
                 <div class="flex flex-col items-center gap-2">
                   <div class="relative">
                     <div
                       class="w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all duration-300"
                       [style.background]="activeIdx() === i ? m.color : '#334155'"
                       [style.transform]="activeIdx() === i ? 'scale(1.1)' : 'scale(1)'"
+                      [style.boxShadow]="activeIdx() === i ? '0 0 0 4px #286FB455' : 'none'"
                     >
                       {{ m.emoji }}
                     </div>
                   </div>
                   <div class="text-xs font-500" [style.color]="activeIdx() === i ? '#fff' : '#94a3b8'" style="font-weight: 500">
-                    {{ m.name }}
+                    {{ m.name }} @if (activeIdx() === i) { <span class="text-green-400">· speaking</span> }
                   </div>
                 </div>
               }
@@ -91,13 +98,13 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
           <!-- Live Speech Transcript -->
           <div class="flex-1 overflow-y-auto p-5 space-y-3">
             @for (line of transcript(); track line.id) {
-              <div class="flex gap-3" [class.justify-end]="line.speaker === 'Bạn'" [class.justify-start]="line.speaker !== 'Bạn'">
+              <div class="flex gap-3" [class.justify-end]="line.speaker === userName" [class.justify-start]="line.speaker !== userName">
                 <div class="max-w-[75%]">
                   <div class="flex items-center gap-2 mb-1">
                     <span class="text-xs font-600 text-sky-400" style="font-weight: 600">{{ line.speaker }}</span>
                     <span class="text-xs text-slate-500">{{ line.time }}</span>
                   </div>
-                  <div class="px-4 py-3 rounded-2xl text-sm" [style.background]="line.speaker === 'Bạn' ? '#286FB4' : '#1e293b'" style="color: #fff">
+                  <div class="px-4 py-3 rounded-2xl text-sm" [style.background]="line.speaker === userName ? '#286FB4' : '#1e293b'" style="color: #fff">
                     {{ line.text }}
                   </div>
                 </div>
@@ -107,10 +114,14 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
 
           <!-- Bottom interactive mic bar -->
           <div class="p-4 shrink-0 flex items-center justify-center gap-4" style="background: #1e293b; border-top: 1px solid #334155">
-            <button class="p-3.5 rounded-full bg-slate-700 text-white cursor-pointer" (click)="toggleMic()">
-              @if (micMuted()) { 🔇 } @else { 🎙️ }
+            <button type="button" class="w-12 h-12 rounded-full text-white cursor-pointer flex items-center justify-center transition-colors" [style.background]="micMuted() ? '#475569' : '#16a34a'" [attr.aria-label]="micMuted() ? 'Bật microphone' : 'Tắt microphone'" [attr.aria-pressed]="!micMuted()" (click)="toggleMic()">
+              @if (micMuted()) {
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9V5a3 3 0 0 0-5.83-1M5 10v2a7 7 0 0 0 12 4.9M19 10v2a6.97 6.97 0 0 1-.36 2.21M12 19v3m-4 0h8M3 3l18 18"/></svg>
+              } @else {
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8"/></svg>
+              }
             </button>
-            <button class="btn-primary px-6 py-2.5 rounded-full text-sm cursor-pointer" (click)="simulateUserSpeak()">
+            <button type="button" class="btn-primary px-6 py-2.5 rounded-full text-sm" [class.cursor-pointer]="!micMuted()" [class.cursor-not-allowed]="micMuted()" [disabled]="micMuted()" [style.opacity]="micMuted() ? 0.5 : 1" (click)="simulateUserSpeak()">
               🗣️ Giơ tay / Bắt đầu phát biểu
             </button>
           </div>
@@ -141,9 +152,18 @@ export class CommunityRoomComponent implements OnInit, OnDestroy {
   readonly activeIdx = signal(0);
   readonly micMuted = signal(false);
   readonly showLeave = signal(false);
-  readonly transcript = signal<RoomLine[]>(TRANSCRIPT_SEED);
+  readonly transcript = signal<RoomLine[]>(MOCK_COMMUNITY_TRANSCRIPT.map(line => ({ ...line })));
 
-  readonly members = MEMBERS;
+  readonly userName = this.appState.appUser().name;
+  readonly members = computed<CommunityRoomMember[]>(() => {
+    const limit = Math.min(this.appState.selectedRoom()?.members ?? MOCK_COMMUNITY_MEMBERS.length, this.appState.selectedRoom()?.maxMembers ?? MOCK_COMMUNITY_MEMBERS.length);
+    return Array.from({ length: limit }, (_, index) => {
+      const member = MOCK_COMMUNITY_MEMBERS[index] ?? {
+        name: `Learner ${index + 1}`, emoji: '🙂', color: '#64748b', speaking: false,
+      };
+      return index === 0 ? { ...member, name: this.userName } : member;
+    });
+  });
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private speakerInterval: ReturnType<typeof setInterval> | null = null;
@@ -154,7 +174,7 @@ export class CommunityRoomComponent implements OnInit, OnDestroy {
     }, 1000);
 
     this.speakerInterval = setInterval(() => {
-      this.activeIdx.update(i => (i + 1) % this.members.length);
+      this.activeIdx.update(i => (i + 1) % Math.max(this.members().length, 1));
     }, 4000);
   }
 
@@ -164,12 +184,16 @@ export class CommunityRoomComponent implements OnInit, OnDestroy {
   }
 
   simulateUserSpeak(): void {
+    if (this.micMuted()) return;
     this.activeIdx.set(0);
+    const previousTime = this.transcript().at(-1)?.time ?? '00:00';
+    const [minutes, seconds] = previousTime.split(':').map(Number);
+    const elapsed = Math.max(this.timer(), minutes * 60 + seconds + 1);
     const newLine: RoomLine = {
       id: Date.now(),
-      speaker: "Bạn",
-      text: "I totally agree! I spent my weekend reading a great book.",
-      time: "01:12"
+      speaker: this.userName,
+      text: 'Hello everyone! Today I want to practice English.',
+      time: `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`
     };
     this.transcript.update(list => [...list, newLine]);
   }
@@ -180,6 +204,6 @@ export class CommunityRoomComponent implements OnInit, OnDestroy {
 
   leaveRoom(): void {
     this.showLeave.set(false);
-    this.appState.go("community");
+    this.appState.leaveRoom();
   }
 }
