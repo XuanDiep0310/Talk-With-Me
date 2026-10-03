@@ -6,6 +6,7 @@ import {
   User,
   Scenario,
   CommunityRoom,
+  RoomListing,
   Settings,
   AiCoachCompletedSession,
 } from "../models/app.models";
@@ -13,6 +14,8 @@ import {
   MOCK_USER,
   MOCK_SETTINGS,
   MOCK_AI_COACH_TOPIC_GROUPS,
+  ROOMS,
+  MOCK_ROOM_HOST_AVATAR,
 } from "../data/mock-data";
 
 const VALID_PAGES: AppPage[] = [
@@ -114,6 +117,7 @@ export class AppStateService {
   readonly roleplayResult = signal<RoleplayResult | null>(null);
   readonly completedScenarioIds = signal<string[]>([]);
   readonly selectedRoom = signal<CommunityRoom | null>(null);
+  readonly communityRooms = signal<RoomListing[]>(ROOMS.map((room) => ({ ...room })));
 
   readonly appUser = computed(() => this.user() || MOCK_USER);
   readonly isLoggedIn = computed(() => this.user() !== null);
@@ -238,9 +242,31 @@ export class AppStateService {
     }
   }
 
-  joinRoom(room: CommunityRoom): void {
-    this.selectedRoom.set(room);
-    this.go("community-room");
+  joinRoom(roomId: number): boolean {
+    const room = this.communityRooms().find((item) => item.id === roomId);
+    if (!room || !room.active || room.members >= room.max) return false;
+    const updatedRoom = { ...room, members: Math.min(room.members + 1, room.max) };
+    this.communityRooms.update((rooms) =>
+      rooms.map((item) => item.id === roomId ? updatedRoom : item),
+    );
+    this.selectedRoom.set({
+      id: String(updatedRoom.id),
+      name: updatedRoom.title,
+      topic: updatedRoom.topic,
+      level: updatedRoom.level,
+      members: updatedRoom.members,
+      maxMembers: updatedRoom.max,
+      host: updatedRoom.host,
+      hostAvatar: MOCK_ROOM_HOST_AVATAR,
+      tags: [updatedRoom.topic, updatedRoom.level],
+    });
+    void this.go("community-room");
+    return true;
+  }
+
+  createCommunityRoom(room: Omit<RoomListing, "id">): void {
+    const id = Math.max(0, ...this.communityRooms().map((item) => item.id)) + 1;
+    this.communityRooms.update((rooms) => [{ ...room, id }, ...rooms]);
   }
 }
 
