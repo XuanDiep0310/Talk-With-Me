@@ -111,6 +111,8 @@ export class AppStateService {
     );
   });
   readonly selectedScenario = signal<Scenario | null>(null);
+  readonly roleplayResult = signal<RoleplayResult | null>(null);
+  readonly completedScenarioIds = signal<string[]>([]);
   readonly selectedRoom = signal<CommunityRoom | null>(null);
 
   readonly appUser = computed(() => this.user() || MOCK_USER);
@@ -225,11 +227,30 @@ export class AppStateService {
 
   selectScenario(scenario: Scenario): void {
     this.selectedScenario.set(scenario);
+    this.roleplayResult.set(null);
     this.go("scenario-detail");
+  }
+
+  completeRoleplay(result: RoleplayResult): void {
+    this.roleplayResult.set(result);
+    if (result.status === "PASS") {
+      this.completedScenarioIds.update(ids => ids.includes(result.scenarioId) ? ids : [...ids, result.scenarioId]);
+    }
   }
 
   joinRoom(room: CommunityRoom): void {
     this.selectedRoom.set(room);
     this.go("community-room");
   }
+}
+
+export interface RoleplayResult {
+  scenarioId: string;
+  scenarioTitle: string;
+  tasks: { id: number; label: string; pass: boolean }[];
+  passCount: number;
+  totalTasks: number;
+  xp: number;
+  status: "PASS" | "NOT PASSED";
+  completedAt: string;
 }
