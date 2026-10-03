@@ -73,7 +73,7 @@ interface NavItem {
             <span class="text-xs font-600" style="color: #286FB4; font-weight: 600">
               {{ appState.appUser().level }}
             </span>
-            <span class="text-xs" style="color: #64748b">{{ appState.appUser().xp }} XP</span>
+            <span class="text-xs" style="color: #64748b">{{ appState.totalXp() }} XP</span>
           </div>
           <div class="progress-bar h-2 bg-slate-200 rounded-full overflow-hidden">
             <div
@@ -135,7 +135,7 @@ interface NavItem {
           <!-- Streak badge -->
           <div class="flex items-center gap-2 px-3 py-2 rounded-xl" style="background: #FFF5E5">
             <span class="text-base">🔥</span>
-            <span class="text-sm font-700" style="color: #ea580c; font-weight: 700">{{ appState.appUser().streak }} ngày</span>
+            <span class="text-sm font-700" style="color: #ea580c; font-weight: 700">{{ appState.currentStreak() }} ngày</span>
           </div>
 
           <!-- Notifications button -->

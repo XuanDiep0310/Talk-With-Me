@@ -1,8 +1,7 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
-import { AppPage, Session, Mission } from '../../core/models/app.models';
-import { MOCK_DAILY_MISSIONS, MOCK_RECENT_SESSIONS } from '../../core/data/mock-data';
+import { AppPage, Session } from '../../core/models/app.models';
 
 interface Skill {
   label: string;
@@ -33,7 +32,7 @@ interface Shortcut {
             Xin chào, {{ appState.appUser().name }}! 👋
           </h1>
           <p class="text-sm mt-1" style="color: #64748b">
-            Hôm nay là ngày streak thứ <strong style="color: #ea580c">{{ appState.appUser().streak }}</strong> — hãy giữ vững nhé!
+            Hôm nay là ngày streak thứ <strong style="color: #ea580c">{{ appState.currentStreak() }}</strong> — hãy giữ vững nhé!
           </p>
         </div>
         <button class="btn-primary cursor-pointer" (click)="appState.go('ai-coach')">
@@ -87,7 +86,7 @@ interface Shortcut {
                 <button class="text-sm font-600 cursor-pointer" style="color: #286FB4; font-weight: 600" (click)="appState.go('progress')">Xem chi tiết →</button>
               </div>
               <div class="space-y-4">
-                @for (s of skills; track s.label) {
+                @for (s of skills(); track s.label) {
                   <div>
                     <div class="flex items-center justify-between mb-1.5">
                       <span class="text-sm font-500" style="font-weight: 500; color: #374151">{{ s.label }}</span>
@@ -112,7 +111,7 @@ interface Shortcut {
                 <button class="text-sm font-600 cursor-pointer" style="color: #286FB4; font-weight: 600" (click)="appState.go('progress')">Xem tất cả →</button>
               </div>
               <div class="space-y-3">
-                @for (s of recentSessions; track s.topic) {
+                @for (s of recentSessions(); track s.topic) {
                   <div class="flex items-center gap-4 p-4 rounded-xl" style="background: #F8FAFC">
                     <div class="text-2xl">
                       @if (s.type === 'ai-coach') { 🎙️ } @else if (s.type === 'scenario') { 🎭 } @else { 👥 }
@@ -156,11 +155,9 @@ interface Shortcut {
 
             <div class="space-y-3">
               @for (m of missions(); track m.id) {
-                <button
-                  type="button"
-                  class="flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer w-full text-left border-0"
+                <div
+                  class="flex items-center gap-3 p-3 rounded-xl w-full text-left border-0"
                   [style.background]="m.done ? '#F0FDF4' : '#F8FAFC'"
-                  (click)="toggleMission(m.id)"
                 >
                   <span class="text-xl">{{ m.icon }}</span>
                   <div class="flex-1 min-w-0">
@@ -169,8 +166,8 @@ interface Shortcut {
                     </div>
                     <div class="text-xs font-600" style="color: #f59e0b; font-weight: 600">+{{ m.xp }} XP</div>
                   </div>
-                  <input type="checkbox" [checked]="m.done" class="w-4 h-4 accent-blue-600 cursor-pointer" />
-                </button>
+                  <input type="checkbox" [checked]="m.done" disabled class="w-4 h-4 accent-blue-600" />
+                </div>
               }
             </div>
           </div>
@@ -196,17 +193,14 @@ interface Shortcut {
 export class DashboardComponent {
   readonly appState = inject(AppStateService);
 
-  readonly missions = signal<Mission[]>(MOCK_DAILY_MISSIONS.map(mission => ({ ...mission })));
-
-  readonly skills: Skill[] = [
-    { label: "Fluency", value: 72, color: "#286FB4" },
-    { label: "Listening", value: 68, color: "#B0DDE4" },
-    { label: "Vocabulary", value: 61, color: "#DF4C73" },
-    { label: "Tốc độ P.H", value: 55, color: "#f59e0b" },
-    { label: "Phát âm", value: 64, color: "#22c55e" }
-  ];
-
-  readonly recentSessions: Session[] = MOCK_RECENT_SESSIONS;
+  readonly missions = this.appState.dailyMissions;
+  readonly skills = computed<Skill[]>(() => this.appState.skillProgress().map(skill => ({
+    label: skill.label, value: skill.current, color: skill.color,
+  })));
+  readonly recentSessions = computed<Session[]>(() => this.appState.learningActivities().slice(0, 5).map(activity => ({
+    topic: activity.topic, date: activity.date, duration: activity.duration, score: activity.score,
+    type: activity.type === 'AI_COACH' ? 'ai-coach' : activity.type === 'SCENARIO' ? 'scenario' : 'community',
+  })));
 
   readonly shortcuts: Shortcut[] = [
     { id: "ai-coach", label: "AI Coach", desc: "Nói chuyện với AI", emoji: "🎙️", color: "#286FB4", bg: "#E2F0F9" },
@@ -216,9 +210,9 @@ export class DashboardComponent {
   ];
 
   readonly statsList = computed(() => [
-    { label: "Điểm giao tiếp", value: "67", unit: "/100", icon: "💬", color: "#286FB4", bg: "#E2F0F9" },
-    { label: "XP tích lũy", value: this.appState.appUser().xp.toLocaleString(), unit: " XP", icon: "⭐", color: "#f59e0b", bg: "#FFF5E5" },
-    { label: "Streak", value: String(this.appState.appUser().streak), unit: " ngày", icon: "🔥", color: "#ea580c", bg: "#FFF0E8" },
+    { label: "Điểm giao tiếp", value: String(Math.round(this.appState.skillProgress().reduce((total, skill) => total + skill.current, 0) / this.appState.skillProgress().length)), unit: "/100", icon: "💬", color: "#286FB4", bg: "#E2F0F9" },
+    { label: "XP tích lũy", value: this.appState.totalXp().toLocaleString(), unit: " XP", icon: "⭐", color: "#f59e0b", bg: "#FFF5E5" },
+    { label: "Streak", value: String(this.appState.currentStreak()), unit: " ngày", icon: "🔥", color: "#ea580c", bg: "#FFF0E8" },
     { label: "Level", value: this.appState.appUser().level, unit: "", icon: "🎓", color: "#7c3aed", bg: "#F5F3FF" }
   ]);
 
