@@ -11,7 +11,7 @@ import { AppStateService } from '../../core/services/app-state.service';
     <div class="p-5 md:p-8 max-w-3xl mx-auto space-y-6">
       <!-- Header bar -->
       <div class="flex items-center gap-3">
-        <button class="w-9 h-9 rounded-xl btn-secondary flex items-center justify-center shrink-0 cursor-pointer" (click)="appState.go('scenarios')">
+        <button type="button" aria-label="Back to scenarios" class="w-9 h-9 rounded-xl btn-secondary flex items-center justify-center shrink-0 cursor-pointer" (click)="appState.go('scenarios')">
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
         </button>
         <div>
@@ -30,7 +30,7 @@ import { AppStateService } from '../../core/services/app-state.service';
           {{ passed() ? 'PASS' : 'CHƯA ĐẠT' }}
         </div>
         <div class="text-white/80 mb-4">{{ result()?.passCount ?? 0 }}/{{ result()?.totalTasks ?? 0 }} tasks passed</div>
-        <div class="flex items-center justify-center gap-6 pt-4 border-t border-white/20">
+        <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-4 border-t border-white/20">
           <div class="text-white text-center">
             <div class="font-700 text-xl" style="font-weight: 700">+{{ result()?.xp ?? 0 }} XP</div>
             <div class="text-xs opacity-70">nhận được</div>
@@ -105,7 +105,7 @@ import { AppStateService } from '../../core/services/app-state.service';
       </div>
 
       <!-- Action Buttons -->
-      <div class="grid grid-cols-2 gap-4 pb-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4">
         <button class="btn-secondary justify-center py-3 cursor-pointer" (click)="appState.go('scenarios')">
           ← Tình huống khác
         </button>

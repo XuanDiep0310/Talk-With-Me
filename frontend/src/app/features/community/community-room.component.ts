@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
 import { FormatTimePipe } from '../../shared/pipes/app-pipes';
@@ -40,10 +40,9 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
   template: `
     <div class="fixed inset-0 flex flex-col z-50" style="background: #0f172a">
       <!-- Top header bar -->
-      <div class="flex items-center gap-4 px-5 py-4 shrink-0" style="background: #1e293b; border-bottom: 1px solid #334155">
-        <span class="text-2xl">{{ appState.selectedRoom()?.name || 'Voice Room' }}</span>
-        <div>
-          <div class="text-white font-700 text-sm" style="font-weight: 700">
+      <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 shrink-0" style="background: #1e293b; border-bottom: 1px solid #334155">
+        <div class="min-w-0 flex-1">
+          <div class="text-white font-700 text-sm break-words" style="font-weight: 700">
             {{ appState.selectedRoom()?.name || 'Phòng luyện nói cộng đồng' }}
           </div>
           <div class="flex items-center gap-2">
@@ -59,7 +58,7 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
             · {{ appState.selectedRoom()?.active ? 'Active' : 'Inactive' }}
           </div>
         </div>
-        <div class="ml-auto flex items-center gap-3">
+        <div class="ml-auto w-full sm:w-auto flex items-center justify-end gap-3">
           <div class="font-700 text-lg font-mono" style="color: #286FB4; font-weight: 700">
             {{ timer() | formatTime }}
           </div>
@@ -74,12 +73,12 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
         <div class="flex-1 flex flex-col overflow-hidden">
           <!-- Active Speakers Circle -->
           <div class="shrink-0 p-6" style="background: #1e293b; border-bottom: 1px solid #334155">
-            <div class="flex items-center justify-center gap-8">
+            <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-8">
               @for (m of members(); track m.name; let i = $index) {
                 <div class="flex flex-col items-center gap-2">
                   <div class="relative">
                     <div
-                      class="w-16 h-16 rounded-full flex items-center justify-center text-2xl transition-all duration-300"
+                      class="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl transition-all duration-300"
                       [style.background]="activeIdx() === i ? m.color : '#334155'"
                       [style.transform]="activeIdx() === i ? 'scale(1.1)' : 'scale(1)'"
                       [style.boxShadow]="activeIdx() === i ? '0 0 0 4px #286FB455' : 'none'"
@@ -87,7 +86,7 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
                       {{ m.emoji }}
                     </div>
                   </div>
-                  <div class="text-xs font-500" [style.color]="activeIdx() === i ? '#fff' : '#94a3b8'" style="font-weight: 500">
+                  <div class="text-xs font-500 text-center break-words max-w-20" [style.color]="activeIdx() === i ? '#fff' : '#94a3b8'" style="font-weight: 500">
                     {{ m.name }} @if (activeIdx() === i) { <span class="text-green-400">· speaking</span> }
                   </div>
                 </div>
@@ -96,15 +95,15 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
           </div>
 
           <!-- Live Speech Transcript -->
-          <div class="flex-1 overflow-y-auto p-5 space-y-3">
+          <div class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-5 space-y-3">
             @for (line of transcript(); track line.id) {
               <div class="flex gap-3" [class.justify-end]="line.speaker === userName" [class.justify-start]="line.speaker !== userName">
-                <div class="max-w-[75%]">
+                <div class="max-w-[90%] sm:max-w-[75%] min-w-0">
                   <div class="flex items-center gap-2 mb-1">
                     <span class="text-xs font-600 text-sky-400" style="font-weight: 600">{{ line.speaker }}</span>
                     <span class="text-xs text-slate-500">{{ line.time }}</span>
                   </div>
-                  <div class="px-4 py-3 rounded-2xl text-sm" [style.background]="line.speaker === userName ? '#286FB4' : '#1e293b'" style="color: #fff">
+                  <div class="px-4 py-3 rounded-2xl text-sm break-words [overflow-wrap:anywhere]" [style.background]="line.speaker === userName ? '#286FB4' : '#1e293b'" style="color: #fff">
                     {{ line.text }}
                   </div>
                 </div>
@@ -113,7 +112,7 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
           </div>
 
           <!-- Bottom interactive mic bar -->
-          <div class="p-4 shrink-0 flex items-center justify-center gap-4" style="background: #1e293b; border-top: 1px solid #334155">
+          <div class="p-3 sm:p-4 shrink-0 flex flex-wrap items-center justify-center gap-3 sm:gap-4" style="background: #1e293b; border-top: 1px solid #334155">
             <button type="button" class="w-12 h-12 rounded-full text-white cursor-pointer flex items-center justify-center transition-colors" [style.background]="micMuted() ? '#475569' : '#16a34a'" [attr.aria-label]="micMuted() ? 'Bật microphone' : 'Tắt microphone'" [attr.aria-pressed]="!micMuted()" (click)="toggleMic()">
               @if (micMuted()) {
                 <svg aria-hidden="true" viewBox="0 0 24 24" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9V5a3 3 0 0 0-5.83-1M5 10v2a7 7 0 0 0 12 4.9M19 10v2a6.97 6.97 0 0 1-.36 2.21M12 19v3m-4 0h8M3 3l18 18"/></svg>
@@ -130,16 +129,16 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
 
       <!-- Leave Room Modal -->
       @if (showLeave()) {
-        <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div class="card p-6 max-w-sm w-full bg-slate-800 text-white border-slate-700 text-center">
+        <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4">
+          <section class="card p-5 sm:p-6 max-w-sm w-full max-h-[calc(100dvh-1.5rem)] overflow-y-auto bg-slate-800 text-white border-slate-700 text-center" role="dialog" aria-modal="true" aria-labelledby="leave-room-title">
             <div class="text-4xl mb-3">👋</div>
-            <h3 class="text-lg font-700 mb-2">Rời khỏi phòng voice?</h3>
+            <h3 id="leave-room-title" class="text-lg font-700 mb-2 break-words">Rời khỏi phòng voice?</h3>
             <p class="text-xs text-slate-400 mb-6">Bạn có thể quay lại danh sách phòng bất kỳ lúc nào.</p>
-            <div class="flex gap-3 justify-center">
-              <button class="btn-secondary text-sm cursor-pointer" (click)="showLeave.set(false)">Ở lại</button>
-              <button class="btn-accent text-sm cursor-pointer" (click)="leaveRoom()">Rời phòng</button>
+            <div class="flex flex-wrap gap-3 justify-center">
+              <button type="button" class="btn-secondary text-sm cursor-pointer" (click)="showLeave.set(false)">Ở lại</button>
+              <button type="button" class="btn-accent text-sm cursor-pointer" (click)="leaveRoom()">Rời phòng</button>
             </div>
-          </div>
+          </section>
         </div>
       }
     </div>
@@ -167,6 +166,11 @@ export class CommunityRoomComponent implements OnInit, OnDestroy {
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private speakerInterval: ReturnType<typeof setInterval> | null = null;
+
+  @HostListener('document:keydown.escape')
+  closeLeaveDialogOnEscape(): void {
+    if (this.showLeave()) this.showLeave.set(false);
+  }
 
   ngOnInit(): void {
     this.timerInterval = setInterval(() => {

@@ -98,18 +98,20 @@ export const GROUPS: ScenarioGroup[] = [
           </svg>
           <input
             class="input-field pl-9 text-sm"
+            aria-label="Search scenarios"
             placeholder="Tìm tình huống..."
             [value]="search()"
             (input)="updateSearch($event)"
           />
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           @for (l of levels; track l) {
             <button
               class="px-3 py-2 rounded-xl text-sm font-600 transition-all cursor-pointer"
               [style.background]="level() === l ? '#286FB4' : '#fff'"
               [style.color]="level() === l ? '#fff' : '#64748b'"
               [style.borderColor]="level() === l ? '#286FB4' : '#E2F0F9'"
+              [attr.aria-pressed]="level() === l"
               style="border-width: 1.5px"
               (click)="level.set(l)"
             >
@@ -117,7 +119,7 @@ export const GROUPS: ScenarioGroup[] = [
             </button>
           }
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           @for (status of completionFilters; track status.value) {
             <button
               class="px-3 py-2 rounded-xl text-sm font-600 transition-all cursor-pointer"
@@ -140,6 +142,7 @@ export const GROUPS: ScenarioGroup[] = [
           class="px-4 py-2 rounded-full text-sm font-500 whitespace-nowrap shrink-0 transition-all cursor-pointer"
           [style.background]="!selectedGroup() ? '#286FB4' : '#E2F0F9'"
           [style.color]="!selectedGroup() ? '#fff' : '#286FB4'"
+          [attr.aria-pressed]="!selectedGroup()"
           (click)="selectedGroup.set(null)"
         >
           🗂️ Tất cả nhóm
@@ -149,6 +152,7 @@ export const GROUPS: ScenarioGroup[] = [
             class="px-4 py-2 rounded-full text-sm font-500 whitespace-nowrap shrink-0 transition-all cursor-pointer"
             [style.background]="selectedGroup() === g.id ? '#286FB4' : '#E2F0F9'"
             [style.color]="selectedGroup() === g.id ? '#fff' : '#286FB4'"
+            [attr.aria-pressed]="selectedGroup() === g.id"
             (click)="toggleGroup(g.id)"
           >
             {{ g.emoji }} {{ g.label }}
