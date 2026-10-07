@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@a
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
 import { Scenario } from '../../core/models/app.models';
+import { MOCK_SCENARIO_DETAILS } from '../../core/data/mock-data';
 
 export interface ScenarioItem {
   id: number;
@@ -97,18 +98,20 @@ export const GROUPS: ScenarioGroup[] = [
           </svg>
           <input
             class="input-field pl-9 text-sm"
+            aria-label="Search scenarios"
             placeholder="Tìm tình huống..."
             [value]="search()"
             (input)="updateSearch($event)"
           />
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           @for (l of levels; track l) {
             <button
               class="px-3 py-2 rounded-xl text-sm font-600 transition-all cursor-pointer"
               [style.background]="level() === l ? '#286FB4' : '#fff'"
               [style.color]="level() === l ? '#fff' : '#64748b'"
               [style.borderColor]="level() === l ? '#286FB4' : '#E2F0F9'"
+              [attr.aria-pressed]="level() === l"
               style="border-width: 1.5px"
               (click)="level.set(l)"
             >
@@ -116,7 +119,7 @@ export const GROUPS: ScenarioGroup[] = [
             </button>
           }
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           @for (status of completionFilters; track status.value) {
             <button
               class="px-3 py-2 rounded-xl text-sm font-600 transition-all cursor-pointer"
@@ -139,15 +142,17 @@ export const GROUPS: ScenarioGroup[] = [
           class="px-4 py-2 rounded-full text-sm font-500 whitespace-nowrap shrink-0 transition-all cursor-pointer"
           [style.background]="!selectedGroup() ? '#286FB4' : '#E2F0F9'"
           [style.color]="!selectedGroup() ? '#fff' : '#286FB4'"
+          [attr.aria-pressed]="!selectedGroup()"
           (click)="selectedGroup.set(null)"
         >
           🗂️ Tất cả nhóm
         </button>
-        @for (g of groups; track g.id) {
+        @for (g of groups(); track g.id) {
           <button
             class="px-4 py-2 rounded-full text-sm font-500 whitespace-nowrap shrink-0 transition-all cursor-pointer"
             [style.background]="selectedGroup() === g.id ? '#286FB4' : '#E2F0F9'"
             [style.color]="selectedGroup() === g.id ? '#fff' : '#286FB4'"
+            [attr.aria-pressed]="selectedGroup() === g.id"
             (click)="toggleGroup(g.id)"
           >
             {{ g.emoji }} {{ g.label }}
@@ -222,9 +227,15 @@ export class ScenariosComponent {
     { value: "completed", label: "Đã hoàn thành" },
     { value: "incomplete", label: "Chưa hoàn thành" }
   ] as const;
-  readonly groups = GROUPS;
+  readonly groups = computed(() => GROUPS.map(group => ({
+    ...group,
+    scenarios: group.scenarios.map(scenario => ({
+      ...scenario,
+      done: scenario.done || this.appState.completedScenarioIds().includes(String(scenario.id))
+    }))
+  })));
 
-  readonly allScenarios = computed(() => this.groups.flatMap(g => g.scenarios));
+  readonly allScenarios = computed(() => this.groups().flatMap(g => g.scenarios));
   readonly totalCount = computed(() => this.allScenarios().length);
   readonly totalDone = computed(() => this.allScenarios().filter(s => s.done).length);
   readonly totalRemaining = computed(() => this.totalCount() - this.totalDone());
@@ -238,7 +249,7 @@ export class ScenariosComponent {
     const curGroup = this.selectedGroup();
     const curCompletion = this.completion();
 
-    return this.groups.map(g => {
+    return this.groups().map(g => {
       const scenarios = g.scenarios.filter(s => {
         const matchLevel = curLevel === "Tất cả" || s.level === curLevel;
         const matchQuery = !query || s.title.toLowerCase().includes(query) || s.desc.toLowerCase().includes(query);
@@ -264,13 +275,12 @@ export class ScenariosComponent {
     const scModel: Scenario = {
       id: String(scenario.id),
       title: scenario.title,
+      xp: scenario.xp,
+      ...MOCK_SCENARIO_DETAILS,
       category: group.label,
       level: scenario.level,
       duration: scenario.duration,
       description: scenario.desc,
-      objectives: ["Hoàn thành cuộc hội thoại thực tế", "Dùng từ vựng đúng ngữ cảnh"],
-      vocabulary: [{ word: "Reservation", meaning: "Đặt chỗ trước" }],
-      image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=200&fit=crop"
     };
     this.appState.selectScenario(scModel);
   }

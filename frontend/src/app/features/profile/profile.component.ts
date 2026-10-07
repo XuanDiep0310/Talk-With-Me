@@ -54,8 +54,8 @@ export class ProfileComponent {
   readonly draft = signal<Pick<User, 'name' | 'interests' | 'goals' | 'avatar'>>(this.snapshot());
   readonly userStats = computed(() => [
     { label: 'Level hiện tại', value: this.appState.appUser().level, emoji: '🎓', color: '#286FB4' },
-    { label: 'Tổng XP', value: `${this.appState.appUser().xp.toLocaleString()} XP`, emoji: '⭐', color: '#f59e0b' },
-    { label: 'Streak', value: `${this.appState.appUser().streak} ngày`, emoji: '🔥', color: '#ea580c' }
+    { label: 'Tổng XP', value: `${this.appState.totalXp().toLocaleString()} XP`, emoji: '⭐', color: '#f59e0b' },
+    { label: 'Streak', value: `${this.appState.currentStreak()} ngày`, emoji: '🔥', color: '#ea580c' }
   ]);
   private snapshot(): Pick<User, 'name' | 'interests' | 'goals' | 'avatar'> {
     const user = this.appState.appUser();

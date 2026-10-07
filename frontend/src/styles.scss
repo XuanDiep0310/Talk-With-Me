@@ -15,6 +15,15 @@
   font-family: 'Inter', sans-serif;
 }
 
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #1d5a94;
+  outline-offset: 2px;
+}
+
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+}
+
 body {
   background-color: #F8FAFC;
 }

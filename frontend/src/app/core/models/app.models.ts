@@ -54,6 +54,23 @@ export interface XpHistoryEntry {
   source: string;
 }
 
+export type LearningActivityType = 'AI_COACH' | 'SCENARIO' | 'COMMUNITY';
+
+export interface LearningActivity {
+  id: string;
+  type: LearningActivityType;
+  title: string;
+  topic: string;
+  completedAt: string;
+  date: string;
+  duration: string;
+  score: number;
+  emoji: string;
+  xp: number;
+  status: 'completed';
+  skillUpdates?: { label: string; score: number }[];
+}
+
 export type AppTheme = 'light' | 'dark' | 'system';
 
 export interface Settings {
@@ -93,6 +110,7 @@ export interface UsefulPhrase {
 
 export interface Scenario {
   id: string;
+  xp?: number;
   title: string;
   category: string;
   level: string;
@@ -141,6 +159,7 @@ export interface CommunityRoom {
   level: string;
   members: number;
   maxMembers: number;
+  active: boolean;
   host: string;
   hostAvatar: string;
   tags: string[];
