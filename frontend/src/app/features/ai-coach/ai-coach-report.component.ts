@@ -7,7 +7,7 @@ import { AppStateService } from '../../core/services/app-state.service';
   template: `
     <main class="p-5 md:p-8 max-w-4xl mx-auto space-y-6">
       <header class="flex items-center gap-4"><button class="btn-secondary cursor-pointer" (click)="appState.go('ai-coach')">← AI Coach</button>
-        <div><h1 class="text-2xl font-800">AI Coach Report</h1><p class="text-sm text-slate-500">{{ session()?.topic ?? 'No completed session' }}</p></div>
+        <div><h1 class="text-2xl font-800">AI Coach Report</h1><p class="text-sm text-slate-500">{{ topicTitle() }}</p></div>
       </header>
       @if (session(); as report) {
         <section class="card p-6 text-white" style="background:linear-gradient(135deg,#286FB4,#1d5a94)">
@@ -29,4 +29,5 @@ import { AppStateService } from '../../core/services/app-state.service';
 export class AiCoachReportComponent {
   readonly appState = inject(AppStateService);
   readonly session = computed(() => this.appState.latestAiCoachSession());
+  readonly topicTitle = computed(() => this.session()?.topic ?? 'No completed session');
 }
