@@ -1,5 +1,10 @@
 import asyncio
+import sys
 from logging.config import fileConfig
+from pathlib import Path
+
+# Add backend directory to sys.path for alembic execution
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection

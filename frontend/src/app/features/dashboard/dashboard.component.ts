@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
+import { AuthService } from '../../core/services/auth.service';
 import { AppPage, Session } from '../../core/models/app.models';
 
 interface Skill {
@@ -29,7 +30,7 @@ interface Shortcut {
       <div class="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 class="text-2xl font-800" style="font-weight: 800; color: #1e293b">
-            Xin chào, {{ appState.appUser().name }}! 👋
+            Xin chào, {{ displayName() }}! 👋
           </h1>
           <p class="text-sm mt-1" style="color: #64748b">
             Hôm nay là ngày streak thứ <strong style="color: #ea580c">{{ appState.currentStreak() }}</strong> — hãy giữ vững nhé!
@@ -176,7 +177,7 @@ interface Shortcut {
           <div class="p-6 rounded-2xl text-white relative overflow-hidden" style="background: linear-gradient(135deg, #286FB4 0%, #1d5a94 100%)">
             <div class="relative z-10">
               <div class="text-3xl mb-2">🚀</div>
-              <div class="font-800 text-lg mb-1" style="font-weight: 800">Cố lên, {{ appState.appUser().name }}!</div>
+              <div class="font-800 text-lg mb-1" style="font-weight: 800">Cố lên, {{ displayName() }}!</div>
               <p class="text-xs text-white/80 leading-relaxed mb-4">
                 Luyện tập thêm 10 phút hôm nay để chạm mốc B2 trong tuần này.
               </p>
@@ -192,6 +193,11 @@ interface Shortcut {
 })
 export class DashboardComponent {
   readonly appState = inject(AppStateService);
+  private readonly authService = inject(AuthService);
+
+  readonly displayName = computed(() => {
+    return this.authService.currentUser()?.fullName ?? this.appState.appUser().name ?? 'bạn';
+  });
 
   readonly missions = this.appState.dailyMissions;
   readonly skills = computed<Skill[]>(() => this.appState.skillProgress().map(skill => ({

@@ -1,7 +1,8 @@
-import { Component, ChangeDetectionStrategy, signal, inject, HostListener } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { AppStateService } from '../../../core/services/app-state.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { AppPage } from '../../../core/models/app.models';
 
 interface NavItem {
@@ -101,16 +102,22 @@ interface NavItem {
           }
         </nav>
 
-        <!-- User section -->
+        <!-- User section ở góc dưới bên trái -->
         <button
           type="button"
           class="flex items-center gap-3 px-4 py-4 cursor-pointer border-t w-full text-left bg-transparent"
           style="border-color: #E2F0F9"
           (click)="navigate('profile')"
         >
-          <img [src]="appState.appUser().avatar" [alt]="appState.appUser().name" class="w-9 h-9 rounded-full object-cover" />
+          @if (userAvatar()) {
+            <img [src]="userAvatar()!" [alt]="userName()" class="w-9 h-9 rounded-full object-cover shrink-0" />
+          } @else {
+            <div class="w-9 h-9 rounded-full bg-[#286FB4] text-white flex items-center justify-center font-700 text-sm shadow-sm select-none shrink-0">
+              {{ userInitial() }}
+            </div>
+          }
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-600 truncate" style="color: #1e293b; font-weight: 600">{{ appState.appUser().name }}</div>
+            <div class="text-sm font-600 truncate" style="color: #1e293b; font-weight: 600">{{ userName() }}</div>
             <div class="text-xs" style="color: #94a3b8">Học viên tích cực</div>
           </div>
         </button>
@@ -153,18 +160,28 @@ interface NavItem {
             <span class="absolute top-1 right-1 w-2 h-2 rounded-full" style="background: #DF4C73"></span>
           </button>
 
+          <!-- Avatar ở góc trên bên phải -->
           <button
             type="button"
             class="rounded-full cursor-pointer focus:outline-none p-0 border-0 bg-transparent"
             (click)="navigate('profile')"
             aria-label="User profile"
           >
-            <img
-              [src]="appState.appUser().avatar"
-              [alt]="appState.appUser().name"
-              class="w-9 h-9 rounded-full object-cover"
-              style="outline: 2px solid #B0DDE4"
-            />
+            @if (userAvatar()) {
+              <img
+                [src]="userAvatar()!"
+                [alt]="userName()"
+                class="w-9 h-9 rounded-full object-cover"
+                style="outline: 2px solid #B0DDE4"
+              />
+            } @else {
+              <div
+                class="w-9 h-9 rounded-full bg-[#286FB4] text-white flex items-center justify-center font-700 text-sm shadow-sm select-none"
+                style="outline: 2px solid #B0DDE4"
+              >
+                {{ userInitial() }}
+              </div>
+            }
           </button>
         </header>
 
@@ -179,7 +196,29 @@ interface NavItem {
 })
 export class LayoutComponent {
   readonly appState = inject(AppStateService);
+  readonly authService = inject(AuthService);
   readonly sidebarOpen = signal(false);
+
+  readonly userName = computed(() => {
+    return this.authService.currentUser()?.fullName ?? this.appState.appUser().name ?? 'Người dùng';
+  });
+
+  readonly userAvatar = computed(() => {
+    const raw = this.authService.currentUser()?.avatarUrl;
+    if (raw) {
+      if (raw.startsWith('http')) return raw;
+      if (raw.startsWith('/')) return `http://localhost:8000${raw}`;
+      return raw;
+    }
+    return null;
+  });
+
+  readonly userInitial = computed(() => {
+    const name = this.userName().trim();
+    if (!name) return 'U';
+    const parts = name.split(/\s+/);
+    return parts[parts.length - 1][0].toUpperCase();
+  });
 
   readonly mainNavItems: NavItem[] = [
     {
@@ -229,11 +268,6 @@ export class LayoutComponent {
       id: "help",
       label: "Trợ giúp",
       iconSvg: `<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
-    },
-    {
-      id: "health",
-      label: "Hệ thống (Health)",
-      iconSvg: `<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`
     }
   ];
 
