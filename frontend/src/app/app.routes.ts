@@ -1,12 +1,5 @@
 import { Routes } from '@angular/router';
-import { inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { AppStateService } from './core/services/app-state.service';
-
-const requireAuth = () => {
-  const state = inject(AppStateService);
-  return state.isLoggedIn() || inject(Router).createUrlTree(['/login']);
-};
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   // Standalone pages without app layout shell
@@ -32,8 +25,13 @@ export const routes: Routes = [
       import('./features/auth/register.component').then((m) => m.RegisterComponent)
   },
   {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/auth/reset-password.component').then((m) => m.ResetPasswordComponent)
+  },
+  {
     path: 'onboarding',
-    canActivate: [requireAuth],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/onboarding/onboarding.component').then((m) => m.OnboardingComponent)
   },
@@ -51,7 +49,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    canActivate: [requireAuth],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./shared/components/layout/layout.component').then(
         (m) => m.LayoutComponent
@@ -169,4 +167,3 @@ export const routes: Routes = [
     redirectTo: ''
   }
 ];
-
