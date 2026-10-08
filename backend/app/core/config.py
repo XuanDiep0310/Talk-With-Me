@@ -1,13 +1,18 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_CORE_DIR = Path(__file__).resolve().parent
+_BACKEND_DIR = _CORE_DIR.parent.parent
+_ROOT_DIR = _BACKEND_DIR.parent
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(_BACKEND_DIR / ".env", _ROOT_DIR / ".env", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -58,6 +63,40 @@ class Settings(BaseSettings):
         if self.REDIS_PASSWORD:
             return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+
+    # JWT
+    JWT_SECRET_KEY: str = "change-me-in-production-use-long-random-string"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    REFRESH_TOKEN_REMEMBER_DAYS: int = 30  # When "remember me" is checked
+    REFRESH_TOKEN_NO_REMEMBER_DAYS: int = 1  # When "remember me" is unchecked
+
+    # Auth
+    PASSWORD_MIN_LENGTH: int = 6
+    LOGIN_MAX_ATTEMPTS: int = 5
+    LOGIN_LOCKOUT_MINUTES: int = 15
+
+    # Avatar
+    AVATAR_MAX_BYTES: int = 2 * 1024 * 1024  # 2 MB
+    AVATAR_ALLOWED_TYPES: list[str] = ["image/jpeg", "image/png", "image/webp"]
+    UPLOAD_DIR: str = "uploads"
+
+    # Email (Fake by default for dev)
+    EMAIL_PROVIDER: str = "fake"  # "fake" | "smtp"
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_TLS: bool = True
+
+    # Google OAuth
+    GOOGLE_TOKEN_VERIFIER: str = "fake"  # "fake" | "real"
+    GOOGLE_CLIENT_ID: str = ""
+
+    # Storage
+    STORAGE_PROVIDER: str = "local"  # "local" | "s3"
 
 
 @lru_cache
