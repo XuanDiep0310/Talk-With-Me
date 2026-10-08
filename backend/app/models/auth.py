@@ -24,12 +24,8 @@ from app.models.base import Base, TimestampMixin
 class User(Base, TimestampMixin):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    email: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False, index=True
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(120), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -55,9 +51,7 @@ class AuthIdentity(Base, TimestampMixin):
         UniqueConstraint("provider", "provider_user_id", name="uq_auth_identity_provider"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -73,9 +67,7 @@ class AuthIdentity(Base, TimestampMixin):
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -94,9 +86,7 @@ class RefreshToken(Base):
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -118,12 +108,10 @@ class UserProfile(Base, TimestampMixin):
     )
     # CEFR level — populated during onboarding (Sprint 2)
     cefr_level: Mapped[str | None] = mapped_column(String(5), nullable=True)  # A1–C1
-    goals: Mapped[str | None] = mapped_column(Text, nullable=True)         # JSON array
-    weak_points: Mapped[str | None] = mapped_column(Text, nullable=True)   # JSON array
-    interests: Mapped[str | None] = mapped_column(Text, nullable=True)     # JSON array
-    timezone: Mapped[str] = mapped_column(
-        String(60), default="Asia/Ho_Chi_Minh", nullable=False
-    )
+    goals: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
+    weak_points: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
+    interests: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
+    timezone: Mapped[str] = mapped_column(String(60), default="Asia/Ho_Chi_Minh", nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="profile")
 
@@ -136,12 +124,8 @@ class UserSettings(Base, TimestampMixin):
         ForeignKey("users.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    notifications_enabled: Mapped[bool] = mapped_column(
-        Boolean, default=True, nullable=False
-    )
-    daily_reminder_enabled: Mapped[bool] = mapped_column(
-        Boolean, default=True, nullable=False
-    )
+    notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    daily_reminder_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     ai_voice: Mapped[str] = mapped_column(
         String(10), default="female", nullable=False
     )  # female | male  (D-12)

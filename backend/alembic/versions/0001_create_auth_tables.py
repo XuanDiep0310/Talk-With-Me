@@ -1,7 +1,7 @@
 """create_auth_tables
 
 Revision ID: 0001_create_auth_tables
-Revises: 
+Revises:
 Create Date: 2026-10-07 12:00:00.000000
 
 """

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, UrlTree } from '@angular/router';
+import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 import { signal } from '@angular/core';
@@ -7,6 +7,8 @@ import { signal } from '@angular/core';
 describe('authGuard', () => {
   let mockAuthService: { isAuthenticated: () => boolean; currentUser: ReturnType<typeof signal> };
   let mockRouter: jasmine.SpyObj<Router>;
+  const dummyRoute = {} as unknown as ActivatedRouteSnapshot;
+  const dummyState = {} as unknown as RouterStateSnapshot;
 
   beforeEach(() => {
     mockAuthService = {
@@ -33,14 +35,14 @@ describe('authGuard', () => {
       createdAt: '2026-01-01T00:00:00Z',
     });
 
-    const result = TestBed.runInInjectionContext(() => authGuard({} as any, {} as any));
+    const result = TestBed.runInInjectionContext(() => authGuard(dummyRoute, dummyState));
     expect(result).toBeTrue();
   });
 
   it('redirects to /login when user is not authenticated', () => {
     mockAuthService.currentUser.set(null);
 
-    const result = TestBed.runInInjectionContext(() => authGuard({} as any, {} as any));
+    const result = TestBed.runInInjectionContext(() => authGuard(dummyRoute, dummyState));
     expect(mockRouter.createUrlTree).toHaveBeenCalledWith(['/login']);
     expect(result).toEqual({} as UrlTree);
   });

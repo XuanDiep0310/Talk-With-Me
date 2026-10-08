@@ -52,9 +52,7 @@ class AuthRepository(BaseRepository[RefreshToken]):
         if replaced_by_hash is not None:
             values["replaced_by_hash"] = replaced_by_hash
         await self.session.execute(
-            update(RefreshToken)
-            .where(RefreshToken.token_hash == token_hash)
-            .values(**values)
+            update(RefreshToken).where(RefreshToken.token_hash == token_hash).values(**values)
         )
         await self.session.flush()
 
@@ -71,9 +69,7 @@ class AuthRepository(BaseRepository[RefreshToken]):
     # Auth Identities (OAuth providers)
     # ------------------------------------------------------------------
 
-    async def get_identity(
-        self, provider: str, provider_user_id: str
-    ) -> AuthIdentity | None:
+    async def get_identity(self, provider: str, provider_user_id: str) -> AuthIdentity | None:
         result = await self.session.execute(
             select(AuthIdentity).where(
                 AuthIdentity.provider == provider,

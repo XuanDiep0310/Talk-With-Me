@@ -31,41 +31,49 @@ import { ToastService } from '../../core/services/toast.service';
       <div class="card p-6">
         <div class="flex items-center gap-6 flex-wrap">
           <!-- Avatar với Icon Camera -->
-          <div class="relative group cursor-pointer" (click)="fileInput.click()" title="Nhấn để đổi ảnh đại diện">
-            @if (avatarUrl()) {
-              <img
-                [src]="avatarUrl()!"
-                [alt]="displayName()"
-                class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md bg-slate-100 transition-all group-hover:brightness-90"
-              />
-            } @else {
-              <div class="w-24 h-24 rounded-full bg-[#286FB4] text-white flex items-center justify-center font-800 text-3xl border-4 border-white shadow-md select-none group-hover:brightness-90 transition-all">
-                {{ userInitial() }}
-              </div>
-            }
-
-            <!-- Hover overlay -->
-            <div class="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
-
-            <!-- Badge icon máy ảnh ở góc phải -->
-            <div class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#286FB4] text-white flex items-center justify-center shadow-md border-2 border-white">
-              @if (uploading()) {
-                <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle>
-                  <path fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" class="opacity-75"></path>
-                </svg>
+          <div class="relative">
+            <button
+              type="button"
+              class="relative group cursor-pointer bg-transparent border-0 p-0 text-left rounded-full focus:outline-none focus:ring-2 focus:ring-sky-500"
+              (click)="fileInput.click()"
+              title="Nhấn để đổi ảnh đại diện"
+              aria-label="Đổi ảnh đại diện"
+            >
+              @if (avatarUrl()) {
+                <img
+                  [src]="avatarUrl()!"
+                  [alt]="displayName()"
+                  class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md bg-slate-100 transition-all group-hover:brightness-90"
+                />
               } @else {
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="w-24 h-24 rounded-full bg-[#286FB4] text-white flex items-center justify-center font-800 text-3xl border-4 border-white shadow-md select-none group-hover:brightness-90 transition-all">
+                  {{ userInitial() }}
+                </div>
+              }
+
+              <!-- Hover overlay -->
+              <div class="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-              }
-            </div>
+              </div>
+
+              <!-- Badge icon máy ảnh ở góc phải -->
+              <div class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#286FB4] text-white flex items-center justify-center shadow-md border-2 border-white">
+                @if (uploading()) {
+                  <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle>
+                    <path fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" class="opacity-75"></path>
+                  </svg>
+                } @else {
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                }
+              </div>
+            </button>
 
             <!-- Input file ẩn -->
             <input
@@ -122,8 +130,9 @@ import { ToastService } from '../../core/services/toast.service';
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="text-xs block mb-1 font-600" style="color:#374151">Mật khẩu hiện tại</label>
+            <label for="oldPasswordInput" class="text-xs block mb-1 font-600" style="color:#374151">Mật khẩu hiện tại</label>
             <input
+              id="oldPasswordInput"
               type="password"
               class="input-field text-sm"
               placeholder="••••••••"
@@ -132,8 +141,9 @@ import { ToastService } from '../../core/services/toast.service';
             />
           </div>
           <div>
-            <label class="text-xs block mb-1 font-600" style="color:#374151">Mật khẩu mới</label>
+            <label for="newPasswordInput" class="text-xs block mb-1 font-600" style="color:#374151">Mật khẩu mới</label>
             <input
+              id="newPasswordInput"
               type="password"
               class="input-field text-sm"
               placeholder="Tối thiểu 6 ký tự"
@@ -152,8 +162,9 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
           </div>
           <div>
-            <label class="text-xs block mb-1 font-600" style="color:#374151">Xác nhận mật khẩu mới</label>
+            <label for="confirmNewPasswordInput" class="text-xs block mb-1 font-600" style="color:#374151">Xác nhận mật khẩu mới</label>
             <input
+              id="confirmNewPasswordInput"
               type="password"
               class="input-field text-sm"
               placeholder="Nhập lại mật khẩu"

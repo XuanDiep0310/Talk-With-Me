@@ -71,7 +71,5 @@ async def test_increment_sets_expiry_pipeline(test_settings: Settings) -> None:
 
     await service._increment_rate_limit("user@example.com", "127.0.0.1")
     mock_pipe.incr.assert_called_once_with("rate_limit:login:user@example.com:127.0.0.1")
-    mock_pipe.expire.assert_called_once_with(
-        "rate_limit:login:user@example.com:127.0.0.1", 5 * 60
-    )
+    mock_pipe.expire.assert_called_once_with("rate_limit:login:user@example.com:127.0.0.1", 5 * 60)
     mock_pipe.execute.assert_called_once()

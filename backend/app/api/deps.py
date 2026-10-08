@@ -65,7 +65,11 @@ def get_tts_service() -> TTSService:
 def get_email_sender(settings: Settings = Depends(get_settings)) -> EmailSender:
     if settings.EMAIL_PROVIDER.lower() == "smtp" and settings.SMTP_HOST:
         pwd = settings.SMTP_PASSWORD.replace(" ", "") if settings.SMTP_PASSWORD else ""
-        from_email = settings.SMTP_USER if "gmail" in settings.SMTP_HOST.lower() else (settings.SMTP_FROM_EMAIL or settings.SMTP_USER)
+        from_email = (
+            settings.SMTP_USER
+            if "gmail" in settings.SMTP_HOST.lower()
+            else (settings.SMTP_FROM_EMAIL or settings.SMTP_USER)
+        )
         return SmtpEmailSender(
             host=settings.SMTP_HOST,
             port=settings.SMTP_PORT,

@@ -21,9 +21,7 @@ class UserRepository(BaseRepository[User]):
         return result.scalar_one_or_none()
 
     async def get_by_email(self, email: str) -> User | None:
-        result = await self.session.execute(
-            select(User).where(User.email == email.lower())
-        )
+        result = await self.session.execute(select(User).where(User.email == email.lower()))
         return result.scalar_one_or_none()
 
     async def create(
@@ -42,9 +40,7 @@ class UserRepository(BaseRepository[User]):
         return user
 
     async def update(self, user_id: uuid.UUID, **kwargs: object) -> User | None:
-        await self.session.execute(
-            update(User).where(User.id == user_id).values(**kwargs)
-        )
+        await self.session.execute(update(User).where(User.id == user_id).values(**kwargs))
         await self.session.flush()
         return await self.get_by_id(user_id)
 
@@ -60,9 +56,7 @@ class UserRepository(BaseRepository[User]):
         )
         return result.scalar_one_or_none()
 
-    async def update_settings(
-        self, user_id: uuid.UUID, **kwargs: object
-    ) -> UserSettings | None:
+    async def update_settings(self, user_id: uuid.UUID, **kwargs: object) -> UserSettings | None:
         await self.session.execute(
             update(UserSettings).where(UserSettings.user_id == user_id).values(**kwargs)
         )

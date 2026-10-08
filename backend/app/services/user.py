@@ -134,7 +134,9 @@ class UserService:
                 },
             )
 
-        is_valid, error_msg = validate_password_strength(new_password, self._settings.PASSWORD_MIN_LENGTH)
+        is_valid, error_msg = validate_password_strength(
+            new_password, self._settings.PASSWORD_MIN_LENGTH
+        )
         if not is_valid:
             raise HTTPException(
                 status_code=400,

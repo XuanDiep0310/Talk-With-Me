@@ -84,9 +84,7 @@ async def login_google(
     auth_service: AuthService = Depends(get_auth_service),
     settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
-    access_token, refresh_token, _is_new = await auth_service.login_google(
-        id_token=body.id_token
-    )
+    access_token, refresh_token, _is_new = await auth_service.login_google(id_token=body.id_token)
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -138,9 +136,7 @@ async def forgot_password(
     auth_service: AuthService = Depends(get_auth_service),
 ) -> dict[str, str]:
     await auth_service.forgot_password(body.email)
-    return {
-        "message": "If the email is registered, a password reset link has been sent."
-    }
+    return {"message": "If the email is registered, a password reset link has been sent."}
 
 
 @router.post(

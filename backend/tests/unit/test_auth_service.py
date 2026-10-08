@@ -122,7 +122,9 @@ async def test_refresh_reuse_detection_revokes_chain(auth_settings: Settings) ->
 
     with (
         patch.object(service._auth_repo, "get_refresh_token_by_hash", return_value=revoked_token),
-        patch.object(service._auth_repo, "revoke_all_user_tokens", new_callable=AsyncMock) as mock_revoke_all,
+        patch.object(
+            service._auth_repo, "revoke_all_user_tokens", new_callable=AsyncMock
+        ) as mock_revoke_all,
         pytest.raises(HTTPException) as exc,
     ):
         await service.refresh_tokens("stolen-token")

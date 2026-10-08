@@ -156,7 +156,9 @@ class AuthService:
                 },
             )
 
-        is_valid, error_msg = validate_password_strength(password, self._settings.PASSWORD_MIN_LENGTH)
+        is_valid, error_msg = validate_password_strength(
+            password, self._settings.PASSWORD_MIN_LENGTH
+        )
         if not is_valid:
             raise HTTPException(
                 status_code=400,
@@ -196,7 +198,11 @@ class AuthService:
         await self._check_rate_limit(normalized, client_ip)
 
         user = await self._user_repo.get_by_email(normalized)
-        if user is None or user.password_hash is None or not verify_password(password, user.password_hash):
+        if (
+            user is None
+            or user.password_hash is None
+            or not verify_password(password, user.password_hash)
+        ):
             await self._increment_rate_limit(normalized, client_ip)
             raise HTTPException(
                 status_code=401,
@@ -223,9 +229,7 @@ class AuthService:
         refresh_token = await self._make_refresh_token(user.id, remember_me=remember_me)
         return access_token, refresh_token
 
-    async def login_google(
-        self, id_token: str
-    ) -> tuple[str, str, bool]:
+    async def login_google(self, id_token: str) -> tuple[str, str, bool]:
         """OAuth login via Google. Returns (access_token, refresh_token, is_new_user)."""
         try:
             google_info = await self._google_verifier.verify(id_token)
@@ -417,7 +421,9 @@ class AuthService:
                 },
             )
 
-        is_valid, error_msg = validate_password_strength(new_password, self._settings.PASSWORD_MIN_LENGTH)
+        is_valid, error_msg = validate_password_strength(
+            new_password, self._settings.PASSWORD_MIN_LENGTH
+        )
         if not is_valid:
             raise HTTPException(
                 status_code=400,

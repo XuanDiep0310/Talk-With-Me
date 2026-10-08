@@ -3,7 +3,6 @@ import {
   HttpClient,
   provideHttpClient,
   withInterceptors,
-  HttpErrorResponse,
 } from '@angular/common/http';
 import {
   HttpTestingController,
@@ -11,7 +10,7 @@ import {
 } from '@angular/common/http/testing';
 import { tokenInterceptor } from './token.interceptor';
 import { AuthService } from '../services/auth.service';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 describe('tokenInterceptor', () => {
   let http: HttpClient;

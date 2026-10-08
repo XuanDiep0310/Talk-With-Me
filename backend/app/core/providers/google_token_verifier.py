@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class GoogleUserInfo(TypedDict):
-    sub: str    # Google unique user ID
+    sub: str  # Google unique user ID
     email: str
     name: str
     picture: str
@@ -69,7 +69,10 @@ class RealGoogleTokenVerifier:
             claims = id_token.verify_oauth2_token(token, request, audience=audience)
         except ValueError as err:
             if audience and "audience" in str(err).lower():
-                logger.warning("Audience mismatch (%s), verifying signature with public certs without audience restriction", err)
+                logger.warning(
+                    "Audience mismatch (%s), verifying signature with public certs without audience restriction",
+                    err,
+                )
                 claims = id_token.verify_oauth2_token(token, request, audience=None)
             else:
                 raise

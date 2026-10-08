@@ -78,9 +78,7 @@ def register_exception_handlers(app: FastAPI) -> None:
         import logging
 
         trace_id = _get_trace_id(request)
-        logging.getLogger(__name__).exception(
-            "Unhandled exception", extra={"traceId": trace_id}
-        )
+        logging.getLogger(__name__).exception("Unhandled exception", extra={"traceId": trace_id})
         return _error_response(
             status_code=500,
             code="INTERNAL_SERVER_ERROR",

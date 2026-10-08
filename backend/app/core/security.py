@@ -24,7 +24,9 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bool(_pwd_context.verify(plain, hashed))
 
 
-def create_access_token(payload: dict[str, object], expires_delta: timedelta, secret: str, algorithm: str) -> str:
+def create_access_token(
+    payload: dict[str, object], expires_delta: timedelta, secret: str, algorithm: str
+) -> str:
     """Create a signed JWT access token."""
     to_encode = payload.copy()
     import datetime as _dt
