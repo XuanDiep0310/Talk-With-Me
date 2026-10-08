@@ -1,6 +1,9 @@
-import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
+import { AuthService } from '../../core/services/auth.service';
+import { UserService } from '../../core/services/user.service';
+import { ToastService } from '../../core/services/toast.service';
 import { THEME_OPTIONS } from '../../core/data/mock-data';
 
 @Component({
@@ -65,7 +68,6 @@ import { THEME_OPTIONS } from '../../core/data/mock-data';
             <select aria-label="AI voice" class="input-field text-sm w-full sm:w-[130px]" [value]="aiVoice()" (change)="updateAiVoice($event)">
               <option value="female">Giọng nữ</option>
               <option value="male">Giọng nam</option>
-              <option value="neutral">Trung tính</option>
             </select>
           </div>
 
@@ -121,7 +123,15 @@ import { THEME_OPTIONS } from '../../core/data/mock-data';
 
       <!-- Account Actions -->
       <div class="card p-6">
-        <button class="w-full text-left text-sm py-2 cursor-pointer text-rose-600 font-600" (click)="appState.logout()">
+        <button
+          type="button"
+          class="w-full py-3 rounded-xl text-sm font-600 cursor-pointer transition-all duration-200 hover:bg-rose-50 hover:border-rose-300 hover:shadow-sm active:scale-[0.99] flex items-center justify-center gap-2"
+          style="background:#FFF5F5;color:#DF4C73;border:1.5px solid #fecdd3"
+          (click)="logout()"
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
           Đăng xuất tài khoản
         </button>
       </div>
@@ -132,31 +142,105 @@ import { THEME_OPTIONS } from '../../core/data/mock-data';
     </div>
   `
 })
-export class SettingsComponent {
+export class SettingsComponent implements OnInit {
   readonly appState = inject(AppStateService);
+  readonly authService = inject(AuthService);
+  readonly userService = inject(UserService);
+  private readonly toast = inject(ToastService);
 
-  readonly notifications = computed(() => this.appState.settings().notifications);
-  readonly dailyReminder = computed(() => this.appState.settings().dailyReminder);
-  readonly aiVoice = computed(() => this.appState.settings().aiVoice);
-  readonly aiSpeed = computed(() => this.appState.settings().aiSpeed);
-  readonly theme = computed(() => this.appState.settings().theme);
+  readonly notifications = signal(true);
+  readonly dailyReminder = signal(true);
+  readonly aiVoice = signal<'female' | 'male'>('female');
+  readonly aiSpeed = signal<'slow' | 'normal' | 'fast'>('normal');
+  readonly theme = signal<'light' | 'dark' | 'system'>('system');
   readonly themeOptions = THEME_OPTIONS;
 
+  readonly saveStatus = signal('');
+
+  ngOnInit(): void {
+    if (this.authService.isAuthenticated()) {
+      this.userService.getSettings().subscribe({
+        next: (settings) => {
+          this.notifications.set(settings.notificationsEnabled);
+          this.dailyReminder.set(settings.dailyReminderEnabled);
+          this.aiVoice.set(settings.aiVoice);
+          this.aiSpeed.set(settings.speechSpeed);
+          this.theme.set(settings.theme);
+        },
+        error: () => {
+          // fallback to local app state
+          const s = this.appState.settings();
+          this.notifications.set(s.notifications);
+          this.dailyReminder.set(s.dailyReminder);
+          this.aiVoice.set(s.aiVoice === 'female' ? 'female' : 'male');
+          this.aiSpeed.set(s.aiSpeed === 'slow' || s.aiSpeed === 'fast' ? s.aiSpeed : 'normal');
+          this.theme.set(s.theme === 'light' || s.theme === 'dark' ? s.theme : 'system');
+        }
+      });
+    } else {
+      const s = this.appState.settings();
+      this.notifications.set(s.notifications);
+      this.dailyReminder.set(s.dailyReminder);
+      this.aiVoice.set(s.aiVoice === 'female' ? 'female' : 'male');
+      this.aiSpeed.set(s.aiSpeed === 'slow' || s.aiSpeed === 'fast' ? s.aiSpeed : 'normal');
+      this.theme.set(s.theme === 'light' || s.theme === 'dark' ? s.theme : 'system');
+    }
+  }
+
+  private saveChanges(patch: {
+    notificationsEnabled?: boolean;
+    dailyReminderEnabled?: boolean;
+    aiVoice?: 'female' | 'male';
+    speechSpeed?: 'slow' | 'normal' | 'fast';
+    theme?: 'light' | 'dark' | 'system';
+  }): void {
+    if (this.authService.isAuthenticated()) {
+      this.userService.updateSettings(patch).subscribe({
+        next: () => {
+          this.toast.success('Đã lưu thay đổi.');
+        },
+        error: () => {
+          this.toast.error('Không thể lưu cài đặt lên máy chủ.');
+        }
+      });
+    }
+  }
+
   updateAiVoice(event: Event): void {
-    this.appState.updateSettings({ aiVoice: (event.target as HTMLSelectElement).value });
+    const val = (event.target as HTMLSelectElement).value as 'female' | 'male';
+    this.aiVoice.set(val);
+    this.appState.updateSettings({ aiVoice: val });
+    this.saveChanges({ aiVoice: val });
   }
 
   updateAiSpeed(event: Event): void {
-    this.appState.updateSettings({ aiSpeed: (event.target as HTMLSelectElement).value });
+    const val = (event.target as HTMLSelectElement).value as 'slow' | 'normal' | 'fast';
+    this.aiSpeed.set(val);
+    this.appState.updateSettings({ aiSpeed: val });
+    this.saveChanges({ speechSpeed: val });
   }
 
   toggleNotifications(): void {
-    this.appState.updateSettings({ notifications: !this.notifications() });
+    const val = !this.notifications();
+    this.notifications.set(val);
+    this.appState.updateSettings({ notifications: val });
+    this.saveChanges({ notificationsEnabled: val });
   }
 
   toggleDailyReminder(): void {
-    this.appState.updateSettings({ dailyReminder: !this.dailyReminder() });
+    const val = !this.dailyReminder();
+    this.dailyReminder.set(val);
+    this.appState.updateSettings({ dailyReminder: val });
+    this.saveChanges({ dailyReminderEnabled: val });
   }
 
-  setTheme(theme: 'light' | 'dark' | 'system'): void { this.appState.updateSettings({ theme }); }
+  setTheme(theme: 'light' | 'dark' | 'system'): void {
+    this.theme.set(theme);
+    this.appState.updateSettings({ theme });
+    this.saveChanges({ theme });
+  }
+
+  async logout(): Promise<void> {
+    await this.authService.logout();
+  }
 }

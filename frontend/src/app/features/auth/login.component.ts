@@ -1,12 +1,36 @@
 import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AppStateService } from '../../core/services/app-state.service';
+import { AuthService, mapApiError } from '../../core/services/auth.service';
+import { ToastService } from '../../core/services/toast.service';
+import { environment } from '../../../environments/environment';
 
 interface LoginFeature {
   emoji: string;
   label: string;
 }
+
+interface GooglePromptNotification {
+  isDisplayed(): boolean;
+  isNotDisplayed(): boolean;
+  getNotDisplayedReason(): string;
+  isSkippedMoment(): boolean;
+  getSkippedReason(): string;
+  isDismissedMoment(): boolean;
+  getDismissedReason(): string;
+}
+
+// Minimal Google Identity Services type declarations
+declare const google: {
+  accounts: {
+    id: {
+      initialize(config: { client_id: string; callback: (resp: { credential: string }) => void }): void;
+      prompt(momentListener?: (notification: GooglePromptNotification) => void): void;
+    };
+  };
+};
 
 @Component({
   selector: 'app-login',
@@ -75,12 +99,8 @@ interface LoginFeature {
                 <button class="text-xs mt-2 cursor-pointer" style="color: #286FB4" (click)="forgotMode.set(true)">Quên mật khẩu?</button>
               </div>
 
-              @if (error()) {
-                <p class="text-sm text-rose-600" role="alert">{{ error() }}</p>
-              }
-
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="remember" class="w-4 h-4" />
+                <input type="checkbox" id="remember" class="w-4 h-4" [checked]="rememberMe()" (change)="toggleRememberMe()" />
                 <label htmlFor="remember" class="text-sm" style="color: #64748b">Ghi nhớ đăng nhập</label>
               </div>
 
@@ -108,7 +128,12 @@ interface LoginFeature {
                 <div class="flex-1 h-px" style="background: #E2F0F9"></div>
               </div>
 
-              <button class="w-full flex items-center justify-center gap-3 py-3 rounded-xl border font-500 text-sm cursor-pointer" style="border: 1.5px solid #E2F0F9; color: #374151; font-weight: 500">
+              <button
+                class="w-full flex items-center justify-center gap-3 py-3 rounded-xl border font-500 text-sm cursor-pointer transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm active:scale-[0.99]"
+                style="border: 1.5px solid #E2F0F9; color: #374151; font-weight: 500"
+                (click)="handleGoogleLogin()"
+                [disabled]="loading()"
+              >
                 <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                 Tiếp tục với Google
               </button>
@@ -144,19 +169,23 @@ interface LoginFeature {
 })
 export class LoginComponent {
   readonly appState = inject(AppStateService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
-  readonly email = signal("");
-  readonly password = signal("");
+  readonly email = signal('');
+  readonly password = signal('');
   readonly error = signal('');
   readonly loading = signal(false);
   readonly showPass = signal(false);
   readonly forgotMode = signal(false);
   readonly forgotSent = signal(false);
+  readonly rememberMe = signal(false);
 
   readonly leftHighlights: LoginFeature[] = [
-    { emoji: "🔥", label: "Streak 12 ngày liên tiếp" },
-    { emoji: "⭐", label: "3.420 XP tích lũy" },
-    { emoji: "🏆", label: "Level B1 — gần đến B2!" }
+    { emoji: '🔥', label: 'Streak 12 ngày liên tiếp' },
+    { emoji: '⭐', label: '3.420 XP tích lũy' },
+    { emoji: '🏆', label: 'Level B1 — gần đến B2!' }
   ];
 
   updateEmail(event: Event): void {
@@ -171,26 +200,106 @@ export class LoginComponent {
     this.showPass.update(v => !v);
   }
 
-  handleLogin(): void {
+  toggleRememberMe(): void {
+    this.rememberMe.update(v => !v);
+  }
+
+  async handleLogin(): Promise<void> {
     const email = this.email().trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || this.password().length < 6) {
-      this.error.set('Vui lòng nhập email hợp lệ và mật khẩu ít nhất 6 ký tự.');
+      this.toast.error('Vui lòng nhập email hợp lệ và mật khẩu ít nhất 6 ký tự.');
       return;
     }
     this.error.set('');
     this.loading.set(true);
-    setTimeout(() => {
+    try {
+      await this.authService.login({
+        email,
+        password: this.password(),
+        rememberMe: this.rememberMe()
+      });
+      this.toast.success('Đăng nhập thành công!');
+    } catch (err) {
+      const errMsg = mapApiError(err);
+      this.error.set(errMsg);
+      this.toast.error(errMsg);
+    } finally {
       this.loading.set(false);
-      this.appState.login({ ...this.appState.appUser(), email, name: email.split('@')[0] });
-    }, 600);
+    }
   }
 
-  handleForgot(): void {
+  async handleForgot(): Promise<void> {
+    const email = this.email().trim();
+    if (!email) {
+      this.toast.error('Vui lòng nhập email.');
+      return;
+    }
+    this.error.set('');
     this.loading.set(true);
-    setTimeout(() => {
-      this.loading.set(false);
+    try {
+      await this.authService.forgotPassword(email);
       this.forgotSent.set(true);
-    }, 600);
+      this.toast.success('Đã gửi liên kết đặt lại mật khẩu đến email của bạn!');
+    } catch (err) {
+      const errMsg = mapApiError(err);
+      this.error.set(errMsg);
+      this.toast.error(errMsg);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  handleGoogleLogin(): void {
+    this.error.set('');
+    const clientId = environment.googleClientId?.trim();
+    if (!clientId) {
+      this.toast.error('Chưa cấu hình Google Client ID. Vui lòng cấu hình GOOGLE_CLIENT_ID trong backend (.env) và frontend (environment.development.ts).');
+      return;
+    }
+
+    if (typeof google === 'undefined' || !google.accounts?.id) {
+      this.toast.error('Không thể tải Google Identity Services SDK. Vui lòng kiểm tra kết nối mạng hoặc tiện ích chặn quảng cáo.');
+      return;
+    }
+
+    this.loading.set(true);
+    try {
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: async (resp) => {
+          try {
+            await this.authService.loginWithGoogle(resp.credential);
+            this.toast.success('Đăng nhập Google thành công!');
+          } catch (err) {
+            const errMsg = mapApiError(err);
+            this.error.set(errMsg);
+            this.toast.error(errMsg);
+          } finally {
+            this.loading.set(false);
+          }
+        }
+      });
+      google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+          this.loading.set(false);
+          const reason = notification.getNotDisplayedReason();
+          if (reason === 'origin_not_authorized') {
+            this.toast.error('Lỗi 403: Tên miền của bạn (http://localhost:4200) chưa được thêm vào "Authorized JavaScript origins" trong Google Cloud Console.');
+          } else if (reason === 'suppressed_by_user') {
+            this.toast.error('Hộp thoại đăng nhập Google bị tạm khóa do đã đóng trước đó. Vui lòng mở lại trong tab ẩn danh hoặc thử lại sau.');
+          } else if (reason === 'opt_out_or_no_session') {
+            this.toast.error('Vui lòng đăng nhập sẵn tài khoản Google trên trình duyệt để sử dụng tính năng này.');
+          } else {
+            this.toast.error(`Google Sign-In không hiển thị (${reason}).`);
+          }
+        } else if (notification.isSkippedMoment() || notification.isDismissedMoment()) {
+          this.loading.set(false);
+        }
+      });
+    } catch {
+      this.toast.error('Không thể khởi tạo đăng nhập Google.');
+      this.loading.set(false);
+    }
   }
 
   resetForgotState(): void {
