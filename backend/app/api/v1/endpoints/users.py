@@ -3,6 +3,8 @@ User profile and settings endpoints: /me, /me/avatar, /me/settings, /me/change-p
 All routes require authentication via get_current_user.
 """
 
+import json
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.api.deps import get_current_user, get_user_service
@@ -29,12 +31,20 @@ router = APIRouter(prefix="/me", tags=["Users"])
 async def get_me(
     current_user: User = Depends(get_current_user),
 ) -> MeResponse:
+    p = current_user.profile
     return MeResponse(
         id=current_user.id,
         email=current_user.email,
         full_name=current_user.full_name,
         avatar_url=current_user.avatar_url,
         created_at=current_user.created_at,
+        cefr_level=p.cefr_level if p else None,
+        level_source=p.level_source if p else None,
+        needs_reassessment=p.needs_reassessment if p else False,
+        interests=json.loads(p.interests or "[]") if p else [],
+        goals=json.loads(p.goals or "[]") if p else [],
+        weak_points=json.loads(p.weak_points or "[]") if p else [],
+        onboarding_completed_at=p.onboarding_completed_at if p else None,
     )
 
 

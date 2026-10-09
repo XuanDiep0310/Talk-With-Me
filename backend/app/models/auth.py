@@ -106,11 +106,19 @@ class UserProfile(Base, TimestampMixin):
         ForeignKey("users.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    # CEFR level — populated during onboarding (Sprint 2)
-    cefr_level: Mapped[str | None] = mapped_column(String(5), nullable=True)  # A1–C1
-    goals: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
-    weak_points: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
-    interests: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array
+    # CEFR level — A1, A2, B1, B2, C1; null when not yet assessed
+    cefr_level: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    # How level was determined: PLACEMENT | SELF | DEFAULT
+    level_source: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # True when level was assigned A1 fallback due to insufficient placement data
+    needs_reassessment: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Timestamp when onboarding was fully completed (all steps done)
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    goals: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array of goal keys
+    weak_points: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array of skill keys
+    interests: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array of interest keys
     timezone: Mapped[str] = mapped_column(String(60), default="Asia/Ho_Chi_Minh", nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="profile")

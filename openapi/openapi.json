@@ -711,10 +711,348 @@
           }
         ]
       }
+    },
+    "/api/v1/onboarding/options": {
+      "get": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Get onboarding selection catalog",
+        "description": "Returns lists of selectable interests, goals, and skills for onboarding step.",
+        "operationId": "get_onboarding_options_api_v1_onboarding_options_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingOptionsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/preferences": {
+      "put": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Save onboarding preferences",
+        "description": "Save user's selected interests, learning goals, and skills to improve. Requires at least 1 of each. All values must be valid keys from GET /onboarding/options.",
+        "operationId": "update_preferences_api_v1_me_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePreferencesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/placement-tests": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Create a new placement test",
+        "description": "Initializes a new placement test session. Returns the test ID and question list.",
+        "operationId": "create_placement_test_api_v1_placement_tests_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementTestResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/placement-tests/{test_id}/answers": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Submit a placement test answer",
+        "description": "Submit one voice answer for the placement test. Idempotent: re-sending the same request_id returns the existing answer without creating a duplicate.",
+        "operationId": "submit_placement_answer_api_v1_placement_tests__test_id__answers_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "test_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Test Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAnswerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/placement-tests/{test_id}/complete": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Complete placement test and get level estimate",
+        "description": "Finalizes the placement test, runs the level estimation algorithm, and saves the resulting CEFR level to the user's profile.",
+        "operationId": "complete_placement_test_api_v1_placement_tests__test_id__complete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "test_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Test Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacementCompleteResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/level": {
+      "put": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Self-assign CEFR level",
+        "description": "Allows user to manually set their own CEFR level (e.g. when skipping placement test). Source must be 'SELF'.",
+        "operationId": "set_level_api_v1_me_level_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLevelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LevelResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/onboarding/complete": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Mark onboarding as complete",
+        "description": "Finishes the onboarding flow. Requires level and preferences to be set. Idempotent: calling twice returns the same completed_at timestamp.",
+        "operationId": "complete_onboarding_api_v1_me_onboarding_complete_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingCompleteResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "AnswerResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "testId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Testid"
+          },
+          "requestId": {
+            "type": "string",
+            "title": "Requestid"
+          },
+          "questionIndex": {
+            "type": "integer",
+            "title": "Questionindex"
+          },
+          "transcript": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript"
+          },
+          "wordCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wordcount"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "testId",
+          "requestId",
+          "questionIndex",
+          "transcript",
+          "wordCount",
+          "createdAt"
+        ],
+        "title": "AnswerResponse"
+      },
       "AppHealthResponse": {
         "properties": {
           "app_name": {
@@ -835,6 +1173,29 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "LevelResponse": {
+        "properties": {
+          "cefrLevel": {
+            "type": "string",
+            "title": "Cefrlevel"
+          },
+          "levelSource": {
+            "type": "string",
+            "title": "Levelsource"
+          },
+          "needsReassessment": {
+            "type": "boolean",
+            "title": "Needsreassessment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cefrLevel",
+          "levelSource",
+          "needsReassessment"
+        ],
+        "title": "LevelResponse"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -902,6 +1263,66 @@
             "type": "string",
             "format": "date-time",
             "title": "Createdat"
+          },
+          "cefrLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cefrlevel"
+          },
+          "levelSource": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Levelsource"
+          },
+          "needsReassessment": {
+            "type": "boolean",
+            "title": "Needsreassessment",
+            "default": false
+          },
+          "interests": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Interests"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
+          },
+          "weakPoints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weakpoints"
+          },
+          "onboardingCompletedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Onboardingcompletedat"
           }
         },
         "type": "object",
@@ -912,6 +1333,230 @@
           "createdAt"
         ],
         "title": "MeResponse"
+      },
+      "OnboardingCompleteResponse": {
+        "properties": {
+          "onboardingCompletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Onboardingcompletedat"
+          },
+          "cefrLevel": {
+            "type": "string",
+            "title": "Cefrlevel"
+          },
+          "levelSource": {
+            "type": "string",
+            "title": "Levelsource"
+          },
+          "needsReassessment": {
+            "type": "boolean",
+            "title": "Needsreassessment"
+          },
+          "interests": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Interests"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
+          },
+          "weakPoints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weakpoints"
+          }
+        },
+        "type": "object",
+        "required": [
+          "onboardingCompletedAt",
+          "cefrLevel",
+          "levelSource",
+          "needsReassessment",
+          "interests",
+          "goals",
+          "weakPoints"
+        ],
+        "title": "OnboardingCompleteResponse"
+      },
+      "OnboardingOptionsResponse": {
+        "properties": {
+          "interests": {
+            "items": {
+              "$ref": "#/components/schemas/OptionItemSchema"
+            },
+            "type": "array",
+            "title": "Interests"
+          },
+          "goals": {
+            "items": {
+              "$ref": "#/components/schemas/OptionItemSchema"
+            },
+            "type": "array",
+            "title": "Goals"
+          },
+          "weakPoints": {
+            "items": {
+              "$ref": "#/components/schemas/OptionItemSchema"
+            },
+            "type": "array",
+            "title": "Weakpoints"
+          },
+          "cefrLevels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cefrlevels"
+          },
+          "placementQuestions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Placementquestions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "interests",
+          "goals",
+          "weakPoints",
+          "cefrLevels",
+          "placementQuestions"
+        ],
+        "title": "OnboardingOptionsResponse"
+      },
+      "OptionItemSchema": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "OptionItemSchema"
+      },
+      "PlacementCompleteResponse": {
+        "properties": {
+          "testId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Testid"
+          },
+          "estimatedLevel": {
+            "type": "string",
+            "title": "Estimatedlevel"
+          },
+          "isInsufficientData": {
+            "type": "boolean",
+            "title": "Isinsufficientdata"
+          },
+          "needsReassessment": {
+            "type": "boolean",
+            "title": "Needsreassessment"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "testId",
+          "estimatedLevel",
+          "isInsufficientData",
+          "needsReassessment",
+          "score"
+        ],
+        "title": "PlacementCompleteResponse"
+      },
+      "PlacementTestResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Userid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Questions"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "userId",
+          "status",
+          "questions",
+          "createdAt"
+        ],
+        "title": "PlacementTestResponse"
+      },
+      "PreferencesResponse": {
+        "properties": {
+          "interests": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Interests"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
+          },
+          "weakPoints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weakpoints"
+          }
+        },
+        "type": "object",
+        "required": [
+          "interests",
+          "goals",
+          "weakPoints"
+        ],
+        "title": "PreferencesResponse"
       },
       "RefreshRequest": {
         "properties": {
@@ -1027,6 +1672,27 @@
         ],
         "title": "ServiceHealthResponse"
       },
+      "SetLevelRequest": {
+        "properties": {
+          "level": {
+            "type": "string",
+            "title": "Level",
+            "description": "CEFR level: A1, A2, B1, B2, C1"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^(PLACEMENT|SELF|DEFAULT)$",
+            "title": "Source",
+            "description": "How level was determined: PLACEMENT | SELF | DEFAULT"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "source"
+        ],
+        "title": "SetLevelRequest"
+      },
       "SettingsResponse": {
         "properties": {
           "notificationsEnabled": {
@@ -1064,6 +1730,77 @@
           "timezone"
         ],
         "title": "SettingsResponse"
+      },
+      "SubmitAnswerRequest": {
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Requestid",
+            "description": "Client-generated UUID for idempotency"
+          },
+          "questionIndex": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Questionindex"
+          },
+          "transcript": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript"
+          },
+          "sttConfidence": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sttconfidence"
+          },
+          "speakingDurationSeconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speakingdurationseconds"
+          },
+          "responseLatencySeconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responselatencyseconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requestId",
+          "questionIndex"
+        ],
+        "title": "SubmitAnswerRequest"
       },
       "TTSRequest": {
         "properties": {
@@ -1176,6 +1913,41 @@
         },
         "type": "object",
         "title": "UpdateMeRequest"
+      },
+      "UpdatePreferencesRequest": {
+        "properties": {
+          "interests": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Interests"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Goals"
+          },
+          "weakPoints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Weakpoints"
+          }
+        },
+        "type": "object",
+        "required": [
+          "interests",
+          "goals",
+          "weakPoints"
+        ],
+        "title": "UpdatePreferencesRequest"
       },
       "UpdateSettingsRequest": {
         "properties": {

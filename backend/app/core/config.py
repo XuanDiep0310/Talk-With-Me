@@ -98,6 +98,26 @@ class Settings(BaseSettings):
     # Storage
     STORAGE_PROVIDER: str = "local"  # "local" | "s3"
 
+    # STT (Speech-to-Text)
+    STT_PROVIDER: str = "fake"  # "fake" | "google" | "azure"
+
+    # LLM provider for placement level evaluation
+    LLM_PROVIDER: str = "fake"  # "fake" | "openai" | "gemini"
+    LLM_API_KEY: str = ""
+    LLM_MODEL: str = "gemini-1.5-flash"
+
+    # Placement Test thresholds
+    # Minimum answers required before we attempt level estimation
+    PLACEMENT_MIN_ANSWERS: int = 3
+    # Minimum total word count across all answers
+    PLACEMENT_MIN_WORDS: int = 30
+    # Level score thresholds (inclusive lower bound for each level)
+    # Score range is 0.0–1.0; A1 is the fallback (< A2_THRESHOLD)
+    PLACEMENT_A2_THRESHOLD: float = 0.20
+    PLACEMENT_B1_THRESHOLD: float = 0.40
+    PLACEMENT_B2_THRESHOLD: float = 0.60
+    PLACEMENT_C1_THRESHOLD: float = 0.80
+
 
 @lru_cache
 def get_settings() -> Settings:
