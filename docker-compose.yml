@@ -43,6 +43,8 @@ services:
       dockerfile: Dockerfile
     container_name: talkwithme-backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       APP_NAME: ${APP_NAME:-Talk-With-Me API}
       APP_VERSION: ${APP_VERSION:-0.1.0}
@@ -57,6 +59,8 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REDIS_DB: ${REDIS_DB:-0}
+    volumes:
+      - backend_uploads:/app/uploads
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -85,6 +89,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  backend_uploads:
     driver: local
 
 networks:

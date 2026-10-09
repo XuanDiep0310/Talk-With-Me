@@ -25,12 +25,17 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
 
+    # Frontend application URL (used for password reset emails, CORS)
+    FRONTEND_URL: str = "http://localhost:4200"
+
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:4200",
         "http://127.0.0.1:4200",
         "http://localhost:80",
         "http://localhost",
+        "https://talkwithmee.vercel.app",
+        "https://talkwithmee-dev.vercel.app",
     ]
 
     # Database (PostgreSQL)

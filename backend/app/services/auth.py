@@ -368,7 +368,8 @@ class AuthService:
             created_at=now,
         )
 
-        reset_url = f"http://localhost:4200/reset-password?token={raw_token}"
+        base_url = (self._settings.FRONTEND_URL or "http://localhost:4200").rstrip("/")
+        reset_url = f"{base_url}/reset-password?token={raw_token}"
         await self._email_sender.send_password_reset(
             email=normalized,
             token=raw_token,

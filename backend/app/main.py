@@ -40,10 +40,16 @@ register_trace_middleware(app)
 register_exception_handlers(app)
 
 # CORS Middleware
-if settings.BACKEND_CORS_ORIGINS:
+origins = list(settings.BACKEND_CORS_ORIGINS)
+if settings.FRONTEND_URL:
+    normalized_fe = settings.FRONTEND_URL.rstrip("/")
+    if normalized_fe not in origins:
+        origins.append(normalized_fe)
+
+if origins:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
