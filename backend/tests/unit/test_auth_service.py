@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -148,3 +148,32 @@ async def test_forgot_password_unknown_email_returns_quietly(auth_settings: Sett
         # Must return None and never send email
         await service.forgot_password("unknown@example.com")
         email_sender.send_password_reset.assert_not_called()
+
+
+async def test_forgot_password_known_email_generates_custom_frontend_url(
+    auth_settings: Settings,
+) -> None:
+    auth_settings.FRONTEND_URL = "https://talkwithmee.vercel.app"
+    email_sender = AsyncMock()
+    service = AuthService(
+        session=AsyncMock(),
+        redis=AsyncMock(),
+        settings=auth_settings,
+        email_sender=email_sender,
+        google_verifier=AsyncMock(),
+    )
+
+    mock_user = MagicMock()
+    mock_user.id = uuid.uuid4()
+    mock_user.email = "user@example.com"
+
+    with (
+        patch.object(service._user_repo, "get_by_email", return_value=mock_user),
+        patch.object(service._auth_repo, "create_password_reset_token", new_callable=AsyncMock),
+    ):
+        await service.forgot_password("user@example.com")
+        email_sender.send_password_reset.assert_called_once()
+        call_kwargs = email_sender.send_password_reset.call_args.kwargs
+        assert call_kwargs["reset_url"].startswith(
+            "https://talkwithmee.vercel.app/reset-password?token="
+        )
