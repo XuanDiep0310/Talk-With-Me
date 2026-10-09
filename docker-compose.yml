@@ -44,7 +44,8 @@ services:
     container_name: talkwithme-backend
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       APP_NAME: ${APP_NAME:-Talk-With-Me API}
       APP_VERSION: ${APP_VERSION:-0.1.0}
