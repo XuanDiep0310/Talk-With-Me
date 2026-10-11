@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from "@angular/core";
+import { Injectable, signal, computed, inject, effect } from "@angular/core";
 import { Router, NavigationEnd } from "@angular/router";
 import { filter } from "rxjs/operators";
 import {
@@ -52,6 +52,40 @@ const VALID_PAGES: AppPage[] = [
 ];
 const AUTH_STORAGE_KEY = "talk-with-me.mock-user";
 const SETTINGS_STORAGE_KEY = "talk-with-me.mock-settings";
+const LEGACY_SETTINGS_STORAGE_KEY = "talk-with-me.settings";
+const TOPIC_STORAGE_KEY = "talk-with-me.selected-topic";
+const SESSIONS_STORAGE_KEY = "talk-with-me.ai-sessions";
+const SESSION_DRAFT_KEY = "talk-with-me.ai-session-draft";
+const ACTIVITIES_STORAGE_KEY = "talk-with-me.learning-activities";
+const SKILLS_STORAGE_KEY = "talk-with-me.skill-progress";
+const ACHIEVEMENTS_STORAGE_KEY = "talk-with-me.achievements";
+const MISSIONS_STORAGE_KEY = "talk-with-me.daily-missions";
+const XP_HISTORY_STORAGE_KEY = "talk-with-me.xp-history";
+const STREAK_DATE_STORAGE_KEY = "talk-with-me.last-learning-date";
+const SCENARIO_STORAGE_KEY = "talk-with-me.selected-scenario";
+const SCENARIO_COMPLETIONS_KEY = "talk-with-me.completed-scenario-ids";
+const ROOM_STORAGE_KEY = "talk-with-me.selected-room";
+const ROOM_ACTIVITY_KEY = "talk-with-me.community-activity";
+const ROOMS_STORAGE_KEY = "talk-with-me.community-rooms";
+const JOINED_ROOM_STORAGE_KEY = "talk-with-me.joined-room-id";
+
+export interface AiCoachSessionDraft {
+  topic: string;
+  startedAt: number;
+  elapsed: number;
+  transcript: { id: number; speaker: "User" | "AI"; text: string; time: string }[];
+  turn: number;
+}
+
+function readStored<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const value = window.localStorage.getItem(key);
+    return value ? JSON.parse(value) as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function localDateKey(date = new Date()): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -67,7 +101,8 @@ function dateKeyAfter(dateKey: string, days: number): string {
 function getStoredSettings(): Settings {
   if (typeof window === "undefined") return { ...MOCK_SETTINGS };
   try {
-    const value = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const value = window.localStorage.getItem(SETTINGS_STORAGE_KEY)
+      ?? window.localStorage.getItem(LEGACY_SETTINGS_STORAGE_KEY);
     if (!value) return { ...MOCK_SETTINGS };
     const parsed = JSON.parse(value) as Partial<Settings>;
     return {
@@ -116,14 +151,14 @@ function getInitialPage(): AppPage {
 })
 export class AppStateService {
   private readonly router = inject(Router);
-  private joinedRoomId: number | null = null;
+  private joinedRoomId: number | null = readStored(JOINED_ROOM_STORAGE_KEY, null);
 
   readonly currentPage = signal<AppPage>(getInitialPage());
   readonly user = signal<User | null>(getStoredUser());
   readonly totalXp = signal(this.user()?.xp ?? MOCK_USER.xp);
   readonly currentStreak = signal(this.user()?.streak ?? MOCK_USER.streak);
-  readonly lastLearningDate = signal(localDateKey());
-  readonly learningActivities = signal<LearningActivity[]>(MOCK_PROGRESS_SESSION_HISTORY.map((session, index) => ({
+  readonly lastLearningDate = signal(readStored(STREAK_DATE_STORAGE_KEY, localDateKey()));
+  readonly learningActivities = signal<LearningActivity[]>(readStored(ACTIVITIES_STORAGE_KEY, MOCK_PROGRESS_SESSION_HISTORY.map((session, index) => ({
     id: `seed-${index}`,
     type: session.type === "AI Coach" ? "AI_COACH" : session.type === "Tình huống" ? "SCENARIO" : "COMMUNITY",
     title: session.topic,
@@ -135,14 +170,15 @@ export class AppStateService {
     emoji: session.emoji,
     xp: 0,
     status: "completed",
-  })));
-  readonly skillProgress = signal<SkillProgress[]>(MOCK_SKILL_PROGRESS.map((skill) => ({ ...skill, history: [...skill.history] })));
-  readonly achievements = signal<Achievement[]>(MOCK_ACHIEVEMENTS.map((achievement) => ({ ...achievement })));
-  readonly dailyMissions = signal<Mission[]>(MOCK_DAILY_MISSIONS.map((mission) => ({ ...mission })));
-  readonly xpHistory = signal<XpHistoryEntry[]>(MOCK_XP_HISTORY.map((entry) => ({ ...entry })));
+  }))));
+  readonly skillProgress = signal<SkillProgress[]>(readStored(SKILLS_STORAGE_KEY, MOCK_SKILL_PROGRESS.map((skill) => ({ ...skill, history: [...skill.history] }))));
+  readonly achievements = signal<Achievement[]>(readStored(ACHIEVEMENTS_STORAGE_KEY, MOCK_ACHIEVEMENTS.map((achievement) => ({ ...achievement }))));
+  readonly dailyMissions = signal<Mission[]>(readStored(MISSIONS_STORAGE_KEY, MOCK_DAILY_MISSIONS.map((mission) => ({ ...mission }))));
+  readonly xpHistory = signal<XpHistoryEntry[]>(readStored(XP_HISTORY_STORAGE_KEY, MOCK_XP_HISTORY.map((entry) => ({ ...entry }))));
   readonly settings = signal<Settings>(getStoredSettings());
-  readonly selectedTopicId = signal<string | null>(null);
-  readonly completedAiCoachSessions = signal<AiCoachCompletedSession[]>([]);
+  readonly selectedTopicId = signal<string | null>(readStored(TOPIC_STORAGE_KEY, null));
+  readonly completedAiCoachSessions = signal<AiCoachCompletedSession[]>(readStored(SESSIONS_STORAGE_KEY, []));
+  readonly aiSessionDraft = signal<AiCoachSessionDraft | null>(readStored(SESSION_DRAFT_KEY, null));
   readonly latestAiCoachSession = computed(
     () => this.completedAiCoachSessions()[0] ?? null,
   );
@@ -155,11 +191,12 @@ export class AppStateService {
       )?.label ?? null
     );
   });
-  readonly selectedScenario = signal<Scenario | null>(null);
+  readonly selectedScenario = signal<Scenario | null>(readStored(SCENARIO_STORAGE_KEY, null));
   readonly roleplayResult = signal<RoleplayResult | null>(null);
-  readonly completedScenarioIds = signal<string[]>([]);
-  readonly selectedRoom = signal<CommunityRoom | null>(null);
-  readonly communityRooms = signal<RoomListing[]>(ROOMS.map((room) => ({ ...room })));
+  readonly completedScenarioIds = signal<string[]>(readStored(SCENARIO_COMPLETIONS_KEY, []));
+  readonly selectedRoom = signal<CommunityRoom | null>(readStored(ROOM_STORAGE_KEY, null));
+  readonly communityActivity = signal<string[]>(readStored(ROOM_ACTIVITY_KEY, []));
+  readonly communityRooms = signal<RoomListing[]>(readStored(ROOMS_STORAGE_KEY, ROOMS.map((room) => ({ ...room }))));
 
   readonly appUser = computed(() => this.user() || MOCK_USER);
   readonly isLoggedIn = computed(() => this.user() !== null);
@@ -179,6 +216,12 @@ export class AppStateService {
   });
 
   constructor() {
+    effect(() => {
+      if (typeof document !== "undefined") {
+        const theme = this.settings().theme;
+        document.documentElement.classList.toggle("theme-dark", theme === "dark" || (theme === "system" && window.matchMedia?.("(prefers-color-scheme: dark)").matches === true));
+      }
+    });
     this.router.events
       .pipe(
         filter(
@@ -253,6 +296,7 @@ export class AppStateService {
     if (typeof window !== "undefined") {
       try {
         window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next));
+        window.localStorage.setItem(LEGACY_SETTINGS_STORAGE_KEY, JSON.stringify(next));
       } catch {
         /* Storage may be unavailable. */
       }
@@ -270,12 +314,25 @@ export class AppStateService {
     );
     if (!exists) return;
     this.selectedTopicId.set(topicId);
+    if (typeof window !== "undefined") window.localStorage.setItem(TOPIC_STORAGE_KEY, topicId);
     this.go("ai-coach-session");
+  }
+
+  saveAiSessionDraft(draft: AiCoachSessionDraft | null): void {
+    this.aiSessionDraft.set(draft);
+    if (typeof window === "undefined") return;
+    try {
+      if (draft) window.localStorage.setItem(SESSION_DRAFT_KEY, JSON.stringify(draft));
+      else window.localStorage.removeItem(SESSION_DRAFT_KEY);
+    } catch {
+      // Session continuity is best-effort when browser storage is unavailable.
+    }
   }
 
   completeAiCoachSession(session: AiCoachCompletedSession): void {
     if (this.completedAiCoachSessions().some((item) => item.id === session.id)) return;
     this.completedAiCoachSessions.update((sessions) => [session, ...sessions]);
+    this.persistStorage(SESSIONS_STORAGE_KEY, this.completedAiCoachSessions());
     this.recordActivity({
       id: session.id,
       type: "AI_COACH",
@@ -290,10 +347,12 @@ export class AppStateService {
       status: "completed",
       skillUpdates: session.skills,
     });
+    this.saveAiSessionDraft(null);
   }
 
   selectScenario(scenario: Scenario): void {
     this.selectedScenario.set(scenario);
+    this.persistStorage(SCENARIO_STORAGE_KEY, scenario);
     this.roleplayResult.set(null);
     this.go("scenario-detail");
   }
@@ -302,6 +361,7 @@ export class AppStateService {
     this.roleplayResult.set(result);
     if (result.status === "PASS") {
       this.completedScenarioIds.update(ids => ids.includes(result.scenarioId) ? ids : [...ids, result.scenarioId]);
+      this.persistStorage(SCENARIO_COMPLETIONS_KEY, this.completedScenarioIds());
       const scenario = this.selectedScenario();
       this.recordActivity({
         id: `scenario-${result.scenarioId}-${result.completedAt}`,
@@ -324,9 +384,11 @@ export class AppStateService {
     if (activity.status !== "completed" || this.learningActivities().some((item) => item.id === activity.id)) return;
     const today = localDateKey();
     this.learningActivities.update((items) => [activity, ...items]);
+    this.persistStorage(ACTIVITIES_STORAGE_KEY, this.learningActivities());
     if (activity.xp > 0) {
       this.totalXp.update((xp) => xp + activity.xp);
       this.xpHistory.update((items) => [{ date: "Hôm nay", xp: activity.xp, source: activity.title }, ...items]);
+      this.persistStorage(XP_HISTORY_STORAGE_KEY, this.xpHistory());
       this.user.update((user) => user ? { ...user, xp: user.xp + activity.xp } : user);
     }
 
@@ -334,6 +396,7 @@ export class AppStateService {
     if (lastDate !== today) {
       this.currentStreak.set(dateKeyAfter(lastDate, 1) === today ? this.currentStreak() + 1 : 1);
       this.lastLearningDate.set(today);
+      this.persistStorage(STREAK_DATE_STORAGE_KEY, today);
       this.user.update((user) => user ? { ...user, streak: this.currentStreak() } : user);
     }
 
@@ -371,6 +434,10 @@ export class AppStateService {
         date: earned && !badge.earned ? new Date().toLocaleDateString() : badge.date,
       };
     }));
+    this.persistStorage(SKILLS_STORAGE_KEY, this.skillProgress());
+    this.persistStorage(ACHIEVEMENTS_STORAGE_KEY, this.achievements());
+    this.persistStorage(MISSIONS_STORAGE_KEY, this.dailyMissions());
+    if (this.user()) this.persistUser(this.user()!);
   }
 
   joinRoom(roomId: number): boolean {
@@ -380,6 +447,7 @@ export class AppStateService {
     this.communityRooms.update((rooms) =>
       rooms.map((item) => item.id === roomId ? updatedRoom : item),
     );
+    this.persistStorage(ROOMS_STORAGE_KEY, this.communityRooms());
     this.selectedRoom.set({
       id: String(updatedRoom.id),
       name: updatedRoom.title,
@@ -392,7 +460,25 @@ export class AppStateService {
       hostAvatar: MOCK_ROOM_HOST_AVATAR,
       tags: [updatedRoom.topic, updatedRoom.level],
     });
+    this.persistStorage(ROOM_STORAGE_KEY, this.selectedRoom());
+    const joinedAt = new Date().toISOString();
+    this.communityActivity.update((items) => [...items, joinedAt]);
+    this.persistStorage(ROOM_ACTIVITY_KEY, this.communityActivity());
+    this.recordActivity({
+      id: `community-${updatedRoom.id}-${joinedAt}`,
+      type: "COMMUNITY",
+      title: updatedRoom.title,
+      topic: updatedRoom.topic,
+      completedAt: joinedAt,
+      date: "Hôm nay",
+      duration: "",
+      score: 0,
+      emoji: updatedRoom.emoji,
+      xp: 0,
+      status: "completed",
+    });
     this.joinedRoomId = updatedRoom.id;
+    this.persistStorage(JOINED_ROOM_STORAGE_KEY, this.joinedRoomId);
     void this.go("community-room");
     return true;
   }
@@ -406,16 +492,29 @@ export class AppStateService {
         this.communityRooms.update((rooms) =>
           rooms.map((item) => item.id === roomId ? updatedRoom : item),
         );
+        this.persistStorage(ROOMS_STORAGE_KEY, this.communityRooms());
       }
     }
     this.joinedRoomId = null;
+    if (typeof window !== "undefined") window.localStorage.removeItem(JOINED_ROOM_STORAGE_KEY);
     this.selectedRoom.set(null);
+    if (typeof window !== "undefined") window.localStorage.removeItem(ROOM_STORAGE_KEY);
     void this.go("community");
   }
 
   createCommunityRoom(room: Omit<RoomListing, "id">): void {
     const id = Math.max(0, ...this.communityRooms().map((item) => item.id)) + 1;
     this.communityRooms.update((rooms) => [{ ...room, id }, ...rooms]);
+    this.persistStorage(ROOMS_STORAGE_KEY, this.communityRooms());
+  }
+
+  private persistStorage(key: string, value: unknown): void {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // State remains available in memory when storage is unavailable.
+    }
   }
 }
 

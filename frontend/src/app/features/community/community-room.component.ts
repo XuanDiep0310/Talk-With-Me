@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { AppStateService } from '../../core/services/app-state.service';
 import { FormatTimePipe } from '../../shared/pipes/app-pipes';
 import { MOCK_COMMUNITY_MEMBERS, MOCK_COMMUNITY_TRANSCRIPT } from '../../core/data/mock-data';
@@ -146,6 +147,7 @@ export const TRANSCRIPT_SEED: RoomLine[] = [
 })
 export class CommunityRoomComponent implements OnInit, OnDestroy {
   readonly appState = inject(AppStateService);
+  private readonly router = inject(Router);
 
   readonly timer = signal(0);
   readonly activeIdx = signal(0);
@@ -173,6 +175,7 @@ export class CommunityRoomComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (!this.appState.selectedRoom()) { void this.router.navigateByUrl('/community'); return; }
     this.timerInterval = setInterval(() => {
       this.timer.update(t => t + 1);
     }, 1000);

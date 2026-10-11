@@ -37,6 +37,7 @@ export const routes: Routes = [
   },
   {
     path: 'ai-coach-session',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/ai-coach/ai-coach-session.component').then((m) => m.AiCoachSessionComponent)
   },

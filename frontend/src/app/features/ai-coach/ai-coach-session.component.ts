@@ -34,7 +34,7 @@ const MOCK_AI_RESPONSES = [
           @for (line of transcript(); track line.id) {
             <article class="my-4 flex" [class.justify-end]="line.speaker === 'User'">
               <div class="max-w-xl rounded-2xl p-4" [style.background]="line.speaker === 'AI' ? '#1e293b' : '#064e3b'">
-                <div class="text-xs opacity-70">{{ line.speaker }} · {{ line.time }}</div><p>{{ line.text }}</p>
+                <div class="text-xs opacity-70">{{ line.speaker }} | {{ line.time }}</div><p>{{ line.text }}</p>
               </div>
             </article>
           }
@@ -80,15 +80,33 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const topic = this.appState.selectedTopic();
     if (!topic) { void this.router.navigateByUrl('/ai-coach'); return; }
-    this.startedAt = Date.now();
-    this.transcript.set([{ id: 1, speaker: 'AI', text: `Welcome! Let’s practice ${topic}. What would you like to share about it?`, time: '00:00' }]);
-    this.timerInterval = setInterval(() => this.timer.set(Math.floor((Date.now() - this.startedAt) / 1000)), 1000);
+    const draft = this.appState.aiSessionDraft();
+    const validDraft = draft?.topic === topic
+      && Number.isFinite(draft.startedAt)
+      && Date.now() - draft.startedAt < 86400000
+      && Number.isFinite(draft.elapsed)
+      && Number.isInteger(draft.turn)
+      && Array.isArray(draft.transcript)
+      && draft.transcript.every(line => Number.isInteger(line.id)
+        && (line.speaker === 'User' || line.speaker === 'AI')
+        && typeof line.text === 'string' && typeof line.time === 'string');
+    this.startedAt = validDraft ? draft.startedAt : Date.now();
+    if (validDraft) {
+      this.timer.set(draft.elapsed);
+      this.transcript.set(draft.transcript);
+      this.turn = draft.turn;
+    }
+    if (!validDraft) {
+      this.transcript.set([{ id: 1, speaker: 'AI', text: `Welcome! Let's practice ${topic}. What would you like to share about it?`, time: '00:00' }]);
+      this.persistDraft();
+    }
+    this.timerInterval = setInterval(() => { this.timer.set(Math.floor((Date.now() - this.startedAt) / 1000)); this.persistDraft(); }, 1000);
   }
 
   ngOnDestroy(): void { this.stopResources(); }
 
   stateLabel(): string {
-    return ({ ready: 'Ready · turn the mock microphone on to answer', 'user-speaking': 'You are speaking · mock microphone is active', processing: 'Processing your mock answer…', 'ai-speaking': 'AI is responding…', error: 'Mock error · retry available' } as Record<SessionState, string>)[this.state()];
+    return ({ ready: 'Ready - turn the mock microphone on to answer', 'user-speaking': 'You are speaking - mock microphone is active', processing: 'Processing your mock answer...', 'ai-speaking': 'AI is responding...', error: 'Mock error - retry available' } as Record<SessionState, string>)[this.state()];
   }
 
   toggleMic(): void {
@@ -104,12 +122,14 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
     this.state.set('processing');
     const answer = MOCK_ANSWERS[this.turn % MOCK_ANSWERS.length];
     this.transcript.update(lines => [...lines, { id: lines.length + 1, speaker: 'User', text: answer, time: this.formatElapsed() }]);
+    this.persistDraft();
     this.pendingTimeout = setTimeout(() => {
       this.pendingTimeout = null;
       this.state.set('ai-speaking');
       const response = MOCK_AI_RESPONSES[this.turn % MOCK_AI_RESPONSES.length];
       this.transcript.update(lines => [...lines, { id: lines.length + 1, speaker: 'AI', text: response, time: this.formatElapsed() }]);
       this.turn++;
+      this.persistDraft();
       this.pendingTimeout = setTimeout(() => { this.pendingTimeout = null; this.state.set('ready'); }, 900);
     }, 900);
   }
@@ -134,6 +154,10 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   }
 
   private formatElapsed(): string { return `${String(Math.floor(this.timer() / 60)).padStart(2, '0')}:${String(this.timer() % 60).padStart(2, '0')}`; }
+  private persistDraft(): void {
+    const topic = this.appState.selectedTopic();
+    if (topic) this.appState.saveAiSessionDraft({ topic, startedAt: this.startedAt, elapsed: this.timer(), transcript: this.transcript(), turn: this.turn });
+  }
   private formatTime(seconds: number): string { return `${Math.floor(seconds / 60)}m ${seconds % 60}s`; }
   private clearPendingTimeout(): void { if (this.pendingTimeout) clearTimeout(this.pendingTimeout); this.pendingTimeout = null; }
   private stopResources(): void { if (this.timerInterval) clearInterval(this.timerInterval); this.timerInterval = null; this.clearPendingTimeout(); }

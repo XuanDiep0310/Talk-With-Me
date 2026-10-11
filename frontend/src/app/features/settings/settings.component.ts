@@ -166,6 +166,13 @@ export class SettingsComponent implements OnInit {
           this.aiVoice.set(settings.aiVoice);
           this.aiSpeed.set(settings.speechSpeed);
           this.theme.set(settings.theme);
+          this.appState.updateSettings({
+            notifications: settings.notificationsEnabled,
+            dailyReminder: settings.dailyReminderEnabled,
+            aiVoice: settings.aiVoice,
+            aiSpeed: settings.speechSpeed,
+            theme: settings.theme,
+          });
         },
         error: () => {
           // fallback to local app state
