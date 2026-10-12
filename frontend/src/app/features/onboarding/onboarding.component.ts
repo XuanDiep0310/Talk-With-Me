@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
 import { User } from '../../core/models/app.models';
@@ -91,6 +91,7 @@ const TEST_LEVEL: Level = 'B1';
     </main>`
 })
 export class OnboardingComponent {
+  private assessmentTimeout: ReturnType<typeof setTimeout> | null = null;
   private readonly appState = inject(AppStateService);
   readonly phase = signal<Phase>('intro');
   readonly recordState = signal<RecordState>('idle');
@@ -110,6 +111,7 @@ export class OnboardingComponent {
   readonly stepLabel = computed(() => ({ intro: 'Bắt đầu', 'mic-check': 'Kiểm tra micro', test: 'Voice Test', result: 'Kết quả level', manual: 'Chọn level', interests: 'Sở thích', goals: 'Mục tiêu', weaknesses: 'Kỹ năng cần cải thiện' } satisfies Record<Phase, string>)[this.phase()]);
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => { if (this.assessmentTimeout) clearTimeout(this.assessmentTimeout); });
     const user = this.appState.user() ?? MOCK_USER;
     if (LEVELS.includes(user.level as Level)) this.selectedLevel.set(user.level as Level);
     this.selectedInterests.set(user.interests.filter(item => this.interests.includes(item)));
@@ -126,7 +128,7 @@ export class OnboardingComponent {
   startTest(): void { this.recordState.set('recording'); }
   finishTest(): void {
     this.recordState.set('processing');
-    setTimeout(() => { this.assessedLevel.set(TEST_LEVEL); this.selectedLevel.set(TEST_LEVEL); this.recordState.set('done'); }, 900);
+    this.assessmentTimeout = setTimeout(() => { this.assessedLevel.set(TEST_LEVEL); this.selectedLevel.set(TEST_LEVEL); this.recordState.set('done'); this.assessmentTimeout = null; }, 900);
   }
   chooseAssessedLevel(): void { this.selectedLevel.set(this.assessedLevel()); this.phase.set('interests'); }
   continueFromLevel(): void {

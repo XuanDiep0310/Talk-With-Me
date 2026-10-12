@@ -64,7 +64,7 @@ interface NavItem {
               [attr.aria-current]="appState.currentPage() === item.id ? 'page' : null"
               (click)="navigate(item.id)"
             >
-              <span [innerHTML]="item.iconSvg"></span>
+              <span aria-hidden="true">{{ navIcon(item.id) }}</span>
               <span>{{ item.label }}</span>
             </button>
           }
@@ -96,7 +96,7 @@ interface NavItem {
               [attr.aria-current]="appState.currentPage() === item.id ? 'page' : null"
               (click)="navigate(item.id)"
             >
-              <span [innerHTML]="item.iconSvg"></span>
+              <span aria-hidden="true">{{ navIcon(item.id) }}</span>
               <span>{{ item.label }}</span>
             </button>
           }
@@ -283,5 +283,13 @@ export class LayoutComponent {
   navigate(page: AppPage): void {
     this.appState.go(page);
     this.sidebarOpen.set(false);
+  }
+
+  navIcon(page: AppPage): string {
+    const icons: Partial<Record<AppPage, string>> = {
+      dashboard: '▦', 'ai-coach': '🎙️', scenarios: '🎭', community: '👥',
+      progress: '↗', achievements: '🏆', profile: '♙', settings: '⚙', help: '?', health: '✚'
+    };
+    return icons[page] ?? '•';
   }
 }
