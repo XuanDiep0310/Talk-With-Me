@@ -1,6 +1,6 @@
 """add_session_and_coach_tables
 
-Revision ID: 0003_add_session_and_coach_tables
+Revision ID: 0003_add_session_coach
 Revises: 0002_add_onboarding_tables
 Create Date: 2026-10-13 01:00:00.000000
 
@@ -18,7 +18,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "0003_add_session_and_coach_tables"
+revision: str = "0003_add_session_coach"
 down_revision: str | None = "0002_add_onboarding_tables"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
