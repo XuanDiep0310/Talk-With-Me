@@ -104,9 +104,15 @@ class Settings(BaseSettings):
     STORAGE_PROVIDER: str = "local"  # "local" | "s3"
 
     # STT (Speech-to-Text)
-    STT_PROVIDER: str = "fake"  # "fake" | "google" | "azure"
+    STT_PROVIDER: str = "fake"  # "fake" | "deepgram" | "google" | "azure"
+    DEEPGRAM_API_KEY: str = ""
 
-    # LLM provider for placement level evaluation
+    # Coach Session & Turn-Taking
+    SESSION_RECONNECT_TIMEOUT_SECONDS: int = 60
+    TURN_TAKING_SILENCE_MS: int = 1500
+    WS_TICKET_EXPIRE_SECONDS: int = 30
+
+    # LLM provider for placement level evaluation and AI Coach
     LLM_PROVIDER: str = "fake"  # "fake" | "openai" | "gemini"
     LLM_API_KEY: str = ""
     LLM_MODEL: str = "gemini-1.5-flash"
