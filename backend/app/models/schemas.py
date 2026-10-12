@@ -101,6 +101,13 @@ class MeResponse(_CamelModel):
     full_name: str
     avatar_url: str | None = None
     created_at: datetime
+    cefr_level: str | None = None
+    level_source: str | None = None
+    needs_reassessment: bool = False
+    interests: list[str] = Field(default_factory=list)
+    goals: list[str] = Field(default_factory=list)
+    weak_points: list[str] = Field(default_factory=list)
+    onboarding_completed_at: datetime | None = None
 
 
 class UpdateMeRequest(_CamelModel):

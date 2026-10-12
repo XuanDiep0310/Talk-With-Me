@@ -17,6 +17,7 @@ from app.core.providers.google_token_verifier import (
     GoogleTokenVerifier,
     RealGoogleTokenVerifier,
 )
+from app.core.providers.llm_provider import FakeLlmProvider, LlmProvider
 from app.core.providers.storage_provider import (
     LocalStorageProvider,
     StorageProvider,
@@ -28,6 +29,7 @@ from app.repositories.health import HealthRepository
 from app.repositories.user import UserRepository
 from app.services.auth import AuthService
 from app.services.health import HealthService
+from app.services.onboarding import OnboardingService, PlacementService
 from app.services.tts import TTSService
 from app.services.user import UserService
 
@@ -169,7 +171,7 @@ async def get_current_user(
         ) from exc
 
     user_repo = UserRepository(session)
-    user = await user_repo.get_by_id(user_id)
+    user = await user_repo.get_by_id_with_relations(user_id)
     if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -182,3 +184,31 @@ async def get_current_user(
         )
 
     return user
+
+
+# ---------------------------------------------------------------------------
+# Onboarding & Placement Services
+# ---------------------------------------------------------------------------
+
+
+def get_llm_provider(settings: Settings = Depends(get_settings)) -> LlmProvider:  # noqa: ARG001
+    """
+    Returns LLM provider based on LLM_PROVIDER setting.
+    Currently only fake is supported; real providers will be added in later sprints.
+    """
+    return FakeLlmProvider()
+
+
+def get_onboarding_service(
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> OnboardingService:
+    return OnboardingService(session=session, settings=settings)
+
+
+def get_placement_service(
+    session: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    llm_provider: LlmProvider = Depends(get_llm_provider),
+) -> PlacementService:
+    return PlacementService(session=session, settings=settings, llm_provider=llm_provider)

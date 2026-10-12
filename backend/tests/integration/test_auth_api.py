@@ -109,6 +109,8 @@ async def client(
         ACCESS_TOKEN_EXPIRE_MINUTES=30,
         REFRESH_TOKEN_REMEMBER_DAYS=30,
         REFRESH_TOKEN_NO_REMEMBER_DAYS=1,
+        GOOGLE_TOKEN_VERIFIER="fake",
+        GOOGLE_CLIENT_ID="",
     )
 
     app.dependency_overrides[get_db] = override_get_db
