@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
 import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
@@ -160,6 +161,7 @@ export const SCRIPT: Line[] = [
 })
 export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
   readonly appState = inject(AppStateService);
+  private readonly router = inject(Router);
   readonly speechService = inject(SpeechRecognitionService);
 
   readonly timer = signal(0);
@@ -184,6 +186,7 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    if (!this.appState.selectedScenario()) { void this.router.navigateByUrl('/scenarios'); return; }
     this.transcript.set([SCRIPT[0]]);
     this.timerInterval = setInterval(() => {
       this.timer.update(t => t + 1);
