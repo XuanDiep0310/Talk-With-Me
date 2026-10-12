@@ -149,9 +149,7 @@ def estimate_level(
       - Secondary score: LLM suggestion (30% weight), only when provided.
       - Blended score → level via configurable thresholds.
     """
-    is_insufficient = (
-        features.answer_count < min_answers or features.total_words < min_words
-    )
+    is_insufficient = features.answer_count < min_answers or features.total_words < min_words
 
     if is_insufficient:
         return LevelEstimate(

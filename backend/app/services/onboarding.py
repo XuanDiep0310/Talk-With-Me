@@ -66,7 +66,10 @@ class OnboardingService:
     async def get_profile_or_404(self, user_id: uuid.UUID) -> UserProfile:
         profile = await self._profile_repo.get_profile(user_id)
         if profile is None:
-            raise HTTPException(status_code=404, detail={"code": "USER_NOT_FOUND", "message": "Profile not found.", "details": {}})
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "USER_NOT_FOUND", "message": "Profile not found.", "details": {}},
+            )
         return profile
 
     async def save_preferences(
@@ -118,7 +121,10 @@ class OnboardingService:
         )
         profile = await self._profile_repo.get_profile(user_id)
         if profile is None:
-            raise HTTPException(status_code=404, detail={"code": "USER_NOT_FOUND", "message": "Profile not found.", "details": {}})
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "USER_NOT_FOUND", "message": "Profile not found.", "details": {}},
+            )
         return profile
 
     async def complete_onboarding(self, user_id: uuid.UUID) -> UserProfile:
@@ -163,7 +169,10 @@ class OnboardingService:
         await self._profile_repo.complete_onboarding(user_id=user_id, completed_at=now)
         updated_profile = await self._profile_repo.get_profile(user_id)
         if updated_profile is None:
-            raise HTTPException(status_code=404, detail={"code": "USER_NOT_FOUND", "message": "Profile not found.", "details": {}})
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "USER_NOT_FOUND", "message": "Profile not found.", "details": {}},
+            )
         return updated_profile
 
 
@@ -214,13 +223,21 @@ class PlacementService:
         if test is None:
             raise HTTPException(
                 status_code=404,
-                detail={"code": "PLACEMENT_TEST_NOT_FOUND", "message": "Placement test not found.", "details": {}},
+                detail={
+                    "code": "PLACEMENT_TEST_NOT_FOUND",
+                    "message": "Placement test not found.",
+                    "details": {},
+                },
             )
 
         if test.status != "IN_PROGRESS":
             raise HTTPException(
                 status_code=409,
-                detail={"code": "PLACEMENT_TEST_NOT_ACTIVE", "message": "Placement test is not in progress.", "details": {}},
+                detail={
+                    "code": "PLACEMENT_TEST_NOT_ACTIVE",
+                    "message": "Placement test is not in progress.",
+                    "details": {},
+                },
             )
 
         # Idempotency: return existing answer if request_id already exists
@@ -254,13 +271,21 @@ class PlacementService:
         if test is None:
             raise HTTPException(
                 status_code=404,
-                detail={"code": "PLACEMENT_TEST_NOT_FOUND", "message": "Placement test not found.", "details": {}},
+                detail={
+                    "code": "PLACEMENT_TEST_NOT_FOUND",
+                    "message": "Placement test not found.",
+                    "details": {},
+                },
             )
 
         if test.status not in ("IN_PROGRESS", "COMPLETED"):
             raise HTTPException(
                 status_code=409,
-                detail={"code": "PLACEMENT_TEST_NOT_ACTIVE", "message": "Cannot complete a test that is not in progress.", "details": {}},
+                detail={
+                    "code": "PLACEMENT_TEST_NOT_ACTIVE",
+                    "message": "Cannot complete a test that is not in progress.",
+                    "details": {},
+                },
             )
 
         answers = await self._answer_repo.list_by_test(test_id)
@@ -332,7 +357,14 @@ class PlacementService:
 
         refreshed_test = await self._test_repo.get_by_id(test_id)
         if refreshed_test is None:
-            raise HTTPException(status_code=404, detail={"code": "PLACEMENT_TEST_NOT_FOUND", "message": "Placement test not found.", "details": {}})
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "code": "PLACEMENT_TEST_NOT_FOUND",
+                    "message": "Placement test not found.",
+                    "details": {},
+                },
+            )
         return refreshed_test, estimate
 
 

@@ -69,7 +69,15 @@ class TestEstimateLevelTable:
     """Parametrized table of test cases for estimate_level."""
 
     @pytest.mark.parametrize(
-        ("words_per_answer", "total_words", "confidence", "latency", "count", "llm_level", "expected_level"),
+        (
+            "words_per_answer",
+            "total_words",
+            "confidence",
+            "latency",
+            "count",
+            "llm_level",
+            "expected_level",
+        ),
         [
             # High fluency, high confidence, fast latency -> C1
             (120.0, 360, 0.98, 1.0, 3, "C1", "C1"),

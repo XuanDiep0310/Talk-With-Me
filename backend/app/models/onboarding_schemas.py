@@ -82,7 +82,9 @@ class PlacementTestResponse(_CamelModel):
 
 
 class SubmitAnswerRequest(_CamelModel):
-    request_id: str = Field(..., min_length=1, max_length=36, description="Client-generated UUID for idempotency")
+    request_id: str = Field(
+        ..., min_length=1, max_length=36, description="Client-generated UUID for idempotency"
+    )
     question_index: int = Field(..., ge=0)
     transcript: str | None = Field(default=None, max_length=5000)
     stt_confidence: float | None = Field(default=None, ge=0.0, le=1.0)

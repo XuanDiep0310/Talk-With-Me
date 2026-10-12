@@ -355,7 +355,9 @@ async def test_complete_onboarding_idempotent(client: AsyncClient) -> None:
 async def test_accessing_other_users_placement_test_returns_404(client: AsyncClient) -> None:
     # User 1 creates a test
     token1 = await register_and_get_token(client, "user1@example.com")
-    test_res = await client.post("/api/v1/placement-tests", headers={"Authorization": f"Bearer {token1}"})
+    test_res = await client.post(
+        "/api/v1/placement-tests", headers={"Authorization": f"Bearer {token1}"}
+    )
     test_id = test_res.json()["id"]
 
     # User 2 tries to submit an answer to User 1's test

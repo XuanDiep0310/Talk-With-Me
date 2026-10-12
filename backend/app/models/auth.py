@@ -118,7 +118,9 @@ class UserProfile(Base, TimestampMixin):
     )
     goals: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array of goal keys
     weak_points: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array of skill keys
-    interests: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON array of interest keys
+    interests: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # JSON array of interest keys
     timezone: Mapped[str] = mapped_column(String(60), default="Asia/Ho_Chi_Minh", nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="profile")
