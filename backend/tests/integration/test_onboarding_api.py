@@ -12,10 +12,6 @@ from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
-from app.api.deps import get_db, get_redis
-from app.core.config import Settings, get_settings
-from app.main import app
-from app.models.base import Base
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import (
@@ -24,6 +20,11 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+
+from app.api.deps import get_db, get_redis
+from app.core.config import Settings, get_settings
+from app.main import app
+from app.models.base import Base
 
 
 class FakeRedis:

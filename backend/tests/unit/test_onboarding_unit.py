@@ -9,6 +9,8 @@ Tests table covering:
 """
 
 import pytest
+from pydantic import ValidationError
+
 from app.core.providers.llm_provider import LlmLevelEvaluation
 from app.models.onboarding_schemas import UpdatePreferencesRequest
 from app.seeds.onboarding_catalog import (
@@ -22,7 +24,6 @@ from app.services.level_estimator import (
     compute_features,
     estimate_level,
 )
-from pydantic import ValidationError
 
 
 class TestComputeFeatures:
@@ -218,4 +219,4 @@ class TestOnboardingValidation:
         assert len(INTEREST_KEYS) == 8
         assert len(GOAL_KEYS) == 5
         assert len(WEAK_POINT_KEYS) == 5
-        assert CEFR_LEVEL_SET == {"A1", "A2", "B1", "B2", "C1"}
+        assert {"A1", "A2", "B1", "B2", "C1"} == CEFR_LEVEL_SET
