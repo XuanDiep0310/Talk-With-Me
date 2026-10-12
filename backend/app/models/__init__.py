@@ -9,6 +9,7 @@ from app.models.auth import (
     UserSettings,
 )
 from app.models.base import Base, TimestampMixin
+from app.models.onboarding import LevelHistory, PlacementAnswer, PlacementTest
 
 __all__ = [
     "Base",
@@ -19,4 +20,7 @@ __all__ = [
     "PasswordResetToken",
     "UserProfile",
     "UserSettings",
+    "PlacementTest",
+    "PlacementAnswer",
+    "LevelHistory",
 ]

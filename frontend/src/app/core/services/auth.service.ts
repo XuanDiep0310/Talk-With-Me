@@ -34,6 +34,13 @@ export interface MeResponse {
   fullName: string;
   avatarUrl: string | null;
   createdAt: string;
+  cefrLevel?: string | null;
+  levelSource?: string | null;
+  needsReassessment?: boolean;
+  interests?: string[];
+  goals?: string[];
+  weakPoints?: string[];
+  onboardingCompletedAt?: string | null;
 }
 
 export interface SettingsResponse {
