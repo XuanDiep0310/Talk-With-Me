@@ -1,4 +1,4 @@
-﻿"""Integration coverage for authenticated profile endpoints."""
+"""Integration coverage for authenticated profile endpoints."""
 
 import pytest
 from httpx import AsyncClient

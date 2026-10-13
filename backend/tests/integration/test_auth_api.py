@@ -342,7 +342,12 @@ async def test_auth_validation_and_invalid_access_token(client: AsyncClient) -> 
 
     bad_email = await client.post(
         "/api/v1/auth/register",
-        json={"email": "not-an-email", "fullName": "Bad", "password": "Password123!", "termsAccepted": True},
+        json={
+            "email": "not-an-email",
+            "fullName": "Bad",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
     )
     assert bad_email.status_code == 422
 
@@ -355,9 +360,7 @@ async def test_auth_validation_and_invalid_access_token(client: AsyncClient) -> 
 
 @pytest.mark.asyncio
 async def test_google_login_rejects_invalid_token_without_network(client: AsyncClient) -> None:
-    response = await client.post(
-        "/api/v1/auth/google", json={"idToken": "invalid-google-token"}
-    )
+    response = await client.post("/api/v1/auth/google", json={"idToken": "invalid-google-token"})
     assert response.status_code == 400
     assert response.json()["code"] == "INVALID_GOOGLE_TOKEN"
 
@@ -369,7 +372,12 @@ async def test_profile_settings_are_scoped_and_partial_update_preserves_other_fi
     async def register(email: str, name: str) -> tuple[str, str]:
         response = await client.post(
             "/api/v1/auth/register",
-            json={"email": email, "fullName": name, "password": "Password123!", "termsAccepted": True},
+            json={
+                "email": email,
+                "fullName": name,
+                "password": "Password123!",
+                "termsAccepted": True,
+            },
         )
         assert response.status_code == 201
         return response.json()["accessToken"], response.json()["refreshToken"]
@@ -379,9 +387,7 @@ async def test_profile_settings_are_scoped_and_partial_update_preserves_other_fi
     headers_a = {"Authorization": f"Bearer {token_a}"}
     headers_b = {"Authorization": f"Bearer {token_b}"}
 
-    update = await client.patch(
-        "/api/v1/me/settings", headers=headers_a, json={"aiVoice": "male"}
-    )
+    update = await client.patch("/api/v1/me/settings", headers=headers_a, json={"aiVoice": "male"})
     assert update.status_code == 200
     assert update.json()["aiVoice"] == "male"
     assert update.json()["speechSpeed"] == "normal"
@@ -402,7 +408,12 @@ async def test_change_password_updates_credentials_and_revokes_refresh_tokens(
 ) -> None:
     registered = await client.post(
         "/api/v1/auth/register",
-        json={"email": "change-pw@example.com", "fullName": "Password User", "password": "Password123!", "termsAccepted": True},
+        json={
+            "email": "change-pw@example.com",
+            "fullName": "Password User",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
     )
     token = registered.json()["accessToken"]
     refresh = registered.json()["refreshToken"]
@@ -412,12 +423,18 @@ async def test_change_password_updates_credentials_and_revokes_refresh_tokens(
         json={"oldPassword": "Password123!", "newPassword": "NewPassword123!"},
     )
     assert response.status_code == 200
-    assert (await client.post(
-        "/api/v1/auth/login", json={"email": "change-pw@example.com", "password": "Password123!"}
-    )).status_code == 401
-    assert (await client.post(
-        "/api/v1/auth/login", json={"email": "change-pw@example.com", "password": "NewPassword123!"}
-    )).status_code == 200
+    assert (
+        await client.post(
+            "/api/v1/auth/login",
+            json={"email": "change-pw@example.com", "password": "Password123!"},
+        )
+    ).status_code == 401
+    assert (
+        await client.post(
+            "/api/v1/auth/login",
+            json={"email": "change-pw@example.com", "password": "NewPassword123!"},
+        )
+    ).status_code == 200
     revoked = await client.post("/api/v1/auth/refresh", json={"refreshToken": refresh})
     assert revoked.status_code == 401
 
@@ -426,7 +443,12 @@ async def test_change_password_updates_credentials_and_revokes_refresh_tokens(
 async def test_settings_validation_and_avatar_empty_file(client: AsyncClient) -> None:
     registered = await client.post(
         "/api/v1/auth/register",
-        json={"email": "validation@example.com", "fullName": "Validation", "password": "Password123!", "termsAccepted": True},
+        json={
+            "email": "validation@example.com",
+            "fullName": "Validation",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
     )
     headers = {"Authorization": f"Bearer {registered.json()['accessToken']}"}
     invalid_settings = await client.patch(
@@ -436,7 +458,8 @@ async def test_settings_validation_and_avatar_empty_file(client: AsyncClient) ->
     assert (await client.get("/api/v1/me/settings", headers=headers)).json()["aiVoice"] == "female"
 
     empty_avatar = await client.post(
-        "/api/v1/me/avatar", headers=headers,
+        "/api/v1/me/avatar",
+        headers=headers,
         files={"file": ("empty.png", b"", "image/png")},
     )
     assert empty_avatar.status_code == 400
@@ -686,9 +709,7 @@ async def test_reset_rejects_expired_token_without_changing_password(
             "termsAccepted": True,
         },
     )
-    await client.post(
-        "/api/v1/auth/forgot-password", json={"email": "expired-reset@example.com"}
-    )
+    await client.post("/api/v1/auth/forgot-password", json={"email": "expired-reset@example.com"})
     raw_token = fake_email_sender.reset_tokens[-1]
     token_hash = hash_refresh_token(raw_token)
     async with auth_test_db() as session:

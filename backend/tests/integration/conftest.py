@@ -1,4 +1,4 @@
-﻿"""Shared isolated API fixtures for integration tests."""
+"""Shared isolated API fixtures for integration tests."""
 
 import base64
 import json

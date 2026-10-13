@@ -1,4 +1,4 @@
-﻿"""Integration coverage for per-user settings endpoints."""
+"""Integration coverage for per-user settings endpoints."""
 
 import pytest
 from httpx import AsyncClient
@@ -26,9 +26,7 @@ async def _register_user(
 async def test_get_settings_returns_authenticated_users_defaults(client: AsyncClient) -> None:
     token = await _register_user(client)
 
-    response = await client.get(
-        "/api/v1/me/settings", headers={"Authorization": f"Bearer {token}"}
-    )
+    response = await client.get("/api/v1/me/settings", headers={"Authorization": f"Bearer {token}"})
 
     assert response.status_code == 200
     assert response.json() == {
@@ -59,9 +57,7 @@ async def test_patch_one_setting_preserves_unsubmitted_fields_and_persists(
     token = await _register_user(client)
     headers = {"Authorization": f"Bearer {token}"}
 
-    update = await client.patch(
-        "/api/v1/me/settings", headers=headers, json={"aiVoice": "male"}
-    )
+    update = await client.patch("/api/v1/me/settings", headers=headers, json={"aiVoice": "male"})
     read_back = await client.get("/api/v1/me/settings", headers=headers)
 
     assert update.status_code == 200
@@ -130,9 +126,7 @@ async def test_empty_and_null_patch_preserve_current_settings(client: AsyncClien
     token = await _register_user(client)
     headers = {"Authorization": f"Bearer {token}"}
     empty_patch = await client.patch("/api/v1/me/settings", headers=headers, json={})
-    null_patch = await client.patch(
-        "/api/v1/me/settings", headers=headers, json={"aiVoice": None}
-    )
+    null_patch = await client.patch("/api/v1/me/settings", headers=headers, json={"aiVoice": None})
 
     assert empty_patch.status_code == 200
     assert null_patch.status_code == 200
@@ -165,9 +159,7 @@ async def test_settings_are_isolated_between_users(client: AsyncClient) -> None:
         headers={"Authorization": f"Bearer {token_a}"},
         json={"aiVoice": "male", "theme": "dark"},
     )
-    read_b = await client.get(
-        "/api/v1/me/settings", headers={"Authorization": f"Bearer {token_b}"}
-    )
+    read_b = await client.get("/api/v1/me/settings", headers={"Authorization": f"Bearer {token_b}"})
 
     assert update_a.status_code == 200
     assert update_a.json()["aiVoice"] == "male"
