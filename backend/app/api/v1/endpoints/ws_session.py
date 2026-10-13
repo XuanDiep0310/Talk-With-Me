@@ -214,19 +214,19 @@ async def session_websocket_endpoint(
                     await websocket.send_json({"type": "pong"})
 
                 elif msg_type == "user.speech_start":
-                    current_segment_id = str(uuid.uuid4())
+                    current_segment_id = data.get("segmentId") or str(uuid.uuid4())
                     audio_buffer.clear()
                     current_user_text = ""
 
                 elif msg_type in ("user.speech_end", "user.text"):
+                    if data.get("segmentId"):
+                        current_segment_id = data.get("segmentId")
                     # Extract text: either from STT of audio buffer, or directly from user.text message
                     user_text = ""
                     confidence = 0.95
 
                     if msg_type == "user.text":
                         user_text = data.get("text", "").strip()
-                        if data.get("segmentId"):
-                            current_segment_id = data.get("segmentId")
                     elif audio_buffer:
                         # Process audio buffer with retry backoff
                         try:

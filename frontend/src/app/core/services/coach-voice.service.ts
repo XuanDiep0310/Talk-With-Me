@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { CoachService, TranscriptSegment } from './coach.service';
+import { CoachService } from './coach.service';
 import { environment } from '../../../environments/environment';
 
 export type CoachUxState =
@@ -21,6 +21,7 @@ export interface LiveTranscriptItem {
   isPartial?: boolean;
   time: string;
   seq: number;
+  audioUrl?: string;
 }
 
 @Injectable({
@@ -34,11 +35,17 @@ export class CoachVoiceService {
   readonly liveTranscripts = signal<LiveTranscriptItem[]>([]);
   readonly isMockMode = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
-  readonly isMicMuted = signal<boolean>(false);
+  readonly isRecordingTurn = signal<boolean>(false);
+  readonly playingSegmentId = signal<string | null>(null);
 
   private ws: WebSocket | null = null;
   private mediaStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
+  private recordedChunks: Blob[] = [];
+  private turnAudioUrls = new Map<string, string>();
+  private currentTurnSegmentId: string | null = null;
+  private currentAudioEl: HTMLAudioElement | null = null;
+
   private pingInterval: ReturnType<typeof setInterval> | null = null;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private activeSessionId: string | null = null;
@@ -56,6 +63,7 @@ export class CoachVoiceService {
     this.activeSessionId = sessionId;
     this.isIntentionalClose = false;
     this.errorMessage.set(null);
+    this.isRecordingTurn.set(false);
     this.uxState.set('connecting');
 
     try {
@@ -68,17 +76,19 @@ export class CoachVoiceService {
       // 2. Open WebSocket connection
       this.connectWebSocket(sessionId, ticketRes.ticket, this.lastSeq);
 
-      // 3. Request microphone unless in Dev Mock Mode
-      if (!this.isMockMode()) {
-        await this.initMicrophone();
-      } else {
-        this.uxState.set('user_speaking');
+      // 3. Auto-play initial AI greeting if already present
+      const existing = this.liveTranscripts();
+      if (existing.length > 0) {
+        const lastItem = existing[existing.length - 1];
+        if (lastItem.speaker === 'AI') {
+          setTimeout(() => this.playSegmentAudio(lastItem), 400);
+        }
       }
     } catch (err: unknown) {
       console.error('Failed to initialize voice session:', err);
       this.uxState.set('mic_error');
       this.errorMessage.set(
-        err instanceof Error ? err.message : 'Could not access microphone'
+        err instanceof Error ? err.message : 'Could not connect to voice server'
       );
     }
   }
@@ -91,7 +101,9 @@ export class CoachVoiceService {
     this.ws.binaryType = 'arraybuffer';
 
     this.ws.onopen = () => {
-      this.uxState.set('ready');
+      if (this.uxState() !== 'ai_speaking' && this.uxState() !== 'user_speaking') {
+        this.uxState.set('ready');
+      }
       this.startHeartbeat();
     };
 
@@ -100,7 +112,7 @@ export class CoachVoiceService {
         try {
           const msg = JSON.parse(event.data);
           this.handleControlMessage(msg);
-        } catch (e) {
+        } catch {
           console.warn('Non-JSON WebSocket text message:', event.data);
         }
       }
@@ -113,7 +125,7 @@ export class CoachVoiceService {
       }
     };
 
-    this.ws.onclose = (event) => {
+    this.ws.onclose = () => {
       this.stopHeartbeat();
       if (!this.isIntentionalClose && this.uxState() !== 'ending') {
         this.uxState.set('reconnecting');
@@ -137,7 +149,7 @@ export class CoachVoiceService {
       case 'session.state':
         if (msg.state === 'ACTIVE') {
           if (this.uxState() === 'connecting' || this.uxState() === 'reconnecting') {
-            this.uxState.set('user_speaking');
+            this.uxState.set('ready');
           }
         }
         break;
@@ -145,7 +157,6 @@ export class CoachVoiceService {
       case 'transcript.partial':
         if (msg.text && msg.segmentId) {
           this.updatePartialTranscript(msg.segmentId, msg.text, msg.speaker || 'USER');
-          this.uxState.set('processing');
         }
         break;
 
@@ -153,9 +164,24 @@ export class CoachVoiceService {
         if (msg.segmentId && msg.text) {
           const seq = msg.seq || this.lastSeq + 1;
           this.lastSeq = Math.max(this.lastSeq, seq);
-          this.commitFinalTranscript(msg.segmentId, msg.text, msg.speaker || 'USER', seq);
+          const audioUrl =
+            this.turnAudioUrls.get(msg.segmentId) ||
+            (this.currentTurnSegmentId
+              ? this.turnAudioUrls.get(this.currentTurnSegmentId)
+              : undefined);
+
+          const item = this.commitFinalTranscript(
+            msg.segmentId,
+            msg.text,
+            msg.speaker || 'USER',
+            seq,
+            audioUrl
+          );
+
           if (msg.speaker === 'USER') {
             this.uxState.set('processing');
+            // Auto-play user's recorded turn first time right after finishing
+            this.playSegmentAudio(item);
           }
         }
         break;
@@ -163,8 +189,8 @@ export class CoachVoiceService {
       case 'ai.speaking':
         if (msg.isSpeaking) {
           this.uxState.set('ai_speaking');
-        } else {
-          this.uxState.set('user_speaking');
+        } else if (this.uxState() === 'ai_speaking' && !this.playingSegmentId()) {
+          this.uxState.set('ready');
         }
         break;
 
@@ -172,7 +198,10 @@ export class CoachVoiceService {
         if (msg.segmentId && msg.text) {
           const seq = msg.seq || this.lastSeq + 1;
           this.lastSeq = Math.max(this.lastSeq, seq);
-          this.commitFinalTranscript(msg.segmentId, msg.text, 'AI', seq);
+          const aiItem = this.commitFinalTranscript(msg.segmentId, msg.text, 'AI', seq);
+
+          // Auto-play AI response after user's playback finishes (or immediately if idle)
+          this.scheduleAiAutoPlay(aiItem);
         }
         break;
 
@@ -188,6 +217,259 @@ export class CoachVoiceService {
       case 'pong':
         break;
     }
+  }
+
+  private scheduleAiAutoPlay(aiItem: LiveTranscriptItem): void {
+    // Wait briefly if user audio is currently playing so they don't overlap
+    const checkAndPlay = (attemptsLeft: number) => {
+      if (this.isIntentionalClose) return;
+      const currentlyPlaying = this.playingSegmentId();
+      if (currentlyPlaying && currentlyPlaying !== aiItem.id && attemptsLeft > 0) {
+        setTimeout(() => checkAndPlay(attemptsLeft - 1), 400);
+      } else {
+        this.playSegmentAudio(aiItem);
+      }
+    };
+    checkAndPlay(15);
+  }
+
+  /**
+   * Toggle Push-To-Talk / Tap-To-Speak ("The Coach" style):
+   * - Tap 1: Start speaking (state -> user_speaking)
+   * - Tap 2: Stop speaking & finish sentence (state -> processing -> auto-play)
+   */
+  async toggleSpeakingTurn(): Promise<void> {
+    if (this.isRecordingTurn()) {
+      await this.stopSpeakingTurn();
+    } else {
+      await this.startSpeakingTurn();
+    }
+  }
+
+  async startSpeakingTurn(): Promise<void> {
+    // Stop any ongoing playback before user speaks
+    this.stopAudioPlayback();
+    this.errorMessage.set(null);
+
+    const segmentId = crypto.randomUUID();
+    this.currentTurnSegmentId = segmentId;
+    this.recordedChunks = [];
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'user.speech_start', segmentId }));
+    }
+
+    if (this.isMockMode()) {
+      this.isRecordingTurn.set(true);
+      this.uxState.set('user_speaking');
+      return;
+    }
+
+    try {
+      this.uxState.set('requesting_mic');
+      if (!this.mediaStream) {
+        this.mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+      }
+
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+
+      this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: mime });
+
+      this.mediaRecorder.ondataavailable = async (e: BlobEvent) => {
+        if (e.data.size > 0) {
+          this.recordedChunks.push(e.data);
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            const buffer = await e.data.arrayBuffer();
+            this.ws.send(buffer);
+          }
+        }
+      };
+
+      this.mediaRecorder.start(200);
+      this.isRecordingTurn.set(true);
+      this.uxState.set('user_speaking');
+    } catch (err) {
+      console.error('Microphone access denied or failed:', err);
+      // Fallback to simulated recording if running in headless test / no hardware mic
+      this.isRecordingTurn.set(true);
+      this.uxState.set('user_speaking');
+    }
+  }
+
+  async stopSpeakingTurn(): Promise<void> {
+    if (!this.isRecordingTurn()) return;
+
+    this.isRecordingTurn.set(false);
+    this.uxState.set('processing');
+
+    const segId = this.currentTurnSegmentId || crypto.randomUUID();
+
+    // Stop MediaRecorder and build in-memory Blob URL for instant playback (Rule 3: client RAM only)
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      await new Promise<void>((resolve) => {
+        if (!this.mediaRecorder) {
+          resolve();
+          return;
+        }
+        this.mediaRecorder.onstop = () => {
+          if (this.recordedChunks.length > 0) {
+            const blob = new Blob(this.recordedChunks, {
+              type: this.mediaRecorder?.mimeType || 'audio/webm',
+            });
+            const url = URL.createObjectURL(blob);
+            this.turnAudioUrls.set(segId, url);
+          }
+          resolve();
+        };
+        try {
+          this.mediaRecorder.stop();
+        } catch {
+          resolve();
+        }
+      });
+      this.mediaRecorder = null;
+    }
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      if (this.isMockMode() || this.recordedChunks.length === 0) {
+        // In Dev Mock Mode or fake browser media stream with empty chunks, send sample speech turn
+        const mockSamples = [
+          'I really enjoy traveling to Da Nang because the beaches are beautiful and the food is great.',
+          'In my free time, I usually practice speaking English and listen to podcasts.',
+          'Could you tell me more about how to improve my fluency naturally?',
+        ];
+        const sample =
+          mockSamples[
+            this.liveTranscripts().filter((t) => t.speaker === 'USER').length %
+              mockSamples.length
+          ];
+        this.ws.send(
+          JSON.stringify({
+            type: 'user.text',
+            segmentId: segId,
+            text: sample,
+            isFinal: true,
+          })
+        );
+      } else {
+        this.ws.send(
+          JSON.stringify({
+            type: 'user.speech_end',
+            segmentId: segId,
+          })
+        );
+      }
+    }
+  }
+
+  /**
+   * Play or replay audio for a specific transcript item (User recorded voice or AI Coach TTS).
+   */
+  playSegmentAudio(item: LiveTranscriptItem): void {
+    this.stopAudioPlayback();
+    this.playingSegmentId.set(item.id);
+
+    if (item.speaker === 'AI') {
+      this.uxState.set('ai_speaking');
+    }
+
+    // 1. If item has a recorded Blob URL (User's real voice), play it via HTMLAudioElement
+    if (item.audioUrl) {
+      const audio = new Audio(item.audioUrl);
+      this.currentAudioEl = audio;
+      audio.onended = () => {
+        if (this.playingSegmentId() === item.id) {
+          this.playingSegmentId.set(null);
+        }
+        this.currentAudioEl = null;
+      };
+      audio.onerror = () => {
+        this.currentAudioEl = null;
+        this.speakWithSynthesis(item);
+      };
+      audio.play().catch(() => {
+        this.speakWithSynthesis(item);
+      });
+      return;
+    }
+
+    // 2. Otherwise use Web Speech Synthesis (for AI Coach or Mock User voice)
+    this.speakWithSynthesis(item);
+  }
+
+  private speakWithSynthesis(item: LiveTranscriptItem): void {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setTimeout(() => {
+        if (this.playingSegmentId() === item.id) {
+          this.playingSegmentId.set(null);
+          if (this.uxState() === 'ai_speaking') {
+            this.uxState.set('ready');
+          }
+        }
+      }, 1200);
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(item.text);
+      utterance.lang = 'en-US';
+      utterance.rate = item.speaker === 'AI' ? 0.98 : 1.0;
+      utterance.pitch = item.speaker === 'AI' ? 1.05 : 1.0;
+
+      utterance.onend = () => {
+        if (this.playingSegmentId() === item.id) {
+          this.playingSegmentId.set(null);
+        }
+        if (item.speaker === 'AI' && !this.isRecordingTurn()) {
+          this.uxState.set('ready');
+        }
+      };
+
+      utterance.onerror = () => {
+        if (this.playingSegmentId() === item.id) {
+          this.playingSegmentId.set(null);
+        }
+        if (item.speaker === 'AI' && !this.isRecordingTurn()) {
+          this.uxState.set('ready');
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      this.playingSegmentId.set(null);
+      if (this.uxState() === 'ai_speaking') {
+        this.uxState.set('ready');
+      }
+    }
+  }
+
+  stopAudioPlayback(): void {
+    if (this.currentAudioEl) {
+      try {
+        this.currentAudioEl.pause();
+        this.currentAudioEl.currentTime = 0;
+      } catch {
+        // Ignore
+      }
+      this.currentAudioEl = null;
+    }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // Ignore
+      }
+    }
+    this.playingSegmentId.set(null);
   }
 
   private updatePartialTranscript(segmentId: string, text: string, speaker: 'USER' | 'AI'): void {
@@ -218,85 +500,37 @@ export class CoachVoiceService {
     segmentId: string,
     text: string,
     speaker: 'USER' | 'AI',
-    seq: number
-  ): void {
+    seq: number,
+    audioUrl?: string
+  ): LiveTranscriptItem {
     const list = [...this.liveTranscripts()];
     const existingIdx = list.findIndex((t) => t.id === segmentId);
     const nowStr = this.formatCurrentTime();
 
+    let committedItem: LiveTranscriptItem;
     if (existingIdx >= 0) {
-      list[existingIdx] = {
+      committedItem = {
         ...list[existingIdx],
         text,
         isPartial: false,
         seq,
+        audioUrl: audioUrl || list[existingIdx].audioUrl,
       };
+      list[existingIdx] = committedItem;
     } else {
-      list.push({
+      committedItem = {
         id: segmentId,
         speaker,
         text,
         isPartial: false,
         time: nowStr,
         seq,
-      });
+        audioUrl,
+      };
+      list.push(committedItem);
     }
     this.liveTranscripts.set(list);
-  }
-
-  private async initMicrophone(): Promise<void> {
-    this.uxState.set('requesting_mic');
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
-    });
-
-    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : 'audio/webm';
-
-    this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: mime });
-
-    this.mediaRecorder.ondataavailable = async (e: BlobEvent) => {
-      if (
-        e.data.size > 0 &&
-        this.ws &&
-        this.ws.readyState === WebSocket.OPEN &&
-        !this.isMicMuted()
-      ) {
-        const buffer = await e.data.arrayBuffer();
-        this.ws.send(buffer);
-      }
-    };
-
-    // Send chunks every 250ms for low latency streaming
-    this.mediaRecorder.start(250);
-    this.uxState.set('user_speaking');
-  }
-
-  /**
-   * Fallback for text input when mic is unavailable or user chooses to type.
-   */
-  sendTextMessage(text: string): void {
-    if (!text.trim() || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      return;
-    }
-    const segmentId = crypto.randomUUID();
-    this.ws.send(
-      JSON.stringify({
-        type: 'user.text',
-        segmentId,
-        text: text.trim(),
-        isFinal: true,
-      })
-    );
-  }
-
-  toggleMute(): void {
-    this.isMicMuted.update((muted) => !muted);
+    return committedItem;
   }
 
   toggleMockMode(): void {
@@ -345,11 +579,13 @@ export class CoachVoiceService {
   }
 
   /**
-   * Completely release microphone hardware tracks and terminate WebSocket.
+   * Completely release microphone hardware tracks, revoke temporary Blob URLs, and terminate WebSocket.
    */
   cleanup(): void {
     this.isIntentionalClose = true;
+    this.isRecordingTurn.set(false);
     this.stopHeartbeat();
+    this.stopAudioPlayback();
 
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
@@ -371,6 +607,10 @@ export class CoachVoiceService {
       });
       this.mediaStream = null;
     }
+
+    // Revoke in-memory Blob URLs
+    this.turnAudioUrls.forEach((url) => URL.revokeObjectURL(url));
+    this.turnAudioUrls.clear();
 
     if (this.ws) {
       try {

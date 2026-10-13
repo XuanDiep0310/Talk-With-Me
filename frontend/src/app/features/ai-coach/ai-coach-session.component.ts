@@ -6,22 +6,25 @@ import {
   OnInit,
   ViewChild,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { AppStateService } from '../../core/services/app-state.service';
-import { CoachService, CoachSession } from '../../core/services/coach.service';
-import { CoachVoiceService, CoachUxState, LiveTranscriptItem } from '../../core/services/coach-voice.service';
+import { CoachService } from '../../core/services/coach.service';
+import {
+  CoachVoiceService,
+  LiveTranscriptItem,
+} from '../../core/services/coach-voice.service';
 import { FormatTimePipe } from '../../shared/pipes/app-pipes';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-ai-coach-session',
   standalone: true,
-  imports: [CommonModule, FormsModule, FormatTimePipe],
+  imports: [CommonModule, FormatTimePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main
@@ -102,7 +105,7 @@ import { ToastService } from '../../core/services/toast.service';
       @if (voiceService.uxState() === 'mic_error') {
         <div class="bg-rose-600/90 text-white text-xs px-4 py-2 text-center flex items-center justify-center gap-2" role="alert">
           <span>⚠️</span>
-          <span>Không thể kết nối Micro. Bạn có thể sử dụng khung chat bên dưới hoặc cấp lại quyền micro.</span>
+          <span>Không thể truy cập Micro. Vui lòng kiểm tra quyền truy cập microphone trên trình duyệt.</span>
         </div>
       }
 
@@ -125,9 +128,11 @@ import { ToastService } from '../../core/services/toast.service';
           <article
             class="flex items-start gap-3 my-3"
             [class.justify-end]="item.speaker === 'USER'"
+            [class.speaker-ai]="item.speaker === 'AI'"
+            [class.speaker-user]="item.speaker === 'USER'"
           >
             @if (item.speaker === 'AI') {
-              <div class="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white shrink-0 text-sm font-700 shadow">
+              <div class="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white shrink-0 text-sm font-700 shadow">
                 A
               </div>
             }
@@ -137,14 +142,41 @@ import { ToastService } from '../../core/services/toast.service';
               [style.background]="item.speaker === 'AI' ? '#1e293b' : '#0369a1'"
               [style.color]="'#f8fafc'"
               [class.opacity-70]="item.isPartial"
-              [class.border]="item.isPartial"
-              [class.border-sky-400]="item.isPartial"
+              [class.border]="item.isPartial || voiceService.playingSegmentId() === item.id"
+              [class.border-sky-400]="item.isPartial || voiceService.playingSegmentId() === item.id"
             >
-              <div class="flex items-center justify-between gap-3 text-[11px] mb-1 opacity-70">
-                <span class="font-600">{{ item.speaker === 'AI' ? 'Coach Alex' : 'Bạn' }}</span>
-                <span>{{ item.time }}</span>
+              <div class="flex items-center justify-between gap-4 text-[11px] mb-1.5">
+                <div class="flex items-center gap-2 opacity-80">
+                  <span class="font-700">{{ item.speaker === 'AI' ? 'Coach Alex' : 'Bạn' }}</span>
+                  <span>•</span>
+                  <span>{{ item.time }}</span>
+                </div>
+
+                <!-- Speaker / Replay Button (The Coach style) -->
+                @if (!item.isPartial) {
+                  <button
+                    type="button"
+                    class="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-600 transition cursor-pointer"
+                    [ngClass]="
+                      voiceService.playingSegmentId() === item.id
+                        ? 'bg-amber-400 text-slate-900 shadow-sm animate-pulse'
+                        : 'bg-white/15 hover:bg-white/25 text-white'
+                    "
+                    [title]="voiceService.playingSegmentId() === item.id ? 'Đang phát âm thanh...' : 'Nghe lại câu này'"
+                    (click)="replaySegment(item)"
+                  >
+                    @if (voiceService.playingSegmentId() === item.id) {
+                      <span>🔊</span>
+                      <span>Đang phát</span>
+                    } @else {
+                      <span>🔈</span>
+                      <span>Nghe lại</span>
+                    }
+                  </button>
+                }
               </div>
-              <p class="break-words select-text">
+
+              <p class="break-words select-text text-[15px] leading-relaxed">
                 {{ item.text }}
                 @if (item.isPartial) {
                   <span class="inline-block animate-pulse font-bold">...</span>
@@ -153,88 +185,90 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
 
             @if (item.speaker === 'USER') {
-              <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white shrink-0 text-xs font-700 shadow">
+              <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white shrink-0 text-xs font-700 shadow">
                 👤
               </div>
             }
           </article>
         }
 
-        <!-- AI Speaking Indicator Animation -->
-        @if (voiceService.uxState() === 'ai_speaking') {
+        <!-- AI Processing / Thinking Indicator -->
+        @if (voiceService.uxState() === 'processing') {
           <div class="flex items-center gap-3 my-2">
-            <div class="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white shrink-0 text-sm font-700 shadow">
+            <div class="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white shrink-0 text-sm font-700 shadow">
               A
             </div>
-            <div class="rounded-2xl px-4 py-2 bg-slate-800 text-sky-400 text-xs flex items-center gap-2">
+            <div class="rounded-2xl px-4 py-2.5 bg-slate-800 text-sky-400 text-xs flex items-center gap-2">
               <span class="flex gap-1">
                 <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce"></span>
                 <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:0.2s]"></span>
                 <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:0.4s]"></span>
               </span>
-              <span>Alex đang phản hồi...</span>
+              <span>Alex đang suy nghĩ câu trả lời...</span>
             </div>
           </div>
         }
       </section>
 
-      <!-- Bottom Voice Controls & Fallback Input Footer -->
+      <!-- Bottom Single-Mic Control Footer ("The Coach" Style — No Text Input Box) -->
       <footer
-        class="p-4 sm:p-5 flex flex-col items-center gap-3"
+        class="py-5 px-4 sm:px-6 flex flex-col items-center justify-center gap-3"
         style="background: #1e293b; border-top: 1px solid #334155"
       >
-        <!-- Audio wave indicator / Mic toggle -->
-        <div class="flex items-center justify-center gap-4 w-full">
-          <!-- Mic Mute Button -->
+        <!-- Single Central Microphone / Speaking Button -->
+        <div class="relative flex items-center justify-center">
+          @if (voiceService.isRecordingTurn()) {
+            <!-- Expanding pulse rings while user is actively speaking -->
+            <span class="absolute w-24 h-24 rounded-full bg-rose-500/25 animate-ping pointer-events-none"></span>
+            <span class="absolute w-20 h-20 rounded-full bg-rose-500/40 animate-pulse pointer-events-none"></span>
+          }
+
           <button
             type="button"
-            class="w-12 h-12 rounded-full flex items-center justify-center text-lg transition shadow-md cursor-pointer"
-            [ngClass]="voiceService.isMicMuted() ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-sky-600 text-white hover:bg-sky-500'"
-            [title]="voiceService.isMicMuted() ? 'Bật micro' : 'Tắt tiếng micro'"
-            (click)="voiceService.toggleMute()"
+            data-testid="coach-mic-btn"
+            class="relative z-10 w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center transition-all duration-200 shadow-xl cursor-pointer focus:outline-none"
+            [ngClass]="
+              voiceService.isRecordingTurn()
+                ? 'bg-rose-600 hover:bg-rose-500 text-white scale-105 ring-4 ring-rose-400/50'
+                : 'bg-sky-600 hover:bg-sky-500 text-white hover:scale-105 ring-4 ring-sky-400/30'
+            "
+            [disabled]="voiceService.uxState() === 'connecting' || voiceService.uxState() === 'ending'"
+            [attr.aria-label]="voiceService.isRecordingTurn() ? 'Đang nói - Nhấn để dừng và gửi câu nói' : 'Nhấn để bắt đầu nói'"
+            (click)="onMicButtonClick()"
           >
-            {{ voiceService.isMicMuted() ? '🔇' : '🎙️' }}
+            @if (voiceService.isRecordingTurn()) {
+              <!-- Active Speaking Wave / Stop Icon -->
+              <div class="flex items-center gap-1" title="Nhấn để hoàn tất câu nói">
+                <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite]"></span>
+                <span class="w-1.5 h-7 bg-white rounded-full animate-[bounce_0.8s_infinite_0.15s]"></span>
+                <span class="w-1.5 h-5 bg-white rounded-full animate-[bounce_0.8s_infinite_0.3s]"></span>
+                <span class="w-1.5 h-7 bg-white rounded-full animate-[bounce_0.8s_infinite_0.45s]"></span>
+                <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite_0.6s]"></span>
+              </div>
+            } @else {
+              <!-- Ready Microphone Icon -->
+              <span class="text-2xl sm:text-3xl" title="Nhấn vào micro để bắt đầu nói">🎙️</span>
+            }
           </button>
-
-          <!-- Voice Status Text -->
-          <div class="text-center">
-            <p class="text-sm font-600 text-slate-200">
-              @if (voiceService.isMicMuted()) {
-                Micro đang tắt tiếng
-              } @else if (voiceService.uxState() === 'ai_speaking') {
-                Hãy lắng nghe Alex...
-              } @else if (voiceService.uxState() === 'processing') {
-                Đang nhận diện giọng nói...
-              } @else {
-                Đang lắng nghe bạn nói (nói tự nhiên, đừng lo ngữ pháp)
-              }
-            </p>
-            <p class="text-xs text-slate-400">
-              AI không ngắt lời khi ngập ngừng (um, uh)
-            </p>
-          </div>
         </div>
 
-        <!-- Text Fallback Input Bar (SRS 5.1 & Exception handling) -->
-        <form
-          (submit)="sendFallbackText($event)"
-          class="w-full max-w-xl flex items-center gap-2 mt-1"
-        >
-          <input
-            type="text"
-            class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition"
-            placeholder="Gõ tin nhắn thay thế nếu mic lỗi hoặc môi trường ồn..."
-            [(ngModel)]="fallbackInputText"
-            name="fallbackInputText"
-          />
-          <button
-            type="submit"
-            class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-600 transition disabled:opacity-50 cursor-pointer"
-            [disabled]="!fallbackInputText.trim()"
-          >
-            Gửi
-          </button>
-        </form>
+        <!-- Helper Instruction Label -->
+        <div class="text-center">
+          <p class="text-sm font-700 text-slate-100">
+            @if (voiceService.isRecordingTurn()) {
+              <span class="text-rose-400">Đang ghi âm câu nói... Nhấn lại vào biểu tượng để hoàn tất câu</span>
+            } @else if (voiceService.uxState() === 'processing') {
+              <span class="text-purple-300">Đang xử lý câu nói & phát lại...</span>
+            } @else if (voiceService.uxState() === 'ai_speaking') {
+              <span class="text-sky-300">Coach Alex đang nói (Nhấn vào micro bất cứ lúc nào để trả lời)</span>
+            } @else {
+              <span>Nhấn vào biểu tượng Micro 🎙️ để bắt đầu nói</span>
+            }
+          </p>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Sau khi nói xong, hệ thống sẽ tự động phát lại giọng của bạn và phản hồi của AI
+          </p>
+        </div>
       </footer>
 
       <!-- End Session Confirmation Modal -->
@@ -299,10 +333,19 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   readonly currentTopicTitle = signal<string>('Daily Conversation');
   readonly liveTranscripts = this.voiceService.liveTranscripts;
 
-  fallbackInputText = '';
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private sessionId: string | null = null;
   private isUserScrollingUp = false;
+
+  constructor() {
+    // Automatically scroll down when new transcript messages arrive
+    effect(() => {
+      const items = this.liveTranscripts();
+      if (items.length > 0) {
+        this.scrollToBottom();
+      }
+    });
+  }
 
   readonly stateText = computed(() => {
     const s = this.voiceService.uxState();
@@ -316,7 +359,7 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
       case 'ai_speaking':
         return 'AI đang nói';
       case 'user_speaking':
-        return 'Đang lắng nghe';
+        return 'Bạn đang nói';
       case 'processing':
         return 'Đang xử lý';
       case 'reconnecting':
@@ -333,7 +376,7 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   readonly stateBadgeClass = computed(() => {
     const s = this.voiceService.uxState();
     if (s === 'ai_speaking') return 'bg-sky-500/20 text-sky-300';
-    if (s === 'user_speaking') return 'bg-emerald-500/20 text-emerald-300';
+    if (s === 'user_speaking') return 'bg-rose-500/20 text-rose-300';
     if (s === 'processing') return 'bg-purple-500/20 text-purple-300';
     if (s === 'reconnecting') return 'bg-amber-500/20 text-amber-300';
     if (s === 'mic_error' || s === 'ai_error') return 'bg-rose-500/20 text-rose-300';
@@ -343,7 +386,7 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   readonly stateDotClass = computed(() => {
     const s = this.voiceService.uxState();
     if (s === 'ai_speaking') return 'bg-sky-400 animate-pulse';
-    if (s === 'user_speaking') return 'bg-emerald-400 animate-ping';
+    if (s === 'user_speaking') return 'bg-rose-400 animate-ping';
     if (s === 'processing') return 'bg-purple-400 animate-spin';
     if (s === 'reconnecting') return 'bg-amber-400 animate-pulse';
     if (s === 'mic_error' || s === 'ai_error') return 'bg-rose-400';
@@ -351,7 +394,9 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    const qSessionId = this.route.snapshot.queryParamMap.get('sessionId');
+    const qSessionId =
+      this.route.snapshot.paramMap.get('id') ||
+      this.route.snapshot.queryParamMap.get('sessionId');
     if (!qSessionId) {
       this.toastService.show('Không tìm thấy phiên thoại hợp lệ', 'error');
       void this.router.navigate(['/ai-coach']);
@@ -398,10 +443,17 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
     this.voiceService.cleanup();
   }
 
+  onMicButtonClick(): void {
+    void this.voiceService.toggleSpeakingTurn();
+  }
+
+  replaySegment(item: LiveTranscriptItem): void {
+    this.voiceService.playSegmentAudio(item);
+  }
+
   onUserScroll(): void {
     if (!this.transcriptContainer) return;
     const el = this.transcriptContainer.nativeElement;
-    // Check if user has scrolled away from bottom
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
     this.isUserScrollingUp = !atBottom;
   }
@@ -412,19 +464,10 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
       try {
         const el = this.transcriptContainer.nativeElement;
         el.scrollTop = el.scrollHeight;
-      } catch (e) {
+      } catch {
         // Ignored
       }
     }, 50);
-  }
-
-  sendFallbackText(event: Event): void {
-    event.preventDefault();
-    if (!this.fallbackInputText.trim()) return;
-
-    this.voiceService.sendTextMessage(this.fallbackInputText.trim());
-    this.fallbackInputText = '';
-    this.scrollToBottom();
   }
 
   toggleMockMode(): void {
