@@ -1,3 +1,4 @@
+/// <reference types="jasmine" />
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { authGuard } from './auth.guard';

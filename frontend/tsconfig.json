@@ -16,6 +16,9 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
+    "types": [
+      "jasmine"
+    ],
     "paths": {
       "@core/*": ["./src/app/core/*"],
       "@features/*": ["./src/app/features/*"],
