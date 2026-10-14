@@ -473,6 +473,9 @@ export class CoachVoiceService {
   }
 
   private updatePartialTranscript(segmentId: string, text: string, speaker: 'USER' | 'AI'): void {
+    if (!text || text.trim() === '...' || text.trim() === '... ...') {
+      return;
+    }
     const list = [...this.liveTranscripts()];
     const existingIdx = list.findIndex((t) => t.id === segmentId);
 
@@ -503,7 +506,11 @@ export class CoachVoiceService {
     seq: number,
     audioUrl?: string
   ): LiveTranscriptItem {
-    const list = [...this.liveTranscripts()];
+    let list = [...this.liveTranscripts()];
+    // Remove any lingering partial transcript for the user to avoid duplicate bubbles
+    if (speaker === 'USER') {
+      list = list.filter((t) => !(t.isPartial && t.speaker === 'USER'));
+    }
     const existingIdx = list.findIndex((t) => t.id === segmentId);
     const nowStr = this.formatCurrentTime();
 
@@ -573,9 +580,9 @@ export class CoachVoiceService {
 
   private formatCurrentTime(): string {
     const d = new Date();
+    const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
-    const ss = String(d.getSeconds()).padStart(2, '0');
-    return `${mm}:${ss}`;
+    return `${hh}:${mm}`;
   }
 
   /**

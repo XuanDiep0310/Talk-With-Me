@@ -194,17 +194,17 @@ async def session_websocket_endpoint(
 
                 audio_buffer.extend(raw_bytes)
 
-                # Emit interim transcript feedback for responsiveness
-                partial_preview = "..." if not current_user_text else f"{current_user_text}..."
-                await websocket.send_json(
-                    {
-                        "type": "transcript.partial",
-                        "speaker": "USER",
-                        "segmentId": current_segment_id,
-                        "text": partial_preview,
-                        "startMs": 0,
-                    }
-                )
+                # Only emit interim transcript if we have actual partial speech text
+                if current_user_text:
+                    await websocket.send_json(
+                        {
+                            "type": "transcript.partial",
+                            "speaker": "USER",
+                            "segmentId": current_segment_id,
+                            "text": f"{current_user_text}...",
+                            "startMs": 0,
+                        }
+                    )
 
             elif "text" in message and message["text"]:
                 data = json.loads(message["text"])

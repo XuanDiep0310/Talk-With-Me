@@ -109,3 +109,14 @@ class SessionFeedbackStatusResponse(_CamelModel):
 class WsTicketResponse(_CamelModel):
     ticket: str
     expires_in: int = 30
+
+
+class TranslateTextRequest(_CamelModel):
+    text: str
+    target_lang: str = "vi"
+
+
+class TranslateTextResponse(_CamelModel):
+    original_text: str
+    translated_text: str
+

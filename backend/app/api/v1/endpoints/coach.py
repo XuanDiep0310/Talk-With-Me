@@ -18,6 +18,8 @@ from app.models.coach_schemas import (
     SessionFeedbackStatusResponse,
     SessionResponse,
     TranscriptSegmentResponse,
+    TranslateTextRequest,
+    TranslateTextResponse,
 )
 from app.services.coach import CoachService
 
@@ -135,3 +137,17 @@ async def get_coach_session_feedback(
     # Validate session access (returns 404 if not found or unauthorized)
     await service.get_session(session_id=session_id, user_id=current_user.id)
     return SessionFeedbackStatusResponse(session_id=session_id, status="PENDING")
+
+
+@router.post("/translate", response_model=TranslateTextResponse)
+async def translate_text(
+    data: TranslateTextRequest,
+    current_user: User = Depends(get_current_user),  # noqa: ARG001
+) -> TranslateTextResponse:
+    """Translate dialogue text to target language (default Vietnamese) using active LLM."""
+    from app.core.providers.llm_provider import get_llm_provider
+
+    llm = get_llm_provider()
+    translated = await llm.translate_text(data.text, target_lang=data.target_lang)
+    return TranslateTextResponse(original_text=data.text, translated_text=translated)
+

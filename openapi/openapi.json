@@ -1381,6 +1381,53 @@
         }
       }
     },
+    "/api/v1/coach/translate": {
+      "post": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Translate Text",
+        "description": "Translate dialogue text to target language (default Vietnamese) using active LLM.",
+        "operationId": "translate_text_api_v1_coach_translate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslateTextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/ws-tickets": {
       "post": {
         "tags": [
@@ -2773,6 +2820,42 @@
           "text"
         ],
         "title": "TranscriptSegmentResponse"
+      },
+      "TranslateTextRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "targetLang": {
+            "type": "string",
+            "title": "Targetlang",
+            "default": "vi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TranslateTextRequest"
+      },
+      "TranslateTextResponse": {
+        "properties": {
+          "originalText": {
+            "type": "string",
+            "title": "Originaltext"
+          },
+          "translatedText": {
+            "type": "string",
+            "title": "Translatedtext"
+          }
+        },
+        "type": "object",
+        "required": [
+          "originalText",
+          "translatedText"
+        ],
+        "title": "TranslateTextResponse"
       },
       "UpdateMeRequest": {
         "properties": {

@@ -143,4 +143,12 @@ export class CoachService {
   getWsTicket(): Observable<WsTicketResponse> {
     return this.http.post<WsTicketResponse>(`${this.apiUrl}/ws-tickets`, {});
   }
+
+  translate(text: string, targetLang = 'vi'): Observable<{ originalText: string; translatedText: string }> {
+    return this.http.post<{ originalText: string; translatedText: string }>(
+      `${this.apiUrl}/coach/translate`,
+      { text, targetLang }
+    );
+  }
 }
+

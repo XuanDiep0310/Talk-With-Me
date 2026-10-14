@@ -152,27 +152,40 @@ import { ToastService } from '../../core/services/toast.service';
                   <span>{{ item.time }}</span>
                 </div>
 
-                <!-- Speaker / Replay Button (The Coach style) -->
+                <!-- Action Buttons: Translate & Replay -->
                 @if (!item.isPartial) {
-                  <button
-                    type="button"
-                    class="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-600 transition cursor-pointer"
-                    [ngClass]="
-                      voiceService.playingSegmentId() === item.id
-                        ? 'bg-amber-400 text-slate-900 shadow-sm animate-pulse'
-                        : 'bg-white/15 hover:bg-white/25 text-white'
-                    "
-                    [title]="voiceService.playingSegmentId() === item.id ? 'Đang phát âm thanh...' : 'Nghe lại câu này'"
-                    (click)="replaySegment(item)"
-                  >
-                    @if (voiceService.playingSegmentId() === item.id) {
-                      <span>🔊</span>
-                      <span>Đang phát</span>
-                    } @else {
-                      <span>🔈</span>
-                      <span>Nghe lại</span>
-                    }
-                  </button>
+                  <div class="flex items-center gap-1.5">
+                    <!-- Translate Toggle Button -->
+                    <button
+                      type="button"
+                      class="px-2 py-0.5 rounded-full text-xs font-500 transition cursor-pointer flex items-center gap-1"
+                      [ngClass]="showTranslation()[item.id] ? 'bg-sky-500/30 text-sky-200 border border-sky-400/40' : 'bg-white/10 hover:bg-white/20 text-slate-300'"
+                      [title]="showTranslation()[item.id] ? 'Ẩn bản dịch' : 'Xem bản dịch tiếng Việt'"
+                      (click)="toggleTranslation(item)"
+                    >
+                      <span class="text-[11px]">🌐</span>
+                      <span>Dịch</span>
+                    </button>
+
+                    <!-- Speaker / Replay Button (Icon only) -->
+                    <button
+                      type="button"
+                      class="w-7 h-7 flex items-center justify-center rounded-full text-xs transition cursor-pointer"
+                      [ngClass]="
+                        voiceService.playingSegmentId() === item.id
+                          ? 'bg-amber-400 text-slate-900 shadow-sm animate-pulse'
+                          : 'bg-white/15 hover:bg-white/25 text-white'
+                      "
+                      [title]="voiceService.playingSegmentId() === item.id ? 'Đang phát âm thanh...' : 'Nghe lại'"
+                      (click)="replaySegment(item)"
+                    >
+                      @if (voiceService.playingSegmentId() === item.id) {
+                        <span>🔊</span>
+                      } @else {
+                        <span>🔈</span>
+                      }
+                    </button>
+                  </div>
                 }
               </div>
 
@@ -182,6 +195,18 @@ import { ToastService } from '../../core/services/toast.service';
                   <span class="inline-block animate-pulse font-bold">...</span>
                 }
               </p>
+
+              <!-- Optional In-line Translation Box -->
+              @if (showTranslation()[item.id]) {
+                <div class="mt-2.5 pt-2 border-t border-white/15 text-xs text-sky-200 italic leading-relaxed flex items-start gap-1.5">
+                  <span class="shrink-0 font-600 not-italic text-[10px] uppercase tracking-wider text-sky-300 bg-sky-900/60 px-1 py-0.5 rounded">Dịch</span>
+                  @if (loadingTranslation()[item.id]) {
+                    <span class="animate-pulse">Đang dịch...</span>
+                  } @else {
+                    <span>{{ translationMap()[item.id] || 'Không thể lấy bản dịch' }}</span>
+                  }
+                </div>
+              }
             </div>
 
             @if (item.speaker === 'USER') {
@@ -252,21 +277,18 @@ import { ToastService } from '../../core/services/toast.service';
           </button>
         </div>
 
-        <!-- Helper Instruction Label -->
+        <!-- Clean Helper Instruction Label (Without redundant hints) -->
         <div class="text-center">
           <p class="text-sm font-700 text-slate-100">
             @if (voiceService.isRecordingTurn()) {
-              <span class="text-rose-400">Đang ghi âm câu nói... Nhấn lại vào biểu tượng để hoàn tất câu</span>
+              <span class="text-rose-400">Đang ghi âm... Nhấn lại để hoàn tất câu</span>
             } @else if (voiceService.uxState() === 'processing') {
-              <span class="text-purple-300">Đang xử lý câu nói & phát lại...</span>
+              <span class="text-purple-300">Đang xử lý câu nói...</span>
             } @else if (voiceService.uxState() === 'ai_speaking') {
-              <span class="text-sky-300">Coach Alex đang nói (Nhấn vào micro bất cứ lúc nào để trả lời)</span>
+              <span class="text-sky-300">Coach Alex đang nói</span>
             } @else {
-              <span>Nhấn vào biểu tượng Micro 🎙️ để bắt đầu nói</span>
+              <span>Nhấn vào micro để nói</span>
             }
-          </p>
-          <p class="text-xs text-slate-400 mt-0.5">
-            Sau khi nói xong, hệ thống sẽ tự động phát lại giọng của bạn và phản hồi của AI
           </p>
         </div>
       </footer>
@@ -332,6 +354,10 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   readonly isEnding = signal(false);
   readonly currentTopicTitle = signal<string>('Daily Conversation');
   readonly liveTranscripts = this.voiceService.liveTranscripts;
+
+  readonly showTranslation = signal<Record<string, boolean>>({});
+  readonly translationMap = signal<Record<string, string>>({});
+  readonly loadingTranslation = signal<Record<string, boolean>>({});
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private sessionId: string | null = null;
@@ -449,6 +475,32 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
 
   replaySegment(item: LiveTranscriptItem): void {
     this.voiceService.playSegmentAudio(item);
+  }
+
+  toggleTranslation(item: LiveTranscriptItem): void {
+    const isShown = !!this.showTranslation()[item.id];
+    if (isShown) {
+      this.showTranslation.update((m) => ({ ...m, [item.id]: false }));
+      return;
+    }
+
+    this.showTranslation.update((m) => ({ ...m, [item.id]: true }));
+    if (this.translationMap()[item.id]) {
+      return;
+    }
+
+    this.loadingTranslation.update((m) => ({ ...m, [item.id]: true }));
+    this.coachService.translate(item.text).subscribe({
+      next: (res) => {
+        this.loadingTranslation.update((m) => ({ ...m, [item.id]: false }));
+        this.translationMap.update((m) => ({ ...m, [item.id]: res.translatedText }));
+      },
+      error: (err) => {
+        console.error('Translation error:', err);
+        this.loadingTranslation.update((m) => ({ ...m, [item.id]: false }));
+        this.translationMap.update((m) => ({ ...m, [item.id]: 'Không thể dịch đoạn này' }));
+      },
+    });
   }
 
   onUserScroll(): void {
