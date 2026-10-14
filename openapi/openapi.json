@@ -1428,6 +1428,55 @@
         ]
       }
     },
+    "/api/v1/coach/sessions/{session_id}/suggestions": {
+      "get": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Get Session Suggestions",
+        "description": "Generate 3 level-tailored suggested replies for the latest AI question in this session.",
+        "operationId": "get_session_suggestions_api_v1_coach_sessions__session_id__suggestions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionSuggestionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ws-tickets": {
       "post": {
         "tags": [
@@ -2526,6 +2575,33 @@
         ],
         "title": "SessionResponse"
       },
+      "SessionSuggestionsResponse": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sessionid"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestedReplyItem"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessionId",
+          "level",
+          "suggestions"
+        ],
+        "title": "SessionSuggestionsResponse"
+      },
       "SetLevelRequest": {
         "properties": {
           "level": {
@@ -2655,6 +2731,24 @@
           "questionIndex"
         ],
         "title": "SubmitAnswerRequest"
+      },
+      "SuggestedReplyItem": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "translation": {
+            "type": "string",
+            "title": "Translation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "translation"
+        ],
+        "title": "SuggestedReplyItem"
       },
       "TTSRequest": {
         "properties": {

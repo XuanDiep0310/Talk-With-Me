@@ -12,6 +12,7 @@ Features:
 """
 
 import asyncio
+import contextlib
 import json
 import logging
 import uuid
@@ -174,6 +175,34 @@ async def session_websocket_endpoint(
     stt_provider = get_stt_provider()
     llm_provider = get_llm_provider()
 
+    # Send initial suggested replies for the opening message
+    try:
+        async with async_session_factory() as db:
+            s_init = await SessionRepository(db).get_by_id(session_id)
+            if s_init:
+                u_lvl = s_init.level
+                t_title = s_init.topic.title if s_init.topic else "Daily Conversation"
+                t_min = s_init.topic.min_level if s_init.topic else "A1"
+                all_segs = await TranscriptRepository(db).list_by_session(session_id)
+                last_q = "Could you start by telling me a little about yourself or your thoughts on this topic?"
+                for s_item in reversed(all_segs):
+                    if s_item.speaker == "AI":
+                        last_q = s_item.text
+                        break
+                init_suggs = await llm_provider.generate_suggested_replies(
+                    history=[],
+                    last_ai_message=last_q,
+                    user_level=u_lvl,
+                    topic_title=t_title,
+                    topic_min_level=t_min,
+                )
+                if init_suggs:
+                    await websocket.send_json(
+                        {"type": "ai.suggestions", "suggestions": init_suggs}
+                    )
+    except Exception as init_err:
+        logger.warning("Initial suggestions generation fallback: %s", init_err)
+
     # Session in-memory state
     audio_buffer = bytearray()
     current_segment_id = str(uuid.uuid4())
@@ -263,6 +292,11 @@ async def session_websocket_endpoint(
                         )
                         continue
 
+                    # Pre-translate user speech immediately so translation is ready with 0 wait time
+                    user_translation = ""
+                    with contextlib.suppress(Exception):
+                        user_translation = await llm_provider.translate_text(user_text)
+
                     # 1. Save USER transcript segment (idempotent)
                     user_seq = 1
                     async with async_session_factory() as db:
@@ -298,6 +332,7 @@ async def session_websocket_endpoint(
                             "speaker": "USER",
                             "segmentId": current_segment_id,
                             "text": user_text,
+                            "translation": user_translation,
                             "confidence": confidence,
                             "seq": user_seq,
                             "startMs": 0,
@@ -309,12 +344,16 @@ async def session_websocket_endpoint(
                     await websocket.send_json({"type": "ai.speaking", "isSpeaking": True})
 
                     ai_reply = ""
+                    user_level = "A1"
+                    topic_title = "Daily Life"
+                    topic_min_level = "A1"
                     try:
                         async with async_session_factory() as db:
                             s_repo = SessionRepository(db)
                             sess = await s_repo.get_by_id(session_id)
                             user_level = sess.level if sess else "A1"
                             topic_title = sess.topic.title if sess and sess.topic else "Daily Life"
+                            topic_min_level = sess.topic.min_level if sess and sess.topic else "A1"
 
                             # Fetch recent dialogue turns for LLM context
                             all_transcripts = await TranscriptRepository(db).list_by_session(
@@ -335,10 +374,28 @@ async def session_websocket_endpoint(
                             user_text,
                             user_level,
                             topic_title,
+                            topic_min_level,
                         )
                     except Exception as err:
                         logger.error("LLM reply generation error: %s", err)
                         ai_reply = "I see! Could you tell me a little bit more about that?"
+
+                    # Pre-generate translation and suggested replies concurrently
+                    ai_translation = ""
+                    suggestions: list[dict[str, str]] = []
+                    try:
+                        ai_translation, suggestions = await asyncio.gather(
+                            llm_provider.translate_text(ai_reply),
+                            llm_provider.generate_suggested_replies(
+                                history=history,
+                                last_ai_message=ai_reply,
+                                user_level=user_level,
+                                topic_title=topic_title,
+                                topic_min_level=topic_min_level,
+                            ),
+                        )
+                    except Exception as trans_err:
+                        logger.warning("Error pre-generating translation or suggestions: %s", trans_err)
 
                     # 3. Save AI transcript segment
                     ai_segment_id = str(uuid.uuid4())
@@ -365,9 +422,17 @@ async def session_websocket_endpoint(
                             "type": "ai.message",
                             "segmentId": ai_segment_id,
                             "text": ai_reply,
+                            "translation": ai_translation,
                             "seq": ai_seq,
                         }
                     )
+                    if suggestions:
+                        await websocket.send_json(
+                            {
+                                "type": "ai.suggestions",
+                                "suggestions": suggestions,
+                            }
+                        )
                     await websocket.send_json({"type": "ai.speaking", "isSpeaking": False})
 
                     # Reset for next turn

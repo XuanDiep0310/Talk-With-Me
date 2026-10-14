@@ -14,10 +14,16 @@ export type CoachUxState =
   | 'ai_error'
   | 'ending';
 
+export interface SuggestedReply {
+  text: string;
+  translation: string;
+}
+
 export interface LiveTranscriptItem {
   id: string;
   speaker: 'USER' | 'AI';
   text: string;
+  translation?: string;
   isPartial?: boolean;
   time: string;
   seq: number;
@@ -33,6 +39,7 @@ export class CoachVoiceService {
   // Reactive state signals
   readonly uxState = signal<CoachUxState>('ready');
   readonly liveTranscripts = signal<LiveTranscriptItem[]>([]);
+  readonly currentSuggestions = signal<SuggestedReply[]>([]);
   readonly isMockMode = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
   readonly isRecordingTurn = signal<boolean>(false);
@@ -140,6 +147,8 @@ export class CoachVoiceService {
     speaker?: 'USER' | 'AI';
     segmentId?: string;
     text?: string;
+    translation?: string;
+    suggestions?: SuggestedReply[];
     seq?: number;
     isSpeaking?: boolean;
     code?: string;
@@ -175,7 +184,8 @@ export class CoachVoiceService {
             msg.text,
             msg.speaker || 'USER',
             seq,
-            audioUrl
+            audioUrl,
+            msg.translation
           );
 
           if (msg.speaker === 'USER') {
@@ -198,10 +208,23 @@ export class CoachVoiceService {
         if (msg.segmentId && msg.text) {
           const seq = msg.seq || this.lastSeq + 1;
           this.lastSeq = Math.max(this.lastSeq, seq);
-          const aiItem = this.commitFinalTranscript(msg.segmentId, msg.text, 'AI', seq);
+          const aiItem = this.commitFinalTranscript(
+            msg.segmentId,
+            msg.text,
+            'AI',
+            seq,
+            undefined,
+            msg.translation
+          );
 
           // Auto-play AI response after user's playback finishes (or immediately if idle)
           this.scheduleAiAutoPlay(aiItem);
+        }
+        break;
+
+      case 'ai.suggestions':
+        if (Array.isArray(msg.suggestions)) {
+          this.currentSuggestions.set(msg.suggestions);
         }
         break;
 
@@ -504,7 +527,8 @@ export class CoachVoiceService {
     text: string,
     speaker: 'USER' | 'AI',
     seq: number,
-    audioUrl?: string
+    audioUrl?: string,
+    translation?: string
   ): LiveTranscriptItem {
     let list = [...this.liveTranscripts()];
     // Remove any lingering partial transcript for the user to avoid duplicate bubbles
@@ -519,6 +543,7 @@ export class CoachVoiceService {
       committedItem = {
         ...list[existingIdx],
         text,
+        translation: translation || list[existingIdx].translation,
         isPartial: false,
         seq,
         audioUrl: audioUrl || list[existingIdx].audioUrl,
@@ -529,6 +554,7 @@ export class CoachVoiceService {
         id: segmentId,
         speaker,
         text,
+        translation,
         isPartial: false,
         time: nowStr,
         seq,
@@ -538,6 +564,22 @@ export class CoachVoiceService {
     }
     this.liveTranscripts.set(list);
     return committedItem;
+  }
+
+  /**
+   * Speak sample sentence for suggested replies so user can practice hearing and repeating.
+   */
+  speakText(text: string): void {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.92;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('TTS error playing sample text:', e);
+    }
   }
 
   toggleMockMode(): void {

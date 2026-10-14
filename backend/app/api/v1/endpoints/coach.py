@@ -17,6 +17,8 @@ from app.models.coach_schemas import (
     EndSessionResponse,
     SessionFeedbackStatusResponse,
     SessionResponse,
+    SessionSuggestionsResponse,
+    SuggestedReplyItem,
     TranscriptSegmentResponse,
     TranslateTextRequest,
     TranslateTextResponse,
@@ -150,4 +152,43 @@ async def translate_text(
     llm = get_llm_provider()
     translated = await llm.translate_text(data.text, target_lang=data.target_lang)
     return TranslateTextResponse(original_text=data.text, translated_text=translated)
+
+
+@router.get("/sessions/{session_id}/suggestions", response_model=SessionSuggestionsResponse)
+async def get_session_suggestions(
+    session_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SessionSuggestionsResponse:
+    """Generate 3 level-tailored suggested replies for the latest AI question in this session."""
+    service = CoachService(db)
+    session = await service.get_session(session_id=session_id, user_id=current_user.id)
+    from app.core.providers.llm_provider import get_llm_provider
+    from app.repositories.session import TranscriptRepository
+
+    t_repo = TranscriptRepository(db)
+    all_segments = await t_repo.list_by_session(session_id)
+    last_ai_text = "What would you like to share about this topic?"
+    for seg in reversed(all_segments):
+        if seg.speaker == "AI":
+            last_ai_text = seg.text
+            break
+
+    history = [
+        {"role": "user" if t.speaker == "USER" else "model", "content": t.text}
+        for t in all_segments[-6:]
+    ]
+    topic_title = session.topic.title if session.topic else "General Conversation"
+    topic_min_level = session.topic.min_level if session.topic else "A1"
+
+    llm = get_llm_provider()
+    raw_suggs = await llm.generate_suggested_replies(
+        history=history,
+        last_ai_message=last_ai_text,
+        user_level=session.level,
+        topic_title=topic_title,
+        topic_min_level=topic_min_level,
+    )
+    items = [SuggestedReplyItem(text=s["text"], translation=s.get("translation", "")) for s in raw_suggs]
+    return SessionSuggestionsResponse(session_id=session_id, level=session.level, suggestions=items)
 

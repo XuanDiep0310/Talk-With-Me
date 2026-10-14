@@ -120,3 +120,14 @@ class TranslateTextResponse(_CamelModel):
     original_text: str
     translated_text: str
 
+
+class SuggestedReplyItem(_CamelModel):
+    text: str
+    translation: str
+
+
+class SessionSuggestionsResponse(_CamelModel):
+    session_id: uuid.UUID
+    level: str
+    suggestions: list[SuggestedReplyItem]
+

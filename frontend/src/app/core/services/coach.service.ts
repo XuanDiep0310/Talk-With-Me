@@ -150,5 +150,11 @@ export class CoachService {
       { text, targetLang }
     );
   }
+
+  getSuggestions(sessionId: string): Observable<{ sessionId: string; level: string; suggestions: { text: string; translation: string }[] }> {
+    return this.http.get<{ sessionId: string; level: string; suggestions: { text: string; translation: string }[] }>(
+      `${this.apiUrl}/coach/sessions/${sessionId}/suggestions`
+    );
+  }
 }
 

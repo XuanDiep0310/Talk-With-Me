@@ -200,10 +200,10 @@ import { ToastService } from '../../core/services/toast.service';
               @if (showTranslation()[item.id]) {
                 <div class="mt-2.5 pt-2 border-t border-white/15 text-xs text-sky-200 italic leading-relaxed flex items-start gap-1.5">
                   <span class="shrink-0 font-600 not-italic text-[10px] uppercase tracking-wider text-sky-300 bg-sky-900/60 px-1 py-0.5 rounded">Dịch</span>
-                  @if (loadingTranslation()[item.id]) {
+                  @if (loadingTranslation()[item.id] && !translationMap()[item.id] && !item.translation) {
                     <span class="animate-pulse">Đang dịch...</span>
                   } @else {
-                    <span>{{ translationMap()[item.id] || 'Không thể lấy bản dịch' }}</span>
+                    <span>{{ translationMap()[item.id] || item.translation || 'Không thể lấy bản dịch' }}</span>
                   }
                 </div>
               }
@@ -234,6 +234,60 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
         }
       </section>
+
+      <!-- AI Level-Adapted Suggested Answers for User -->
+      @if (suggestions().length > 0) {
+        <aside class="px-4 sm:px-6 py-2 w-full max-w-3xl mx-auto" aria-label="Gợi ý câu trả lời">
+          <div class="rounded-2xl p-3 bg-slate-800/95 border border-slate-700/80 shadow-md backdrop-blur-sm">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-amber-400 text-sm">💡</span>
+                <span class="text-xs font-700 text-amber-300">Gợi ý câu trả lời</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-900/60 text-sky-300 font-600 border border-sky-400/30">
+                  Level {{ userLevel() }}
+                </span>
+              </div>
+              <button
+                type="button"
+                class="text-[11px] text-slate-400 hover:text-slate-200 transition cursor-pointer px-2 py-0.5 rounded hover:bg-white/5"
+                (click)="isSuggestionsCollapsed.set(!isSuggestionsCollapsed())"
+              >
+                {{ isSuggestionsCollapsed() ? 'Mở gợi ý ▼' : 'Thu gọn ▲' }}
+              </button>
+            </div>
+
+            @if (!isSuggestionsCollapsed()) {
+              <div class="grid grid-cols-1 gap-2">
+                @for (sugg of suggestions(); track sugg.text) {
+                  <div
+                    class="group p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-900 border border-slate-700/60 hover:border-sky-500/50 transition cursor-pointer flex items-start justify-between gap-3"
+                    title="Bấm vào loa để nghe phát âm mẫu"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs sm:text-sm font-600 text-slate-100 group-hover:text-sky-300 transition leading-snug">
+                        "{{ sugg.text }}"
+                      </p>
+                      <p class="text-[11px] text-slate-400 italic mt-0.5 leading-snug">
+                        {{ sugg.translation }}
+                      </p>
+                    </div>
+
+                    <!-- Speaker Button to listen to the suggestion's pronunciation -->
+                    <button
+                      type="button"
+                      class="w-7 h-7 shrink-0 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-slate-300 hover:text-white transition cursor-pointer"
+                      title="Nghe phát âm mẫu"
+                      (click)="playSampleAudio(sugg.text)"
+                    >
+                      🔊
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </aside>
+      }
 
       <!-- Bottom Single-Mic Control Footer ("The Coach" Style — No Text Input Box) -->
       <footer
@@ -359,16 +413,29 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   readonly translationMap = signal<Record<string, string>>({});
   readonly loadingTranslation = signal<Record<string, boolean>>({});
 
+  readonly isSuggestionsCollapsed = signal(false);
+  readonly userLevel = signal<string>('B1');
+  readonly suggestions = this.voiceService.currentSuggestions;
+
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private sessionId: string | null = null;
   private isUserScrollingUp = false;
 
   constructor() {
-    // Automatically scroll down when new transcript messages arrive
+    // Automatically scroll down and eagerly prefetch/populate translations so "Dịch" is instant
     effect(() => {
       const items = this.liveTranscripts();
       if (items.length > 0) {
         this.scrollToBottom();
+        for (const item of items) {
+          if (!this.translationMap()[item.id]) {
+            if (item.translation) {
+              this.translationMap.update((m) => ({ ...m, [item.id]: item.translation! }));
+            } else if (!item.isPartial) {
+              this.prefetchTranslation(item);
+            }
+          }
+        }
       }
     });
   }
@@ -452,6 +519,20 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
           this.voiceService.liveTranscripts.set(initialItems);
         }
 
+        if (sess.level) {
+          this.userLevel.set(sess.level);
+        }
+
+        // Fetch initial level-tailored suggestions for user
+        this.coachService.getSuggestions(this.sessionId!).subscribe({
+          next: (res) => {
+            if (res.suggestions?.length && this.voiceService.currentSuggestions().length === 0) {
+              this.voiceService.currentSuggestions.set(res.suggestions);
+            }
+          },
+          error: (err) => console.warn('Could not load suggestions:', err),
+        });
+
         // Start WebSocket voice connection
         void this.voiceService.startVoiceSession(this.sessionId!);
         this.startTimer();
@@ -477,30 +558,32 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
     this.voiceService.playSegmentAudio(item);
   }
 
-  toggleTranslation(item: LiveTranscriptItem): void {
-    const isShown = !!this.showTranslation()[item.id];
-    if (isShown) {
-      this.showTranslation.update((m) => ({ ...m, [item.id]: false }));
-      return;
-    }
+  playSampleAudio(text: string): void {
+    this.voiceService.speakText(text);
+  }
 
-    this.showTranslation.update((m) => ({ ...m, [item.id]: true }));
-    if (this.translationMap()[item.id]) {
-      return;
-    }
-
+  prefetchTranslation(item: LiveTranscriptItem): void {
+    if (this.translationMap()[item.id] || this.loadingTranslation()[item.id]) return;
     this.loadingTranslation.update((m) => ({ ...m, [item.id]: true }));
     this.coachService.translate(item.text).subscribe({
       next: (res) => {
         this.loadingTranslation.update((m) => ({ ...m, [item.id]: false }));
         this.translationMap.update((m) => ({ ...m, [item.id]: res.translatedText }));
       },
-      error: (err) => {
-        console.error('Translation error:', err);
+      error: () => {
         this.loadingTranslation.update((m) => ({ ...m, [item.id]: false }));
-        this.translationMap.update((m) => ({ ...m, [item.id]: 'Không thể dịch đoạn này' }));
       },
     });
+  }
+
+  toggleTranslation(item: LiveTranscriptItem): void {
+    const isShown = !!this.showTranslation()[item.id];
+    this.showTranslation.update((m) => ({ ...m, [item.id]: !isShown }));
+
+    // If translation wasn't pre-populated, fetch it now
+    if (!this.translationMap()[item.id] && !item.translation) {
+      this.prefetchTranslation(item);
+    }
   }
 
   onUserScroll(): void {
