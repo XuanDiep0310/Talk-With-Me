@@ -72,6 +72,24 @@ import { ToastService } from '../../core/services/toast.service';
             </span>
           </div>
 
+          <!-- Desktop Hint Toggle Button -->
+          <button
+            type="button"
+            class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-600 transition cursor-pointer border shadow-sm"
+            [ngClass]="
+              showHints()
+                ? 'bg-amber-400/20 text-amber-300 border-amber-400/40 shadow-amber-400/10'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+            "
+            [title]="showHints() ? 'Đóng khung gợi ý' : 'Mở khung gợi ý câu trả lời'"
+            (click)="showHints.set(!showHints())"
+          >
+            <span>💡 Gợi ý</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-950 text-sky-300 border border-sky-400/30">
+              {{ userLevel() }}
+            </span>
+          </button>
+
           <!-- Dev Mock Switch (D-08) -->
           <label class="hidden md:flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none">
             <input
@@ -109,170 +127,170 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       }
 
-      <!-- Conversation Live Script (Scrollable Area) -->
-      <section
-        #transcriptContainer
-        class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-4"
-        aria-label="Hội thoại Live Script"
-        aria-live="polite"
-        (scroll)="onUserScroll()"
-      >
-        @if (liveTranscripts().length === 0) {
-          <div class="text-center py-16 text-slate-500">
-            <p class="text-3xl mb-2">🎙️</p>
-            <p class="text-sm">Đang thiết lập phiên thoại với Alex...</p>
-          </div>
-        }
+      <!-- Main Content Area: Flex layout for Live Script (left) & Desktop Hint Panel (right) -->
+      <div class="flex-1 flex min-h-0 relative overflow-hidden">
+        <!-- Conversation Live Script (Scrollable Area) -->
+        <section
+          #transcriptContainer
+          class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-4"
+          aria-label="Hội thoại Live Script"
+          aria-live="polite"
+          (scroll)="onUserScroll()"
+        >
+          @if (liveTranscripts().length === 0) {
+            <div class="text-center py-16 text-slate-500">
+              <p class="text-3xl mb-2">🎙️</p>
+              <p class="text-sm">Đang thiết lập phiên thoại với Alex...</p>
+            </div>
+          }
 
-        @for (item of liveTranscripts(); track item.id) {
-          <article
-            class="flex items-start gap-3 my-3"
-            [class.justify-end]="item.speaker === 'USER'"
-            [class.speaker-ai]="item.speaker === 'AI'"
-            [class.speaker-user]="item.speaker === 'USER'"
-          >
-            @if (item.speaker === 'AI') {
-              <div class="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white shrink-0 text-sm font-700 shadow">
-                A
-              </div>
-            }
-
-            <div
-              class="max-w-xl rounded-2xl p-4 text-sm leading-relaxed shadow-sm transition-all"
-              [style.background]="item.speaker === 'AI' ? '#1e293b' : '#0369a1'"
-              [style.color]="'#f8fafc'"
-              [class.opacity-70]="item.isPartial"
-              [class.border]="item.isPartial || voiceService.playingSegmentId() === item.id"
-              [class.border-sky-400]="item.isPartial || voiceService.playingSegmentId() === item.id"
+          @for (item of liveTranscripts(); track item.id) {
+            <article
+              class="flex items-start gap-3 my-3"
+              [class.justify-end]="item.speaker === 'USER'"
+              [class.speaker-ai]="item.speaker === 'AI'"
+              [class.speaker-user]="item.speaker === 'USER'"
             >
-              <div class="flex items-center justify-between gap-4 text-[11px] mb-1.5">
-                <div class="flex items-center gap-2 opacity-80">
-                  <span class="font-700">{{ item.speaker === 'AI' ? 'Coach Alex' : 'Bạn' }}</span>
-                  <span>•</span>
-                  <span>{{ item.time }}</span>
+              @if (item.speaker === 'AI') {
+                <div class="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white shrink-0 text-sm font-700 shadow">
+                  A
+                </div>
+              }
+
+              <div
+                class="max-w-xl rounded-2xl p-4 text-sm leading-relaxed shadow-sm transition-all"
+                [style.background]="item.speaker === 'AI' ? '#1e293b' : '#0369a1'"
+                [style.color]="'#f8fafc'"
+                [class.opacity-70]="item.isPartial"
+                [class.border]="item.isPartial || voiceService.playingSegmentId() === item.id"
+                [class.border-sky-400]="item.isPartial || voiceService.playingSegmentId() === item.id"
+              >
+                <div class="flex items-center justify-between gap-4 text-[11px] mb-1.5">
+                  <div class="flex items-center gap-2 opacity-80">
+                    <span class="font-700">{{ item.speaker === 'AI' ? 'Coach Alex' : 'Bạn' }}</span>
+                    <span>•</span>
+                    <span>{{ item.time }}</span>
+                  </div>
+
+                  <!-- Action Buttons: Translate & Replay -->
+                  @if (!item.isPartial) {
+                    <div class="flex items-center gap-1.5">
+                      <!-- Translate Toggle Button (Icon only) -->
+                      <button
+                        type="button"
+                        class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-500 transition cursor-pointer"
+                        [ngClass]="showTranslation()[item.id] ? 'bg-sky-500/30 text-sky-200 border border-sky-400/40' : 'bg-white/10 hover:bg-white/20 text-slate-300'"
+                        [title]="showTranslation()[item.id] ? 'Ẩn bản dịch' : 'Xem bản dịch tiếng Việt'"
+                        (click)="toggleTranslation(item)"
+                      >
+                        <span class="text-xs">🌐</span>
+                      </button>
+
+                      <!-- Speaker / Replay Button (Icon only) -->
+                      <button
+                        type="button"
+                        class="w-7 h-7 flex items-center justify-center rounded-full text-xs transition cursor-pointer"
+                        [ngClass]="
+                          voiceService.playingSegmentId() === item.id
+                            ? 'bg-amber-400 text-slate-900 shadow-sm animate-pulse'
+                            : 'bg-white/15 hover:bg-white/25 text-white'
+                        "
+                        [title]="voiceService.playingSegmentId() === item.id ? 'Đang phát âm thanh...' : 'Nghe lại'"
+                        (click)="replaySegment(item)"
+                      >
+                        @if (voiceService.playingSegmentId() === item.id) {
+                          <span>🔊</span>
+                        } @else {
+                          <span>🔈</span>
+                        }
+                      </button>
+                    </div>
+                  }
                 </div>
 
-                <!-- Action Buttons: Translate & Replay -->
-                @if (!item.isPartial) {
-                  <div class="flex items-center gap-1.5">
-                    <!-- Translate Toggle Button -->
-                    <button
-                      type="button"
-                      class="px-2 py-0.5 rounded-full text-xs font-500 transition cursor-pointer flex items-center gap-1"
-                      [ngClass]="showTranslation()[item.id] ? 'bg-sky-500/30 text-sky-200 border border-sky-400/40' : 'bg-white/10 hover:bg-white/20 text-slate-300'"
-                      [title]="showTranslation()[item.id] ? 'Ẩn bản dịch' : 'Xem bản dịch tiếng Việt'"
-                      (click)="toggleTranslation(item)"
-                    >
-                      <span class="text-[11px]">🌐</span>
-                      <span>Dịch</span>
-                    </button>
+                <p class="break-words select-text text-[15px] leading-relaxed">
+                  {{ item.text }}
+                  @if (item.isPartial) {
+                    <span class="inline-block animate-pulse font-bold">...</span>
+                  }
+                </p>
 
-                    <!-- Speaker / Replay Button (Icon only) -->
-                    <button
-                      type="button"
-                      class="w-7 h-7 flex items-center justify-center rounded-full text-xs transition cursor-pointer"
-                      [ngClass]="
-                        voiceService.playingSegmentId() === item.id
-                          ? 'bg-amber-400 text-slate-900 shadow-sm animate-pulse'
-                          : 'bg-white/15 hover:bg-white/25 text-white'
-                      "
-                      [title]="voiceService.playingSegmentId() === item.id ? 'Đang phát âm thanh...' : 'Nghe lại'"
-                      (click)="replaySegment(item)"
-                    >
-                      @if (voiceService.playingSegmentId() === item.id) {
-                        <span>🔊</span>
-                      } @else {
-                        <span>🔈</span>
-                      }
-                    </button>
+                <!-- Optional In-line Translation Box (Without the word 'Dịch') -->
+                @if (showTranslation()[item.id]) {
+                  <div class="mt-2.5 pt-2 border-t border-white/15 text-xs text-sky-200/95 italic leading-relaxed">
+                    @if (loadingTranslation()[item.id] && !translationMap()[item.id] && !item.translation) {
+                      <span class="animate-pulse">Đang dịch...</span>
+                    } @else {
+                      <span>{{ translationMap()[item.id] || item.translation || 'Không thể lấy bản dịch' }}</span>
+                    }
                   </div>
                 }
               </div>
 
-              <p class="break-words select-text text-[15px] leading-relaxed">
-                {{ item.text }}
-                @if (item.isPartial) {
-                  <span class="inline-block animate-pulse font-bold">...</span>
-                }
-              </p>
-
-              <!-- Optional In-line Translation Box -->
-              @if (showTranslation()[item.id]) {
-                <div class="mt-2.5 pt-2 border-t border-white/15 text-xs text-sky-200 italic leading-relaxed flex items-start gap-1.5">
-                  <span class="shrink-0 font-600 not-italic text-[10px] uppercase tracking-wider text-sky-300 bg-sky-900/60 px-1 py-0.5 rounded">Dịch</span>
-                  @if (loadingTranslation()[item.id] && !translationMap()[item.id] && !item.translation) {
-                    <span class="animate-pulse">Đang dịch...</span>
-                  } @else {
-                    <span>{{ translationMap()[item.id] || item.translation || 'Không thể lấy bản dịch' }}</span>
-                  }
+              @if (item.speaker === 'USER') {
+                <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white shrink-0 text-xs font-700 shadow">
+                  👤
                 </div>
               }
-            </div>
+            </article>
+          }
 
-            @if (item.speaker === 'USER') {
-              <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white shrink-0 text-xs font-700 shadow">
-                👤
+          <!-- AI Processing / Thinking Indicator -->
+          @if (voiceService.uxState() === 'processing') {
+            <div class="flex items-center gap-3 my-2">
+              <div class="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white shrink-0 text-sm font-700 shadow">
+                A
               </div>
-            }
-          </article>
-        }
-
-        <!-- AI Processing / Thinking Indicator -->
-        @if (voiceService.uxState() === 'processing') {
-          <div class="flex items-center gap-3 my-2">
-            <div class="w-9 h-9 rounded-full bg-sky-600 flex items-center justify-center text-white shrink-0 text-sm font-700 shadow">
-              A
+              <div class="rounded-2xl px-4 py-2.5 bg-slate-800 text-sky-400 text-xs flex items-center gap-2">
+                <span class="flex gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce"></span>
+                  <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:0.2s]"></span>
+                  <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:0.4s]"></span>
+                </span>
+                <span>Alex đang suy nghĩ câu trả lời...</span>
+              </div>
             </div>
-            <div class="rounded-2xl px-4 py-2.5 bg-slate-800 text-sky-400 text-xs flex items-center gap-2">
-              <span class="flex gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:0.2s]"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:0.4s]"></span>
-              </span>
-              <span>Alex đang suy nghĩ câu trả lời...</span>
-            </div>
-          </div>
-        }
-      </section>
+          }
+        </section>
 
-      <!-- AI Level-Adapted Suggested Answers for User -->
-      @if (suggestions().length > 0) {
-        <aside class="px-4 sm:px-6 py-2 w-full max-w-3xl mx-auto" aria-label="Gợi ý câu trả lời">
-          <div class="rounded-2xl p-3 bg-slate-800/95 border border-slate-700/80 shadow-md backdrop-blur-sm">
-            <div class="flex items-center justify-between gap-2 mb-2">
+        <!-- Desktop / Tablet AI Hint Side Panel (visible on >= md when showHints() is true) -->
+        @if (showHints()) {
+          <aside
+            class="hidden md:flex flex-col w-80 lg:w-96 shrink-0 border-l border-slate-700/80 bg-slate-900/95 p-4 overflow-y-auto shadow-2xl backdrop-blur-md"
+            aria-label="Khung gợi ý câu trả lời"
+          >
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
               <div class="flex items-center gap-2">
-                <span class="text-amber-400 text-sm">💡</span>
-                <span class="text-xs font-700 text-amber-300">Gợi ý câu trả lời</span>
+                <span class="text-amber-400 text-base">💡</span>
+                <h2 class="text-sm font-700 text-slate-100">Gợi ý câu trả lời</h2>
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-900/60 text-sky-300 font-600 border border-sky-400/30">
                   Level {{ userLevel() }}
                 </span>
               </div>
               <button
                 type="button"
-                class="text-[11px] text-slate-400 hover:text-slate-200 transition cursor-pointer px-2 py-0.5 rounded hover:bg-white/5"
-                (click)="isSuggestionsCollapsed.set(!isSuggestionsCollapsed())"
+                class="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer text-sm"
+                title="Đóng khung gợi ý"
+                (click)="showHints.set(false)"
               >
-                {{ isSuggestionsCollapsed() ? 'Mở gợi ý ▼' : 'Thu gọn ▲' }}
+                ✕
               </button>
             </div>
 
-            @if (!isSuggestionsCollapsed()) {
-              <div class="grid grid-cols-1 gap-2">
+            @if (suggestions().length > 0) {
+              <div class="space-y-3">
                 @for (sugg of suggestions(); track sugg.text) {
                   <div
-                    class="group p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-900 border border-slate-700/60 hover:border-sky-500/50 transition cursor-pointer flex items-start justify-between gap-3"
-                    title="Bấm vào loa để nghe phát âm mẫu"
+                    class="group p-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-sky-500/50 transition cursor-pointer flex items-start justify-between gap-2.5 shadow-sm"
                   >
                     <div class="flex-1 min-w-0">
-                      <p class="text-xs sm:text-sm font-600 text-slate-100 group-hover:text-sky-300 transition leading-snug">
+                      <p class="text-xs sm:text-sm font-600 text-slate-100 group-hover:text-sky-300 transition leading-relaxed">
                         "{{ sugg.text }}"
                       </p>
-                      <p class="text-[11px] text-slate-400 italic mt-0.5 leading-snug">
+                      <p class="text-xs text-slate-400 italic mt-1 leading-relaxed">
                         {{ sugg.translation }}
                       </p>
                     </div>
-
-                    <!-- Speaker Button to listen to the suggestion's pronunciation -->
                     <button
                       type="button"
                       class="w-7 h-7 shrink-0 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-slate-300 hover:text-white transition cursor-pointer"
@@ -284,54 +302,145 @@ import { ToastService } from '../../core/services/toast.service';
                   </div>
                 }
               </div>
+              <p class="text-[11px] text-slate-500 mt-4 text-center">
+                💡 Bấm loa 🔊 để nghe phát âm, rồi nhấn micro bên dưới để tự nói
+              </p>
+            } @else {
+              <div class="text-center py-12 text-slate-500 text-xs">
+                <span class="text-2xl block mb-2">⏳</span>
+                Đang chuẩn bị gợi ý câu trả lời...
+              </div>
             }
+          </aside>
+        }
+      </div>
+
+      <!-- Mobile Slide-up Bottom Sheet for Hints (visible on < md when showHints() is true) -->
+      @if (showHints()) {
+        <div
+          class="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end"
+          (click)="showHints.set(false)"
+        >
+          <div
+            class="bg-slate-900 border-t border-slate-700 rounded-t-3xl p-4 sm:p-5 max-h-[75vh] flex flex-col shadow-2xl"
+            (click)="$event.stopPropagation()"
+          >
+            <div class="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-3"></div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-amber-400 text-base">💡</span>
+                <h2 class="text-sm font-700 text-slate-100">Gợi ý câu trả lời</h2>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-900/60 text-sky-300 font-600 border border-sky-400/30">
+                  Level {{ userLevel() }}
+                </span>
+              </div>
+              <button
+                type="button"
+                class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer text-xs"
+                (click)="showHints.set(false)"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div class="overflow-y-auto space-y-2.5 flex-1 pr-1">
+              @for (sugg of suggestions(); track sugg.text) {
+                <div
+                  class="p-3 rounded-2xl bg-slate-800/90 border border-slate-700/70 flex items-start justify-between gap-3 shadow-sm"
+                >
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs sm:text-sm font-600 text-slate-100 leading-snug">
+                      "{{ sugg.text }}"
+                    </p>
+                    <p class="text-[11px] text-slate-400 italic mt-1 leading-snug">
+                      {{ sugg.translation }}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="w-8 h-8 shrink-0 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs text-slate-200 transition cursor-pointer"
+                    title="Nghe phát âm mẫu"
+                    (click)="playSampleAudio(sugg.text)"
+                  >
+                    🔊
+                  </button>
+                </div>
+              }
+            </div>
+            <p class="text-[10px] text-slate-500 mt-3 text-center">
+              💡 Bấm vào loa 🔊 để nghe phát âm mẫu, rồi nhấn micro bên dưới để luyện nói
+            </p>
           </div>
-        </aside>
+        </div>
       }
 
-      <!-- Bottom Single-Mic Control Footer ("The Coach" Style — No Text Input Box) -->
+      <!-- Bottom Single-Mic Control Footer ("The Coach" Style) -->
       <footer
-        class="py-5 px-4 sm:px-6 flex flex-col items-center justify-center gap-3"
+        class="py-4 px-4 sm:px-6 flex flex-col items-center justify-center gap-2"
         style="background: #1e293b; border-top: 1px solid #334155"
       >
-        <!-- Single Central Microphone / Speaking Button -->
-        <div class="relative flex items-center justify-center">
-          @if (voiceService.isRecordingTurn()) {
-            <!-- Expanding pulse rings while user is actively speaking -->
-            <span class="absolute w-24 h-24 rounded-full bg-rose-500/25 animate-ping pointer-events-none"></span>
-            <span class="absolute w-20 h-20 rounded-full bg-rose-500/40 animate-pulse pointer-events-none"></span>
-          }
+        <!-- Horizontal Row: Left Spacer | Central Mic | Right Hint Button -->
+        <div class="w-full max-w-sm sm:max-w-md flex items-center justify-between relative px-2">
+          <!-- Left spacer for visual balance -->
+          <div class="w-11 sm:w-12"></div>
 
-          <button
-            type="button"
-            data-testid="coach-mic-btn"
-            class="relative z-10 w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center transition-all duration-200 shadow-xl cursor-pointer focus:outline-none"
-            [ngClass]="
-              voiceService.isRecordingTurn()
-                ? 'bg-rose-600 hover:bg-rose-500 text-white scale-105 ring-4 ring-rose-400/50'
-                : 'bg-sky-600 hover:bg-sky-500 text-white hover:scale-105 ring-4 ring-sky-400/30'
-            "
-            [disabled]="voiceService.uxState() === 'connecting' || voiceService.uxState() === 'ending'"
-            [attr.aria-label]="voiceService.isRecordingTurn() ? 'Đang nói - Nhấn để dừng và gửi câu nói' : 'Nhấn để bắt đầu nói'"
-            (click)="onMicButtonClick()"
-          >
+          <!-- Central Microphone Button -->
+          <div class="relative flex items-center justify-center">
             @if (voiceService.isRecordingTurn()) {
-              <!-- Active Speaking Wave / Stop Icon -->
-              <div class="flex items-center gap-1" title="Nhấn để hoàn tất câu nói">
-                <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite]"></span>
-                <span class="w-1.5 h-7 bg-white rounded-full animate-[bounce_0.8s_infinite_0.15s]"></span>
-                <span class="w-1.5 h-5 bg-white rounded-full animate-[bounce_0.8s_infinite_0.3s]"></span>
-                <span class="w-1.5 h-7 bg-white rounded-full animate-[bounce_0.8s_infinite_0.45s]"></span>
-                <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite_0.6s]"></span>
-              </div>
-            } @else {
-              <!-- Ready Microphone Icon -->
-              <span class="text-2xl sm:text-3xl" title="Nhấn vào micro để bắt đầu nói">🎙️</span>
+              <span class="absolute w-24 h-24 rounded-full bg-rose-500/25 animate-ping pointer-events-none"></span>
+              <span class="absolute w-20 h-20 rounded-full bg-rose-500/40 animate-pulse pointer-events-none"></span>
             }
-          </button>
+
+            <button
+              type="button"
+              data-testid="coach-mic-btn"
+              class="relative z-10 w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center transition-all duration-200 shadow-xl cursor-pointer focus:outline-none"
+              [ngClass]="
+                voiceService.isRecordingTurn()
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white scale-105 ring-4 ring-rose-400/50'
+                  : 'bg-sky-600 hover:bg-sky-500 text-white hover:scale-105 ring-4 ring-sky-400/30'
+              "
+              [disabled]="voiceService.uxState() === 'connecting' || voiceService.uxState() === 'ending'"
+              [attr.aria-label]="voiceService.isRecordingTurn() ? 'Đang nói - Nhấn để dừng và gửi câu nói' : 'Nhấn để bắt đầu nói'"
+              (click)="onMicButtonClick()"
+            >
+              @if (voiceService.isRecordingTurn()) {
+                <div class="flex items-center gap-1" title="Nhấn để hoàn tất câu nói">
+                  <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite]"></span>
+                  <span class="w-1.5 h-7 bg-white rounded-full animate-[bounce_0.8s_infinite_0.15s]"></span>
+                  <span class="w-1.5 h-5 bg-white rounded-full animate-[bounce_0.8s_infinite_0.3s]"></span>
+                  <span class="w-1.5 h-7 bg-white rounded-full animate-[bounce_0.8s_infinite_0.45s]"></span>
+                  <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite_0.6s]"></span>
+                </div>
+              } @else {
+                <span class="text-2xl sm:text-3xl" title="Nhấn vào micro để bắt đầu nói">🎙️</span>
+              }
+            </button>
+          </div>
+
+          <!-- Right: Hint Toggle Button (On the same horizontal row as mic for mobile!) -->
+          <div class="w-11 sm:w-12 flex items-center justify-end">
+            <button
+              type="button"
+              class="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-lg sm:text-xl transition cursor-pointer shadow-md"
+              [ngClass]="
+                showHints()
+                  ? 'bg-amber-400 text-slate-950 ring-4 ring-amber-400/30 font-bold'
+                  : 'bg-slate-700/90 hover:bg-slate-700 text-amber-300 hover:scale-105 border border-slate-600'
+              "
+              [title]="showHints() ? 'Đóng gợi ý câu trả lời' : 'Mở gợi ý câu trả lời'"
+              (click)="toggleHints()"
+            >
+              💡
+              @if (suggestions().length > 0 && !showHints()) {
+                <span class="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping"></span>
+                <span class="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-sky-500 border border-slate-800"></span>
+              }
+            </button>
+          </div>
         </div>
 
-        <!-- Clean Helper Instruction Label (Without redundant hints) -->
+        <!-- Instruction Label -->
         <div class="text-center">
           <p class="text-sm font-700 text-slate-100">
             @if (voiceService.isRecordingTurn()) {
@@ -413,9 +522,13 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
   readonly translationMap = signal<Record<string, string>>({});
   readonly loadingTranslation = signal<Record<string, boolean>>({});
 
-  readonly isSuggestionsCollapsed = signal(false);
+  readonly showHints = signal(false);
   readonly userLevel = signal<string>('B1');
   readonly suggestions = this.voiceService.currentSuggestions;
+
+  toggleHints(): void {
+    this.showHints.update((v) => !v);
+  }
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private sessionId: string | null = null;
