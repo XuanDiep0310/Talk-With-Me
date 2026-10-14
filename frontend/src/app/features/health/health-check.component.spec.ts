@@ -1,3 +1,4 @@
+/// <reference types="jasmine" />
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { HealthCheckComponent } from './health-check.component';
