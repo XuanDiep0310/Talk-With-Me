@@ -989,10 +989,573 @@
           }
         ]
       }
+    },
+    "/api/v1/coach/topics": {
+      "get": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Get Coach Topics",
+        "description": "Retrieve catalog of AI Coach topics categorized and personalized for the current user.",
+        "operationId": "get_coach_topics_api_v1_coach_topics_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search query for topic title, category, or description",
+              "title": "Q"
+            },
+            "description": "Search query for topic title, category, or description"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachTopicsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/coach/sessions": {
+      "post": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Create Coach Session",
+        "description": "Start a new AI Coach practice session.\nRequires the user to have completed onboarding.\nThe AI Coach immediately generates an initial greeting adapted to user level and topic.",
+        "operationId": "create_coach_session_api_v1_coach_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCoachSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/coach/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Get Coach Session",
+        "description": "Retrieve details and transcript history of a practice session.",
+        "operationId": "get_coach_session_api_v1_coach_sessions__session_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/coach/sessions/{session_id}/transcript": {
+      "post": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Add Transcript Segment",
+        "description": "Save a dialogue segment into the session Live Script.\nIdempotent by (session_id, data.id).\nOnly accepted when session status is ACTIVE.",
+        "operationId": "add_transcript_segment_api_v1_coach_sessions__session_id__transcript_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTranscriptSegmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptSegmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "List Transcripts",
+        "description": "Retrieve live script transcript segments for a session, supporting sequence resumption.",
+        "operationId": "list_transcripts_api_v1_coach_sessions__session_id__transcript_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "after_seq",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Fetch segments with seq strictly greater than this value",
+              "default": 0,
+              "title": "After Seq"
+            },
+            "description": "Fetch segments with seq strictly greater than this value"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TranscriptSegmentResponse"
+                  },
+                  "title": "Response List Transcripts Api V1 Coach Sessions  Session Id  Transcript Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/coach/sessions/{session_id}/end": {
+      "post": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "End Coach Session",
+        "description": "End the AI Coach practice session.\nIdempotent: multiple calls return the same ended session state.",
+        "operationId": "end_coach_session_api_v1_coach_sessions__session_id__end_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/EndSessionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EndSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/coach/sessions/{session_id}/feedback": {
+      "get": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Get Coach Session Feedback",
+        "description": "Get post-session feedback status.\nReturns HTTP 202 PENDING for Sprint 3 (full scoring engine implemented in Sprint 4).",
+        "operationId": "get_coach_session_feedback_api_v1_coach_sessions__session_id__feedback_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionFeedbackStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/coach/translate": {
+      "post": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Translate Text",
+        "description": "Translate dialogue text to target language (default Vietnamese) using active LLM.",
+        "operationId": "translate_text_api_v1_coach_translate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateTextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslateTextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/coach/sessions/{session_id}/suggestions": {
+      "get": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Get Session Suggestions",
+        "description": "Generate 3 level-tailored suggested replies for the latest AI question in this session.",
+        "operationId": "get_session_suggestions_api_v1_coach_sessions__session_id__suggestions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionSuggestionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ws-tickets": {
+      "post": {
+        "tags": [
+          "WebSocket Tickets"
+        ],
+        "summary": "Issue one-time WebSocket ticket",
+        "description": "Issue a single-use authentication ticket valid for 30 seconds.\nClients connect to WebSocket using `?ticket=<ticket_value>` without passing JWT in URL.",
+        "operationId": "create_ws_ticket_api_v1_ws_tickets_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WsTicketResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "AddTranscriptSegmentRequest": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "speaker": {
+            "type": "string",
+            "title": "Speaker",
+            "default": "USER"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "startMs": {
+            "type": "integer",
+            "title": "Startms",
+            "default": 0
+          },
+          "endMs": {
+            "type": "integer",
+            "title": "Endms",
+            "default": 0
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "isFinal": {
+            "type": "boolean",
+            "title": "Isfinal",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "AddTranscriptSegmentRequest"
+      },
       "AnswerResponse": {
         "properties": {
           "id": {
@@ -1132,6 +1695,202 @@
           "newPassword"
         ],
         "title": "ChangePasswordRequest"
+      },
+      "CoachTopicGroupSchema": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/CoachTopicSchema"
+            },
+            "type": "array",
+            "title": "Topics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "topics"
+        ],
+        "title": "CoachTopicGroupSchema"
+      },
+      "CoachTopicSchema": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "minLevel": {
+            "type": "string",
+            "title": "Minlevel"
+          },
+          "targetSkills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Targetskills"
+          },
+          "isActive": {
+            "type": "boolean",
+            "title": "Isactive"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "title",
+          "description",
+          "minLevel",
+          "targetSkills",
+          "isActive"
+        ],
+        "title": "CoachTopicSchema"
+      },
+      "CoachTopicsResponse": {
+        "properties": {
+          "recommended": {
+            "items": {
+              "$ref": "#/components/schemas/CoachTopicSchema"
+            },
+            "type": "array",
+            "title": "Recommended"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/CoachTopicGroupSchema"
+            },
+            "type": "array",
+            "title": "Groups"
+          },
+          "totalTopics": {
+            "type": "integer",
+            "title": "Totaltopics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recommended",
+          "groups",
+          "totalTopics"
+        ],
+        "title": "CoachTopicsResponse"
+      },
+      "CreateCoachSessionRequest": {
+        "properties": {
+          "topicId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicid"
+          }
+        },
+        "type": "object",
+        "title": "CreateCoachSessionRequest"
+      },
+      "EndSessionRequest": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "default": "USER_REQUESTED"
+          }
+        },
+        "type": "object",
+        "title": "EndSessionRequest"
+      },
+      "EndSessionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedat"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "title": "Durationseconds",
+            "default": 0.0
+          },
+          "spokenSeconds": {
+            "type": "number",
+            "title": "Spokenseconds",
+            "default": 0.0
+          },
+          "endReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endreason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "EndSessionResponse"
       },
       "ForgotPasswordRequest": {
         "properties": {
@@ -1672,6 +2431,177 @@
         ],
         "title": "ServiceHealthResponse"
       },
+      "SessionFeedbackStatusResponse": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sessionid"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "PENDING"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "default": "Feedback calculation is queued and will be available in Sprint 4"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessionId"
+        ],
+        "title": "SessionFeedbackStatusResponse"
+      },
+      "SessionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Userid"
+          },
+          "topicId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicid"
+          },
+          "topic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoachTopicSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "startedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startedat"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedat"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "title": "Durationseconds",
+            "default": 0.0
+          },
+          "spokenSeconds": {
+            "type": "number",
+            "title": "Spokenseconds",
+            "default": 0.0
+          },
+          "endReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endreason"
+          },
+          "initialMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initialmessage"
+          },
+          "transcripts": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptSegmentResponse"
+            },
+            "type": "array",
+            "title": "Transcripts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "userId",
+          "level",
+          "status"
+        ],
+        "title": "SessionResponse"
+      },
+      "SessionSuggestionsResponse": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sessionid"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/SuggestedReplyItem"
+            },
+            "type": "array",
+            "title": "Suggestions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessionId",
+          "level",
+          "suggestions"
+        ],
+        "title": "SessionSuggestionsResponse"
+      },
       "SetLevelRequest": {
         "properties": {
           "level": {
@@ -1802,6 +2732,24 @@
         ],
         "title": "SubmitAnswerRequest"
       },
+      "SuggestedReplyItem": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "translation": {
+            "type": "string",
+            "title": "Translation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "translation"
+        ],
+        "title": "SuggestedReplyItem"
+      },
       "TTSRequest": {
         "properties": {
           "text": {
@@ -1882,6 +2830,126 @@
           "expiresIn"
         ],
         "title": "TokenResponse"
+      },
+      "TranscriptSegmentResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sessionid"
+          },
+          "speaker": {
+            "type": "string",
+            "title": "Speaker"
+          },
+          "userId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Userid"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "startMs": {
+            "type": "integer",
+            "title": "Startms",
+            "default": 0
+          },
+          "endMs": {
+            "type": "integer",
+            "title": "Endms",
+            "default": 0
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "isFinal": {
+            "type": "boolean",
+            "title": "Isfinal",
+            "default": true
+          },
+          "seq": {
+            "type": "integer",
+            "title": "Seq",
+            "default": 1
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "sessionId",
+          "speaker",
+          "text"
+        ],
+        "title": "TranscriptSegmentResponse"
+      },
+      "TranslateTextRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "targetLang": {
+            "type": "string",
+            "title": "Targetlang",
+            "default": "vi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TranslateTextRequest"
+      },
+      "TranslateTextResponse": {
+        "properties": {
+          "originalText": {
+            "type": "string",
+            "title": "Originaltext"
+          },
+          "translatedText": {
+            "type": "string",
+            "title": "Translatedtext"
+          }
+        },
+        "type": "object",
+        "required": [
+          "originalText",
+          "translatedText"
+        ],
+        "title": "TranslateTextResponse"
       },
       "UpdateMeRequest": {
         "properties": {
@@ -2064,6 +3132,24 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WsTicketResponse": {
+        "properties": {
+          "ticket": {
+            "type": "string",
+            "title": "Ticket"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "title": "Expiresin",
+            "default": 30
+          }
+        },
+        "type": "object",
+        "required": [
+          "ticket"
+        ],
+        "title": "WsTicketResponse"
       }
     },
     "securitySchemes": {
