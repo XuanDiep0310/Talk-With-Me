@@ -197,9 +197,7 @@ async def session_websocket_endpoint(
                     topic_min_level=t_min,
                 )
                 if init_suggs:
-                    await websocket.send_json(
-                        {"type": "ai.suggestions", "suggestions": init_suggs}
-                    )
+                    await websocket.send_json({"type": "ai.suggestions", "suggestions": init_suggs})
     except Exception as init_err:
         logger.warning("Initial suggestions generation fallback: %s", init_err)
 
@@ -395,7 +393,9 @@ async def session_websocket_endpoint(
                             ),
                         )
                     except Exception as trans_err:
-                        logger.warning("Error pre-generating translation or suggestions: %s", trans_err)
+                        logger.warning(
+                            "Error pre-generating translation or suggestions: %s", trans_err
+                        )
 
                     # 3. Save AI transcript segment
                     ai_segment_id = str(uuid.uuid4())

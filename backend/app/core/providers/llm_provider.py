@@ -69,7 +69,6 @@ class LlmProvider(Protocol):
         ...
 
 
-
 class FakeLlmProvider:
     """
     Fake LLM provider for development and testing.
@@ -99,7 +98,9 @@ class FakeLlmProvider:
         topic_title: str,
         topic_min_level: str = "A1",
     ) -> str:
-        return self.generate_coach_reply_sync(history, user_message, user_level, topic_title, topic_min_level)
+        return self.generate_coach_reply_sync(
+            history, user_message, user_level, topic_title, topic_min_level
+        )
 
     def generate_coach_reply_sync(
         self,
@@ -117,7 +118,9 @@ class FakeLlmProvider:
                 return f"No problem! What do you like about {topic_title.lower()}?"
             return f"No worries at all! I was asking: what do you enjoy most when exploring {topic_title.lower()}?"
 
-        if any(w in msg_lower for w in ("travel", "beach", "city", "da nang", "hanoi", "trip", "visit")):
+        if any(
+            w in msg_lower for w in ("travel", "beach", "city", "da nang", "hanoi", "trip", "visit")
+        ):
             if level in ("A1", "A2"):
                 return "That is nice! Do you like the beach or the food more?"
             return "That sounds like a wonderful destination! What is your favorite activity or local food when you are there?"
@@ -208,8 +211,6 @@ class FakeLlmProvider:
         return f"[Bản dịch]: {text}"
 
 
-
-
 class GeminiLlmProvider:
     """
     Google Gemini implementation for AI Coach and Placement evaluation.
@@ -286,7 +287,9 @@ class GeminiLlmProvider:
                 reply_text: str = data["candidates"][0]["content"]["parts"][0]["text"]
                 return reply_text.strip()
         except Exception:
-            return FakeLlmProvider().generate_coach_reply_sync(history, user_message, user_level, topic_title, topic_min_level)
+            return FakeLlmProvider().generate_coach_reply_sync(
+                history, user_message, user_level, topic_title, topic_min_level
+            )
 
     async def generate_suggested_replies(
         self,
@@ -319,15 +322,18 @@ class GeminiLlmProvider:
                 if text.startswith("```"):
                     text = text.strip("`").removeprefix("json").strip()
                 import json
+
                 parsed = json.loads(text)
                 if isinstance(parsed, list) and len(parsed) > 0:
                     results: list[dict[str, str]] = []
                     for item in parsed[:3]:
                         if isinstance(item, dict) and "text" in item:
-                            results.append({
-                                "text": str(item.get("text", "")).strip(),
-                                "translation": str(item.get("translation", "")).strip(),
-                            })
+                            results.append(
+                                {
+                                    "text": str(item.get("text", "")).strip(),
+                                    "translation": str(item.get("translation", "")).strip(),
+                                }
+                            )
                     if results:
                         return results
         except Exception:
@@ -352,7 +358,6 @@ class GeminiLlmProvider:
                 return translated
         except Exception:
             return await FakeLlmProvider().translate_text(text, target_lang)
-
 
 
 class GroqLlmProvider:
@@ -444,7 +449,9 @@ class GroqLlmProvider:
                 reply_text: str = data["choices"][0]["message"]["content"]
                 return reply_text.strip().strip('"')
         except Exception:
-            return FakeLlmProvider().generate_coach_reply_sync(history, user_message, user_level, topic_title, topic_min_level)
+            return FakeLlmProvider().generate_coach_reply_sync(
+                history, user_message, user_level, topic_title, topic_min_level
+            )
 
     async def generate_suggested_replies(
         self,
@@ -457,7 +464,7 @@ class GroqLlmProvider:
         system_prompt = (
             f"You are an expert English Speaking Coach Assistant at TalkWithMe. "
             f"The learner is at CEFR Level {user_level}, practicing the topic '{topic_title}' (Topic min level: {topic_min_level}).\n"
-            f"Given the coach's latest question: \"{last_ai_message}\", "
+            f'Given the coach\'s latest question: "{last_ai_message}", '
             f"generate exactly 3 natural, practical sample answers the learner could speak.\n"
             f"CRITICAL CEFR LEVEL CONSTRAINTS:\n"
             f"- For A1/A2: Use simple vocabulary, high-frequency words, short clauses (6-12 words max), no idioms.\n"
@@ -493,10 +500,12 @@ class GroqLlmProvider:
                     results: list[dict[str, str]] = []
                     for item in parsed[:3]:
                         if isinstance(item, dict) and "text" in item:
-                            results.append({
-                                "text": str(item.get("text", "")).strip(),
-                                "translation": str(item.get("translation", "")).strip(),
-                            })
+                            results.append(
+                                {
+                                    "text": str(item.get("text", "")).strip(),
+                                    "translation": str(item.get("translation", "")).strip(),
+                                }
+                            )
                     if results:
                         return results
         except Exception as exc:
@@ -533,7 +542,6 @@ class GroqLlmProvider:
             return await FakeLlmProvider().translate_text(text, target_lang)
 
 
-
 def get_llm_provider() -> LlmProvider:
     """Factory resolving configured LLM provider."""
     settings = get_settings()
@@ -552,4 +560,3 @@ def get_llm_provider() -> LlmProvider:
         return GroqLlmProvider(api_key=groq_key)
 
     return FakeLlmProvider()
-

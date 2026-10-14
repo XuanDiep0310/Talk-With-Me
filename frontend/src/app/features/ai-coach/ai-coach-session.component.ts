@@ -318,18 +318,28 @@ import { ToastService } from '../../core/services/toast.service';
       <!-- Mobile Slide-up Bottom Sheet for Hints (visible on < md when showHints() is true) -->
       @if (showHints()) {
         <div
-          class="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end"
-          (click)="showHints.set(false)"
+          class="md:hidden fixed inset-0 z-50 flex flex-col justify-end"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mobile-hints-title"
         >
-          <div
-            class="bg-slate-900 border-t border-slate-700 rounded-t-3xl p-4 sm:p-5 max-h-[75vh] flex flex-col shadow-2xl"
-            (click)="$event.stopPropagation()"
+          <!-- Backdrop overlay button -->
+          <button
+            type="button"
+            class="fixed inset-0 w-full h-full bg-black/60 backdrop-blur-xs border-0 p-0 cursor-default"
+            aria-label="Đóng gợi ý"
+            tabindex="-1"
+            (click)="showHints.set(false)"
+          ></button>
+
+          <section
+            class="relative z-10 bg-slate-900 border-t border-slate-700 rounded-t-3xl p-4 sm:p-5 max-h-[75vh] flex flex-col shadow-2xl"
           >
             <div class="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-3"></div>
             <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
               <div class="flex items-center gap-2">
                 <span class="text-amber-400 text-base">💡</span>
-                <h2 class="text-sm font-700 text-slate-100">Gợi ý câu trả lời</h2>
+                <h2 id="mobile-hints-title" class="text-sm font-700 text-slate-100">Gợi ý câu trả lời</h2>
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-900/60 text-sky-300 font-600 border border-sky-400/30">
                   Level {{ userLevel() }}
                 </span>
@@ -337,6 +347,7 @@ import { ToastService } from '../../core/services/toast.service';
               <button
                 type="button"
                 class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition cursor-pointer text-xs"
+                aria-label="Đóng bảng gợi ý"
                 (click)="showHints.set(false)"
               >
                 ✕
@@ -370,7 +381,7 @@ import { ToastService } from '../../core/services/toast.service';
             <p class="text-[10px] text-slate-500 mt-3 text-center">
               💡 Bấm vào loa 🔊 để nghe phát âm mẫu, rồi nhấn micro bên dưới để luyện nói
             </p>
-          </div>
+          </section>
         </div>
       }
 

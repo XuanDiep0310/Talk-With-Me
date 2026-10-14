@@ -249,4 +249,3 @@ def get_stt_provider() -> SttProvider:
         return DeepgramSttProvider(api_key=deepgram_key)
 
     return FakeSttProvider()
-

@@ -189,6 +189,7 @@ async def get_session_suggestions(
         topic_title=topic_title,
         topic_min_level=topic_min_level,
     )
-    items = [SuggestedReplyItem(text=s["text"], translation=s.get("translation", "")) for s in raw_suggs]
+    items = [
+        SuggestedReplyItem(text=s["text"], translation=s.get("translation", "")) for s in raw_suggs
+    ]
     return SessionSuggestionsResponse(session_id=session_id, level=session.level, suggestions=items)
-

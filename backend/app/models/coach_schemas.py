@@ -130,4 +130,3 @@ class SessionSuggestionsResponse(_CamelModel):
     session_id: uuid.UUID
     level: str
     suggestions: list[SuggestedReplyItem]
-
