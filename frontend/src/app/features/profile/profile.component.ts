@@ -185,15 +185,36 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       </div>
 
-      <!-- Sprint 2: Sở thích & Mục tiêu (để trống tạm thời) -->
+      <!-- Sở thích & Mục tiêu (Màn 26) -->
       <div class="card p-6">
-        <h2 class="font-700 text-base mb-2" style="color:#1e293b">Sở thích</h2>
-        <p class="text-xs" style="color:#94a3b8">Sẽ được thiết lập trong bước Onboarding (Sprint 2).</p>
+        <h2 class="font-700 text-base mb-3" style="color:#1e293b">🎯 Sở thích</h2>
+        @if (userInterests().length > 0) {
+          <div class="flex flex-wrap gap-2">
+            @for (interest of userInterests(); track interest) {
+              <span class="px-3.5 py-1.5 rounded-xl text-xs font-600 bg-sky-50 text-sky-700 border border-sky-200">
+                {{ formatInterest(interest) }}
+              </span>
+            }
+          </div>
+        } @else {
+          <p class="text-xs" style="color:#94a3b8">Chưa có sở thích nào được thiết lập.</p>
+        }
       </div>
 
       <div class="card p-6">
-        <h2 class="font-700 text-base mb-2" style="color:#1e293b">Mục tiêu học tập</h2>
-        <p class="text-xs" style="color:#94a3b8">Sẽ được thiết lập trong bước Onboarding (Sprint 2).</p>
+        <h2 class="font-700 text-base mb-3" style="color:#1e293b">🚀 Mục tiêu học tập</h2>
+        @if (userGoals().length > 0) {
+          <div class="space-y-2">
+            @for (goal of userGoals(); track goal) {
+              <div class="p-3 rounded-xl text-xs font-600 bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-2">
+                <span class="text-sky-600">✓</span>
+                <span>{{ formatGoal(goal) }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="text-xs" style="color:#94a3b8">Chưa có mục tiêu nào được thiết lập.</p>
+        }
       </div>
 
       <div class="card p-6">
@@ -313,10 +334,45 @@ export class ProfileComponent {
   readonly draftName = signal('');
 
   readonly userStats = computed(() => [
-    { label: 'Level hiện tại', value: this.appState.appUser().level || 'A1', emoji: '🎓', color: '#286FB4' },
+    { label: 'Level hiện tại', value: this.authService.currentUser()?.cefrLevel || this.appState.appUser().level || 'A1', emoji: '🎓', color: '#286FB4' },
     { label: 'Tổng XP', value: `${this.appState.totalXp().toLocaleString()} XP`, emoji: '⭐', color: '#f59e0b' },
     { label: 'Streak', value: `${this.appState.currentStreak()} ngày`, emoji: '🔥', color: '#ea580c' }
   ]);
+
+  readonly userInterests = computed(() => {
+    return this.authService.currentUser()?.interests ?? this.appState.appUser().interests ?? [];
+  });
+
+  readonly userGoals = computed(() => {
+    return this.authService.currentUser()?.goals ?? this.appState.appUser().goals ?? [];
+  });
+
+  private readonly interestLabels: Record<string, string> = {
+    travel: 'Du lịch',
+    technology: 'Công nghệ',
+    food: 'Ẩm thực',
+    business: 'Kinh doanh',
+    sports: 'Thể thao',
+    music: 'Âm nhạc',
+    movies_tv: 'Phim & TV',
+    science: 'Khoa học',
+  };
+
+  private readonly goalLabels: Record<string, string> = {
+    daily_conversation: 'Giao tiếp hằng ngày tự nhiên',
+    work_presentation: 'Thuyết trình công việc',
+    job_interview: 'Phỏng vấn xin việc',
+    study_abroad: 'Học tập ở nước ngoài',
+    travel_solo: 'Du lịch tự túc',
+  };
+
+  formatInterest(key: string): string {
+    return this.interestLabels[key] || key;
+  }
+
+  formatGoal(key: string): string {
+    return this.goalLabels[key] || key;
+  }
 
   startEdit(): void {
     this.draftName.set(this.displayName());

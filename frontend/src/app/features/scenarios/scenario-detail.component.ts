@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
 import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
@@ -260,6 +261,7 @@ export const GENERIC_CHUNKS: Chunk[] = [
 })
 export class ScenarioDetailComponent implements OnInit, OnDestroy {
   readonly appState = inject(AppStateService);
+  private readonly router = inject(Router);
   readonly speechService = inject(SpeechRecognitionService);
 
   readonly step = signal<DetailStep>("context");
@@ -286,6 +288,7 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   readonly currentChunk = computed(() => this.chunks[this.drillIdx()]);
 
   ngOnInit(): void {
+    if (!this.appState.selectedScenario()) { void this.router.navigateByUrl('/scenarios'); return; }
     this.speechSubscriptions.add(this.speechService.isListening$.subscribe(listening => {
       this.isListening.set(listening);
       if (!listening && this.ignoreNextSpeechResult) this.ignoreNextSpeechResult = false;

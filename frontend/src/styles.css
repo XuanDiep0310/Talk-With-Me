@@ -190,3 +190,32 @@ body {
 .wave-bar:nth-child(3) { animation-delay: 0.2s; }
 .wave-bar:nth-child(4) { animation-delay: 0.3s; }
 .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+html.theme-dark {
+  color-scheme: dark;
+  background: #0f172a;
+}
+
+html.theme-dark body {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+html.theme-dark .card,
+html.theme-dark aside,
+html.theme-dark header,
+html.theme-dark [style*="background: #fff"],
+html.theme-dark [style*="background: #fff;"],
+html.theme-dark [style*="background: #F8FAFC"],
+html.theme-dark [style*="background: #F0F6FB"] {
+  background-color: #1e293b !important;
+  color: #e2e8f0;
+}
+
+html.theme-dark [style*="background: #E2F0F9"] {
+  background-color: #334155 !important;
+}
+
+html.theme-dark [style*="color: #1e293b"],
+html.theme-dark [style*="color: #374151"] {
+  color: #e2e8f0 !important;
+}
