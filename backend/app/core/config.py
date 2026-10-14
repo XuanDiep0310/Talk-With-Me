@@ -104,8 +104,9 @@ class Settings(BaseSettings):
     STORAGE_PROVIDER: str = "local"  # "local" | "s3"
 
     # STT (Speech-to-Text)
-    STT_PROVIDER: str = "fake"  # "fake" | "deepgram" | "google" | "azure"
+    STT_PROVIDER: str = "fake"  # "fake" | "groq" | "deepgram" | "google" | "azure"
     DEEPGRAM_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
 
     # Coach Session & Turn-Taking
     SESSION_RECONNECT_TIMEOUT_SECONDS: int = 60

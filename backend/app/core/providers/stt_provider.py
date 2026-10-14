@@ -162,10 +162,91 @@ class DeepgramSttProvider:
             return SttResult(transcript="", confidence=0.0, speaking_duration_seconds=0.0, words=[])
 
 
+class GroqSttProvider:
+    """
+    Groq Cloud Whisper implementation for ultra-fast, free-tier Speech-to-Text.
+    Whisper Large v3 (whisper-large-v3) with generous free tier (groq.com).
+    """
+
+    def __init__(self, api_key: str) -> None:
+        self.api_key = api_key
+        self.api_url = "https://api.groq.com/openai/v1/audio/transcriptions"
+
+    async def transcribe(self, audio_bytes: bytes, mime_type: str = "audio/webm") -> SttResult:
+        if not audio_bytes:
+            return SttResult(transcript="", confidence=0.0, speaking_duration_seconds=0.0, words=[])
+
+        ext = "webm" if "webm" in mime_type else "mp4"
+        files = {
+            "file": (f"audio.{ext}", audio_bytes, mime_type or "audio/webm"),
+        }
+        data = {
+            "model": "whisper-large-v3",
+            "response_format": "verbose_json",
+            "language": "en",
+        }
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(self.api_url, data=data, files=files, headers=headers)
+            resp.raise_for_status()
+            res_data = resp.json()
+
+        transcript = res_data.get("text", "").strip()
+        duration = float(res_data.get("duration", 0.0))
+        segments = res_data.get("segments", [])
+        words_list = transcript.split()
+
+        word_timings: list[WordTiming] = []
+        if segments:
+            for seg in segments:
+                seg_words = seg.get("text", "").split()
+                st = int(float(seg.get("start", 0)) * 1000)
+                et = int(float(seg.get("end", 0)) * 1000)
+                step = (et - st) // max(1, len(seg_words))
+                for idx, w in enumerate(seg_words):
+                    word_timings.append(
+                        WordTiming(
+                            word=w,
+                            start_ms=st + idx * step,
+                            end_ms=st + (idx + 1) * step,
+                            confidence=0.92,
+                        )
+                    )
+        else:
+            word_timings = [
+                WordTiming(
+                    word=w,
+                    start_ms=int(i * 350),
+                    end_ms=int((i + 1) * 350),
+                    confidence=0.92,
+                )
+                for i, w in enumerate(words_list)
+            ]
+
+        return SttResult(
+            transcript=transcript,
+            confidence=0.92,
+            speaking_duration_seconds=duration or (len(words_list) * 0.35),
+            words=word_timings,
+            is_final=True,
+        )
+
+
 def get_stt_provider() -> SttProvider:
     """Factory function resolving active STT provider from settings."""
     settings = get_settings()
+    stt_choice = settings.STT_PROVIDER.lower()
+
+    groq_key = getattr(settings, "GROQ_API_KEY", "")
+    if stt_choice == "groq" and groq_key:
+        return GroqSttProvider(api_key=groq_key)
+
     deepgram_key = getattr(settings, "DEEPGRAM_API_KEY", "")
-    if settings.STT_PROVIDER.lower() == "deepgram" and deepgram_key:
+    if stt_choice == "deepgram" and deepgram_key:
         return DeepgramSttProvider(api_key=deepgram_key)
+
     return FakeSttProvider()
+
