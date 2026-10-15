@@ -348,7 +348,7 @@ class AuthService:
         token_hash = hash_refresh_token(refresh_token_str)
         await self._auth_repo.revoke_refresh_token(token_hash)
 
-    async def forgot_password(self, email: str) -> None:
+    async def forgot_password(self, email: str, origin: str | None = None) -> None:
         """
         Initiate password reset flow.
         Always returns successfully to avoid leaking whether an email is registered (D-18).
@@ -368,7 +368,7 @@ class AuthService:
             created_at=now,
         )
 
-        base_url = (self._settings.FRONTEND_URL or "http://localhost:4200").rstrip("/")
+        base_url = (origin or self._settings.FRONTEND_URL or "http://localhost").rstrip("/")
         reset_url = f"{base_url}/reset-password?token={raw_token}"
         await self._email_sender.send_password_reset(
             email=normalized,

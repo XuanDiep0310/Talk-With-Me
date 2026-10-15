@@ -2,127 +2,19 @@
 
 import base64
 import json
-from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 
 import pytest
-import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from redis.asyncio import Redis
+from httpx import AsyncClient
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
-    create_async_engine,
 )
 
-from app.api.deps import get_db, get_redis
-from app.core.config import Settings, get_settings
+from app.core.security import hash_refresh_token
 from app.main import app
-from app.models.base import Base
-
-
-class FakeRedis:
-    def __init__(self) -> None:
-        self.store: dict[str, str] = {}
-        self.ttls: dict[str, int] = {}
-
-    async def get(self, key: str) -> str | None:
-        return self.store.get(key)
-
-    async def ttl(self, key: str) -> int:
-        return self.ttls.get(key, 300)
-
-    async def delete(self, key: str) -> None:
-        self.store.pop(key, None)
-
-    async def ping(self) -> bool:
-        return True
-
-    def pipeline(self) -> "FakePipeline":
-        return FakePipeline(self)
-
-
-class FakePipeline:
-    def __init__(self, redis: FakeRedis) -> None:
-        self.redis = redis
-        self.ops: list = []
-
-    def incr(self, key: str) -> "FakePipeline":
-        current = int(self.redis.store.get(key, 0)) + 1
-        self.redis.store[key] = str(current)
-        return self
-
-    def expire(self, key: str, seconds: int) -> "FakePipeline":
-        self.redis.ttls[key] = seconds
-        return self
-
-    async def execute(self) -> list:
-        return []
-
-
-@pytest_asyncio.fixture
-async def auth_test_db() -> AsyncGenerator[async_sessionmaker[AsyncSession], None]:
-    # In-memory SQLite async engine for isolated integration testing
-    engine: AsyncEngine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        future=True,
-        echo=False,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    session_factory = async_sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autoflush=False,
-    )
-
-    yield session_factory
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
-
-
-@pytest_asyncio.fixture
-async def client(
-    auth_test_db: async_sessionmaker[AsyncSession],
-) -> AsyncGenerator[AsyncClient, None]:
-    fake_redis = FakeRedis()
-
-    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-        async with auth_test_db() as session:
-            try:
-                yield session
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
-
-    def override_get_redis() -> Redis:
-        return fake_redis  # type: ignore[return-value]
-
-    test_settings = Settings(
-        JWT_SECRET_KEY="test-secret-long-enough-for-hs256-signature-12345",
-        PASSWORD_MIN_LENGTH=6,
-        ACCESS_TOKEN_EXPIRE_MINUTES=30,
-        REFRESH_TOKEN_REMEMBER_DAYS=30,
-        REFRESH_TOKEN_NO_REMEMBER_DAYS=1,
-        GOOGLE_TOKEN_VERIFIER="fake",
-        GOOGLE_CLIENT_ID="",
-    )
-
-    app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_redis] = override_get_redis
-    app.dependency_overrides[get_settings] = lambda: test_settings
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-        yield ac
-
-    app.dependency_overrides.clear()
-
+from app.models.auth import PasswordResetToken, RefreshToken
 
 # ---------------------------------------------------------------------------
 # Test Cases
@@ -187,6 +79,12 @@ async def test_register_login_me_refresh_logout_flow(client: AsyncClient) -> Non
         json={"refreshToken": new_refresh},
     )
     assert logout_res.status_code == 200
+    refresh_after_logout = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refreshToken": new_refresh},
+    )
+    assert refresh_after_logout.status_code == 401
+    assert refresh_after_logout.json()["code"] == "TOKEN_REUSE_DETECTED"
 
 
 @pytest.mark.asyncio
@@ -225,6 +123,12 @@ async def test_login_wrong_password_returns_401(client: AsyncClient) -> None:
     )
     assert res.status_code == 401
     assert res.json()["code"] == "INVALID_CREDENTIALS"
+    unknown_email = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "unknown@example.com", "password": "WrongPassword!"},
+    )
+    assert unknown_email.status_code == 401
+    assert unknown_email.json()["code"] == "INVALID_CREDENTIALS"
 
 
 @pytest.mark.asyncio
@@ -429,3 +333,407 @@ async def test_update_settings_and_profile(client: AsyncClient) -> None:
     assert data["aiVoice"] == "male"
     assert data["speechSpeed"] == "fast"
     assert data["notificationsEnabled"] is False
+
+
+@pytest.mark.asyncio
+async def test_auth_validation_and_invalid_access_token(client: AsyncClient) -> None:
+    missing = await client.post("/api/v1/auth/register", json={"email": "bad@example.com"})
+    assert missing.status_code == 422
+
+    bad_email = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "not-an-email",
+            "fullName": "Bad",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    assert bad_email.status_code == 422
+
+    invalid_token = await client.get(
+        "/api/v1/me", headers={"Authorization": "Bearer invalid-token"}
+    )
+    assert invalid_token.status_code == 401
+    assert invalid_token.json()["code"] == "INVALID_TOKEN"
+
+
+@pytest.mark.asyncio
+async def test_google_login_rejects_invalid_token_without_network(client: AsyncClient) -> None:
+    response = await client.post("/api/v1/auth/google", json={"idToken": "invalid-google-token"})
+    assert response.status_code == 400
+    assert response.json()["code"] == "INVALID_GOOGLE_TOKEN"
+
+
+@pytest.mark.asyncio
+async def test_profile_settings_are_scoped_and_partial_update_preserves_other_fields(
+    client: AsyncClient,
+) -> None:
+    async def register(email: str, name: str) -> tuple[str, str]:
+        response = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": email,
+                "fullName": name,
+                "password": "Password123!",
+                "termsAccepted": True,
+            },
+        )
+        assert response.status_code == 201
+        return response.json()["accessToken"], response.json()["refreshToken"]
+
+    token_a, _ = await register("scope-a@example.com", "User A")
+    token_b, _ = await register("scope-b@example.com", "User B")
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    update = await client.patch("/api/v1/me/settings", headers=headers_a, json={"aiVoice": "male"})
+    assert update.status_code == 200
+    assert update.json()["aiVoice"] == "male"
+    assert update.json()["speechSpeed"] == "normal"
+
+    profile_update = await client.patch(
+        "/api/v1/me", headers=headers_a, json={"fullName": "Changed A"}
+    )
+    assert profile_update.status_code == 200
+    profile_b = await client.get("/api/v1/me", headers=headers_b)
+    settings_b = await client.get("/api/v1/me/settings", headers=headers_b)
+    assert profile_b.json()["fullName"] == "User B"
+    assert settings_b.json()["aiVoice"] == "female"
+
+
+@pytest.mark.asyncio
+async def test_change_password_updates_credentials_and_revokes_refresh_tokens(
+    client: AsyncClient,
+) -> None:
+    registered = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "change-pw@example.com",
+            "fullName": "Password User",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    token = registered.json()["accessToken"]
+    refresh = registered.json()["refreshToken"]
+    response = await client.post(
+        "/api/v1/me/change-password",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"oldPassword": "Password123!", "newPassword": "NewPassword123!"},
+    )
+    assert response.status_code == 200
+    assert (
+        await client.post(
+            "/api/v1/auth/login",
+            json={"email": "change-pw@example.com", "password": "Password123!"},
+        )
+    ).status_code == 401
+    assert (
+        await client.post(
+            "/api/v1/auth/login",
+            json={"email": "change-pw@example.com", "password": "NewPassword123!"},
+        )
+    ).status_code == 200
+    revoked = await client.post("/api/v1/auth/refresh", json={"refreshToken": refresh})
+    assert revoked.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_settings_validation_and_avatar_empty_file(client: AsyncClient) -> None:
+    registered = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "validation@example.com",
+            "fullName": "Validation",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    headers = {"Authorization": f"Bearer {registered.json()['accessToken']}"}
+    invalid_settings = await client.patch(
+        "/api/v1/me/settings", headers=headers, json={"aiVoice": "robot"}
+    )
+    assert invalid_settings.status_code == 422
+    assert (await client.get("/api/v1/me/settings", headers=headers)).json()["aiVoice"] == "female"
+
+    empty_avatar = await client.post(
+        "/api/v1/me/avatar",
+        headers=headers,
+        files={"file": ("empty.png", b"", "image/png")},
+    )
+    assert empty_avatar.status_code == 400
+    assert empty_avatar.json()["code"] == "EMPTY_FILE"
+
+
+@pytest.mark.asyncio
+async def test_avatar_upload_valid_image_updates_profile(client: AsyncClient) -> None:
+    registered = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "valid-avatar@example.com",
+            "fullName": "Avatar User",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    headers = {"Authorization": f"Bearer {registered.json()['accessToken']}"}
+    response = await client.post(
+        "/api/v1/me/avatar",
+        headers=headers,
+        files={"file": ("avatar.png", b"png-data", "image/png")},
+    )
+    assert response.status_code == 200
+    avatar_url = response.json()["avatarUrl"]
+    profile = await client.get("/api/v1/me", headers=headers)
+    assert profile.json()["avatarUrl"] == avatar_url
+
+
+@pytest.mark.asyncio
+async def test_reset_password_with_fake_email_token_changes_login_password(
+    client: AsyncClient,
+) -> None:
+    from app.api.deps import get_email_sender
+
+    email_sender = app.dependency_overrides[get_email_sender]()
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "reset-success@example.com",
+            "fullName": "Reset User",
+            "password": "OldPassword123!",
+            "termsAccepted": True,
+        },
+    )
+    forgot = await client.post(
+        "/api/v1/auth/forgot-password", json={"email": "reset-success@example.com"}
+    )
+    assert forgot.status_code == 200
+    reset_token = email_sender.reset_tokens[-1]
+    reset = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": reset_token, "newPassword": "NewPassword123!"},
+    )
+    assert reset.status_code == 200
+    assert (
+        await client.post(
+            "/api/v1/auth/login",
+            json={"email": "reset-success@example.com", "password": "OldPassword123!"},
+        )
+    ).status_code == 401
+    assert (
+        await client.post(
+            "/api/v1/auth/login",
+            json={"email": "reset-success@example.com", "password": "NewPassword123!"},
+        )
+    ).status_code == 200
+    reused = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": reset_token, "newPassword": "AnotherPassword123!"},
+    )
+    assert reused.status_code == 400
+    assert reused.json()["code"] == "TOKEN_ALREADY_USED"
+
+
+@pytest.mark.asyncio
+async def test_auth_validation_rejects_missing_fields_and_invalid_email(
+    client: AsyncClient,
+) -> None:
+    requests = [
+        ("/api/v1/auth/register", {"email": "missing@example.com"}),
+        ("/api/v1/auth/login", {"email": "missing@example.com"}),
+        ("/api/v1/auth/login", {"email": "invalid-email", "password": "x"}),
+        ("/api/v1/auth/google", {}),
+        ("/api/v1/auth/forgot-password", {"email": "invalid-email"}),
+        ("/api/v1/auth/reset-password", {"token": "token"}),
+        ("/api/v1/auth/refresh", {}),
+        ("/api/v1/auth/logout", {}),
+    ]
+
+    for path, payload in requests:
+        response = await client.post(path, json=payload)
+        assert response.status_code == 422, path
+        assert response.json()["code"] == "VALIDATION_ERROR", path
+
+    unknown_refresh = await client.post(
+        "/api/v1/auth/refresh", json={"refreshToken": "unknown-refresh-token"}
+    )
+    assert unknown_refresh.status_code == 401
+    assert unknown_refresh.json()["code"] == "INVALID_TOKEN"
+
+
+@pytest.mark.asyncio
+async def test_forgot_password_unknown_email_has_same_response_and_sends_no_email(
+    client: AsyncClient, fake_email_sender
+) -> None:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "forgot-known@example.com",
+            "fullName": "Known User",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    known = await client.post(
+        "/api/v1/auth/forgot-password", json={"email": "forgot-known@example.com"}
+    )
+    unknown = await client.post(
+        "/api/v1/auth/forgot-password", json={"email": "forgot-unknown@example.com"}
+    )
+
+    assert known.status_code == 200
+    assert unknown.status_code == 200
+    assert known.json() == unknown.json()
+    assert len(fake_email_sender.reset_tokens) == 1
+
+
+@pytest.mark.asyncio
+async def test_reset_password_rejects_short_password(client: AsyncClient) -> None:
+    response = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": "unused-token", "newPassword": "short"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "VALIDATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_register_enforces_name_password_and_terms_boundaries(
+    client: AsyncClient,
+) -> None:
+    max_name = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "max-name@example.com",
+            "fullName": "N" * 120,
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    too_long_name = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "long-name@example.com",
+            "fullName": "N" * 121,
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    short_password = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "short-password@example.com",
+            "fullName": "Short Password",
+            "password": "12345",
+            "termsAccepted": True,
+        },
+    )
+    weak_password = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "weak-password@example.com",
+            "fullName": "Weak Password",
+            "password": "abcdef",
+            "termsAccepted": True,
+        },
+    )
+    terms_not_accepted = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "terms@example.com",
+            "fullName": "Terms User",
+            "password": "Password123!",
+            "termsAccepted": False,
+        },
+    )
+
+    assert max_name.status_code == 201
+    assert too_long_name.status_code == 422
+    assert short_password.status_code == 422
+    assert weak_password.status_code == 400
+    assert weak_password.json()["code"] == "PASSWORD_TOO_WEAK"
+    assert terms_not_accepted.status_code == 400
+    assert terms_not_accepted.json()["code"] == "TERMS_NOT_ACCEPTED"
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejects_expired_token_without_rotating_it(
+    client: AsyncClient,
+    auth_test_db: async_sessionmaker[AsyncSession],
+) -> None:
+    registered = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "expired-refresh@example.com",
+            "fullName": "Expired Refresh",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    raw_token = registered.json()["refreshToken"]
+    token_hash = hash_refresh_token(raw_token)
+    async with auth_test_db() as session:
+        await session.execute(
+            update(RefreshToken)
+            .where(RefreshToken.token_hash == token_hash)
+            .values(expires_at=datetime(2000, 1, 1, tzinfo=UTC))
+        )
+        await session.commit()
+
+    response = await client.post("/api/v1/auth/refresh", json={"refreshToken": raw_token})
+
+    assert response.status_code == 401
+    assert response.json()["code"] == "TOKEN_EXPIRED"
+    async with auth_test_db() as session:
+        records = await session.execute(select(RefreshToken))
+        stored_tokens = records.scalars().all()
+        assert len(stored_tokens) == 1
+        assert stored_tokens[0].token_hash == token_hash
+        assert stored_tokens[0].revoked is False
+
+
+@pytest.mark.asyncio
+async def test_reset_rejects_expired_token_without_changing_password(
+    client: AsyncClient,
+    auth_test_db: async_sessionmaker[AsyncSession],
+    fake_email_sender,
+) -> None:
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "expired-reset@example.com",
+            "fullName": "Expired Reset",
+            "password": "Password123!",
+            "termsAccepted": True,
+        },
+    )
+    await client.post("/api/v1/auth/forgot-password", json={"email": "expired-reset@example.com"})
+    raw_token = fake_email_sender.reset_tokens[-1]
+    token_hash = hash_refresh_token(raw_token)
+    async with auth_test_db() as session:
+        await session.execute(
+            update(PasswordResetToken)
+            .where(PasswordResetToken.token_hash == token_hash)
+            .values(expires_at=datetime(2000, 1, 1, tzinfo=UTC))
+        )
+        await session.commit()
+
+    response = await client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": raw_token, "newPassword": "NewPassword123!"},
+    )
+    old_password_login = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "expired-reset@example.com", "password": "Password123!"},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "TOKEN_EXPIRED"
+    assert old_password_login.status_code == 200
+    async with auth_test_db() as session:
+        record = await session.execute(
+            select(PasswordResetToken).where(PasswordResetToken.token_hash == token_hash)
+        )
+        assert record.scalar_one().used is False

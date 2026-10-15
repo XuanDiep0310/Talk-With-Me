@@ -177,3 +177,31 @@ async def test_forgot_password_known_email_generates_custom_frontend_url(
         assert call_kwargs["reset_url"].startswith(
             "https://talkwithmee.vercel.app/reset-password?token="
         )
+
+
+async def test_forgot_password_origin_header_takes_precedence(
+    auth_settings: Settings,
+) -> None:
+    auth_settings.FRONTEND_URL = "http://localhost:4200"
+    email_sender = AsyncMock()
+    service = AuthService(
+        session=AsyncMock(),
+        redis=AsyncMock(),
+        settings=auth_settings,
+        email_sender=email_sender,
+        google_verifier=AsyncMock(),
+    )
+
+    mock_user = MagicMock()
+    mock_user.id = uuid.uuid4()
+    mock_user.email = "user@example.com"
+
+    with (
+        patch.object(service._user_repo, "get_by_email", return_value=mock_user),
+        patch.object(service._auth_repo, "create_password_reset_token", new_callable=AsyncMock),
+    ):
+        # Client requests from Docker frontend at http://localhost
+        await service.forgot_password("user@example.com", origin="http://localhost")
+        email_sender.send_password_reset.assert_called_once()
+        call_kwargs = email_sender.send_password_reset.call_args.kwargs
+        assert call_kwargs["reset_url"].startswith("http://localhost/reset-password?token=")
