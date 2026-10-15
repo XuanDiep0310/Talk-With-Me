@@ -133,9 +133,19 @@ async def logout(
 )
 async def forgot_password(
     body: ForgotPasswordRequest,
+    request: Request,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> dict[str, str]:
-    await auth_service.forgot_password(body.email)
+    origin = request.headers.get("origin")
+    if not origin:
+        referer = request.headers.get("referer")
+        if referer:
+            from urllib.parse import urlparse
+
+            parsed = urlparse(referer)
+            if parsed.scheme and parsed.netloc:
+                origin = f"{parsed.scheme}://{parsed.netloc}"
+    await auth_service.forgot_password(body.email, origin=origin)
     return {"message": "If the email is registered, a password reset link has been sent."}
 
 

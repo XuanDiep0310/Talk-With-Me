@@ -210,6 +210,9 @@ async def session_websocket_endpoint(
     try:
         while is_session_active:
             message = await websocket.receive()
+            if message.get("type") == "websocket.disconnect":
+                logger.info("Client initiated disconnect for session %s", session_id)
+                break
 
             if "bytes" in message and message["bytes"]:
                 raw_bytes = message["bytes"]

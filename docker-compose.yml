@@ -60,6 +60,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REDIS_DB: ${REDIS_DB:-0}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     volumes:
       - backend_uploads:/app/uploads
     ports:
