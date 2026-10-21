@@ -611,7 +611,15 @@ export class OnboardingComponent implements OnInit, OnDestroy {
   private mediaStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
-  private speechRecognition: any = null;
+  private speechRecognition: {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult: (event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
+    onerror: (err: unknown) => void;
+    start: () => void;
+    stop: () => void;
+  } | null = null;
   private currentRecognizedText = '';
   private recordingStartMs = 0;
   private autoSpeakTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -691,7 +699,9 @@ export class OnboardingComponent implements OnInit, OnDestroy {
     if (this.speechRecognition) {
       try {
         this.speechRecognition.stop();
-      } catch {}
+      } catch {
+        // Ignore speech recognition stop errors
+      }
       this.speechRecognition = null;
     }
   }
@@ -871,8 +881,12 @@ export class OnboardingComponent implements OnInit, OnDestroy {
       this.mediaRecorder.start(100);
 
       // 2. Real-time Speech-To-Text via browser Web Speech API
+      const win = window as unknown as Record<
+        string,
+        new () => NonNullable<typeof this.speechRecognition>
+      >;
       const SpeechRecognitionClass =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        win['SpeechRecognition'] || win['webkitSpeechRecognition'];
 
       if (SpeechRecognitionClass) {
         this.speechRecognition = new SpeechRecognitionClass();
@@ -880,10 +894,10 @@ export class OnboardingComponent implements OnInit, OnDestroy {
         this.speechRecognition.interimResults = true;
         this.speechRecognition.lang = 'en-US';
 
-        this.speechRecognition.onresult = (event: any) => {
+        this.speechRecognition.onresult = (event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => {
           let full = '';
-          for (let i = 0; i < event.results.length; ++i) {
-            full += event.results[i][0].transcript;
+          for (const res of Array.from(event.results)) {
+            full += res[0].transcript;
           }
           const trimmed = full.trim();
           if (trimmed) {
@@ -892,7 +906,7 @@ export class OnboardingComponent implements OnInit, OnDestroy {
           }
         };
 
-        this.speechRecognition.onerror = (err: any) => {
+        this.speechRecognition.onerror = (err: unknown) => {
           console.warn('Speech recognition warning:', err);
         };
 
@@ -917,7 +931,9 @@ export class OnboardingComponent implements OnInit, OnDestroy {
     if (this.speechRecognition) {
       try {
         this.speechRecognition.stop();
-      } catch {}
+      } catch {
+        // Ignore speech recognition stop errors
+      }
       this.speechRecognition = null;
     }
 
@@ -956,7 +972,7 @@ export class OnboardingComponent implements OnInit, OnDestroy {
     // Check if mic captured anything
     if (!transcriptText) {
       // In headless browser automated tests (e.g. CI / Playwright test runner where no physical microphone exists), supply a test response
-      if (typeof navigator !== 'undefined' && (navigator as any).webdriver) {
+      if (typeof navigator !== 'undefined' && Boolean((navigator as unknown as Record<string, unknown>)['webdriver'])) {
         transcriptText = 'I really enjoy traveling and learning new languages with TalkWithMe.';
       } else {
         // Real user: Mic did not capture audio or user was silent. DO NOT mock!
@@ -1198,13 +1214,17 @@ export class OnboardingComponent implements OnInit, OnDestroy {
       try {
         this.currentAudioElement.pause();
         this.currentAudioElement.currentTime = 0;
-      } catch {}
+      } catch {
+        // Ignore audio pause errors
+      }
       this.currentAudioElement = null;
     }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();
-      } catch {}
+      } catch {
+        // Ignore speech synthesis cancel errors
+      }
     }
     this.isPlayingAi.set(false);
     this.isPlayingUser.set(false);

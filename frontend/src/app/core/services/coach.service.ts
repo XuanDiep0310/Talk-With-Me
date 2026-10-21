@@ -76,7 +76,7 @@ export interface SkillScore {
   score: number | null;
   isReference: boolean;
   naReason?: string | null;
-  components?: Record<string, any>;
+  components?: Record<string, unknown>;
 }
 
 export interface SessionFeedback {

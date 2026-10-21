@@ -34,12 +34,10 @@ from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.models.auth import User, UserProfile
 from app.models.base import Base
-from app.models.scoring import ScoringAudit, SessionFeedback, SessionSkillScore
-from app.models.scoring_schemas import PostSessionLlmEvaluation
+from app.models.scoring import SessionFeedback
 from app.models.session import CoachTopic, Session, TranscriptSegment
 from app.services.scoring.service import ScoringService
 from app.services.session_state_machine import SessionState
-
 
 
 class FakeRedis:
