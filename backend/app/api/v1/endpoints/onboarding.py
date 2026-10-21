@@ -3,7 +3,7 @@ Onboarding endpoints:
   GET  /onboarding/options                  — catalog of selectable options
   PUT  /me/preferences                      — save interests/goals/weak_points
   POST /placement-tests                     — create a new placement test
-  POST /placement-tests/{id}/answers        — submit one answer (idempotent)
+  POST /placement-tests/{id}/answers        — submit one answer (idempotent, adaptive D-25)
   POST /placement-tests/{id}/complete       — finalize test and get level estimate
   PUT  /me/level                            — self-assign level
   POST /me/onboarding/complete              — mark onboarding done
@@ -29,6 +29,7 @@ from app.models.onboarding_schemas import (
     PreferencesResponse,
     SetLevelRequest,
     SubmitAnswerRequest,
+    TieredQuestionSchema,
     UpdatePreferencesRequest,
 )
 from app.seeds.onboarding_catalog import (
@@ -36,6 +37,7 @@ from app.seeds.onboarding_catalog import (
     GOALS,
     INTERESTS,
     PLACEMENT_QUESTIONS,
+    TIERED_PLACEMENT_QUESTIONS,
     WEAK_POINTS,
 )
 from app.services.onboarding import OnboardingService, PlacementService
@@ -62,6 +64,16 @@ async def get_onboarding_options() -> OnboardingOptionsResponse:
         weak_points=[OptionItemSchema(key=w["key"], label=w["label"]) for w in WEAK_POINTS],
         cefr_levels=CEFR_LEVELS,
         placement_questions=PLACEMENT_QUESTIONS,
+        tiered_questions=[
+            TieredQuestionSchema(
+                id=q["id"],
+                tier=q["tier"],
+                tier_label=q["tier_label"],
+                text=q["text"],
+                translation=q["translation"],
+            )
+            for q in TIERED_PLACEMENT_QUESTIONS
+        ],
     )
 
 
@@ -106,19 +118,24 @@ async def update_preferences(
     response_model=PlacementTestResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create a new placement test",
-    description="Initializes a new placement test session. Returns the test ID and question list.",
+    description="Initializes a new placement test session. Returns the test ID, question list, and initial adaptive question.",
 )
 async def create_placement_test(
     current_user: User = Depends(get_current_user),
     placement_service: PlacementService = Depends(get_placement_service),
 ) -> PlacementTestResponse:
     test = await placement_service.create_test(user_id=current_user.id)
+    first_q = placement_service.get_initial_question()
     return PlacementTestResponse(
         id=test.id,
         user_id=test.user_id,
         status=test.status,
         questions=placement_service.get_questions(),
         created_at=test.created_at,
+        initial_tier=first_q["tier"],
+        initial_tier_label=first_q["tier_label"],
+        initial_question=first_q["text"],
+        initial_question_translation=first_q["translation"],
     )
 
 
@@ -127,7 +144,7 @@ async def create_placement_test(
     response_model=AnswerResponse,
     status_code=status.HTTP_200_OK,
     summary="Submit a placement test answer",
-    description="Submit one voice answer for the placement test. "
+    description="Submit one voice answer for the placement test with adaptive tier adjustment (D-25). "
     "Idempotent: re-sending the same request_id returns the existing answer without creating a duplicate.",
 )
 async def submit_placement_answer(
@@ -136,7 +153,7 @@ async def submit_placement_answer(
     current_user: User = Depends(get_current_user),
     placement_service: PlacementService = Depends(get_placement_service),
 ) -> AnswerResponse:
-    answer = await placement_service.submit_answer(
+    answer, adaptive_meta = await placement_service.submit_answer(
         test_id=test_id,
         user_id=current_user.id,
         request_id=body.request_id,
@@ -154,6 +171,17 @@ async def submit_placement_answer(
         transcript=answer.transcript,
         word_count=answer.word_count,
         created_at=answer.created_at,
+        current_tier=adaptive_meta["current_tier"],
+        current_tier_label=adaptive_meta["current_tier_label"],
+        next_question=adaptive_meta["next_question"],
+        next_question_index=adaptive_meta["next_question_index"],
+        next_tier=adaptive_meta["next_tier"],
+        next_tier_label=adaptive_meta["next_tier_label"],
+        next_question_translation=adaptive_meta["next_question_translation"],
+        is_converged=adaptive_meta["is_converged"],
+        can_finish_early=adaptive_meta["can_finish_early"],
+        total_answered=adaptive_meta["total_answered"],
+        current_estimated_level=adaptive_meta["current_estimated_level"],
     )
 
 

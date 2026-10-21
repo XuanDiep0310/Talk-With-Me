@@ -4,7 +4,7 @@ Endpoints for AI Coach topics, sessions, transcripts, and feedback.
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
@@ -15,7 +15,6 @@ from app.models.coach_schemas import (
     CreateCoachSessionRequest,
     EndSessionRequest,
     EndSessionResponse,
-    SessionFeedbackStatusResponse,
     SessionResponse,
     SessionSuggestionsResponse,
     SuggestedReplyItem,
@@ -23,7 +22,9 @@ from app.models.coach_schemas import (
     TranslateTextRequest,
     TranslateTextResponse,
 )
+from app.models.scoring_schemas import SessionFeedbackResponse
 from app.services.coach import CoachService
+from app.services.scoring import ScoringService
 
 router = APIRouter()
 
@@ -123,22 +124,54 @@ async def end_coach_session(
 
 @router.get(
     "/sessions/{session_id}/feedback",
-    response_model=SessionFeedbackStatusResponse,
-    status_code=status.HTTP_202_ACCEPTED,
+    response_model=SessionFeedbackResponse,
+    responses={
+        200: {
+            "model": SessionFeedbackResponse,
+            "description": "Feedback generated or finalized (FEEDBACK_READY, INSUFFICIENT_DATA, FAILED)",
+        },
+        202: {
+            "model": SessionFeedbackResponse,
+            "description": "Feedback calculation in progress (PENDING)",
+        },
+    },
 )
 async def get_coach_session_feedback(
     session_id: uuid.UUID,
+    response: Response,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-) -> SessionFeedbackStatusResponse:
+) -> SessionFeedbackResponse:
     """
-    Get post-session feedback status.
-    Returns HTTP 202 PENDING for Sprint 3 (full scoring engine implemented in Sprint 4).
+    Get post-session feedback report.
+    Returns HTTP 202 when PENDING.
+    Returns HTTP 200 when FEEDBACK_READY, INSUFFICIENT_DATA, or FAILED (with retryable flag).
+    Returns HTTP 404 if session does not exist or unauthorized.
     """
-    service = CoachService(db)
-    # Validate session access (returns 404 if not found or unauthorized)
-    await service.get_session(session_id=session_id, user_id=current_user.id)
-    return SessionFeedbackStatusResponse(session_id=session_id, status="PENDING")
+    service = ScoringService(db)
+    status_code, feedback_resp = await service.get_feedback(
+        session_id=session_id, user_id=current_user.id
+    )
+    response.status_code = status_code
+    return feedback_resp
+
+
+@router.post(
+    "/sessions/{session_id}/feedback/retry",
+    response_model=SessionFeedbackResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def retry_coach_session_feedback(
+    session_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> SessionFeedbackResponse:
+    """
+    Manually retry feedback generation for a failed session.
+    Resets feedback status to PENDING and triggers background calculation.
+    """
+    service = ScoringService(db)
+    return await service.retry_feedback(session_id=session_id, user_id=current_user.id)
 
 
 @router.post("/translate", response_model=TranslateTextResponse)

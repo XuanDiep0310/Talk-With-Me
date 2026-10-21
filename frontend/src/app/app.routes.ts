@@ -78,6 +78,20 @@ export const routes: Routes = [
           )
       },
       {
+        path: 'ai-coach-report/:id',
+        loadComponent: () =>
+          import('./features/ai-coach/ai-coach-report.component').then(
+            (m) => m.AiCoachReportComponent
+          )
+      },
+      {
+        path: 'ai-coach/sessions/:id/feedback',
+        loadComponent: () =>
+          import('./features/ai-coach/ai-coach-report.component').then(
+            (m) => m.AiCoachReportComponent
+          )
+      },
+      {
         path: 'scenarios',
         loadComponent: () =>
           import('./features/scenarios/scenarios.component').then(

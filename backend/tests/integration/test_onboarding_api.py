@@ -374,3 +374,93 @@ async def test_accessing_other_users_placement_test_returns_404(client: AsyncCli
     # AGENTS.md §7: Truy cập tài nguyên của người khác trả 404 chứ không phải 403
     assert intruder_res.status_code == 404
     assert intruder_res.json()["code"] == "PLACEMENT_TEST_NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_adaptive_placement_test_progression_and_early_convergence(
+    client: AsyncClient,
+) -> None:
+    """Verify D-25: Tier progression from Tier 1 -> Tier 2 -> Tier 3 and early convergence at 3 answers."""
+    token = await register_and_get_token(client, "adaptive_user@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Start placement test: initial tier is Tier 1
+    create_res = await client.post("/api/v1/placement-tests", headers=headers)
+    assert create_res.status_code == 201
+    data = create_res.json()
+    test_id = data["id"]
+    assert data["initialTier"] == 1
+    assert "Can you introduce yourself" in data["initialQuestion"]
+    assert len(data["initialQuestionTranslation"]) > 0
+
+    # 2. Answer 1: Strong answer -> Next question jumps to Tier 2
+    ans1_res = await client.post(
+        f"/api/v1/placement-tests/{test_id}/answers",
+        headers=headers,
+        json={
+            "requestId": "adaptive-req-1",
+            "questionIndex": 0,
+            "transcript": "Hello, my name is Alex and in my free time I love reading books, playing tennis, and learning foreign languages every single day.",
+            "sttConfidence": 0.95,
+            "speakingDurationSeconds": 14.0,
+            "responseLatencySeconds": 1.2,
+        },
+    )
+    assert ans1_res.status_code == 200
+    ans1_data = ans1_res.json()
+    assert ans1_data["currentTier"] == 1
+    assert ans1_data["nextTier"] == 2
+    assert ans1_data["isConverged"] is False
+    assert ans1_data["canFinishEarly"] is False
+    assert ans1_data["totalAnswered"] == 1
+    assert ans1_data["nextQuestion"] is not None
+    assert ans1_data["nextQuestionTranslation"] is not None
+
+    # 3. Answer 2: Another strong answer in Tier 2 -> Jumps to Tier 3
+    q2_idx = ans1_data["nextQuestionIndex"]
+    ans2_res = await client.post(
+        f"/api/v1/placement-tests/{test_id}/answers",
+        headers=headers,
+        json={
+            "requestId": "adaptive-req-2",
+            "questionIndex": q2_idx,
+            "transcript": "Last year I visited Da Nang with my friends and we explored ancient temples and experienced incredible coastal culture.",
+            "sttConfidence": 0.94,
+            "speakingDurationSeconds": 15.0,
+            "responseLatencySeconds": 1.4,
+        },
+    )
+    assert ans2_res.status_code == 200
+    ans2_data = ans2_res.json()
+    assert ans2_data["currentTier"] == 2
+    assert ans2_data["nextTier"] == 3
+    assert ans2_data["totalAnswered"] == 2
+    assert ans2_data["canFinishEarly"] is False
+
+    # 4. Answer 3: Strong answer in Tier 3 -> Reaches minimum 3 answers and converges early
+    q3_idx = ans2_data["nextQuestionIndex"]
+    ans3_res = await client.post(
+        f"/api/v1/placement-tests/{test_id}/answers",
+        headers=headers,
+        json={
+            "requestId": "adaptive-req-3",
+            "questionIndex": q3_idx,
+            "transcript": "From my perspective, artificial intelligence is transforming how industries operate and creating specialized career paths for technical talent.",
+            "sttConfidence": 0.96,
+            "speakingDurationSeconds": 18.0,
+            "responseLatencySeconds": 1.5,
+        },
+    )
+    assert ans3_res.status_code == 200
+    ans3_data = ans3_res.json()
+    assert ans3_data["currentTier"] == 3
+    assert ans3_data["totalAnswered"] == 3
+    assert ans3_data["canFinishEarly"] is True
+    assert ans3_data["isConverged"] is True
+
+    # 5. Complete test directly with early convergence
+    comp_res = await client.post(f"/api/v1/placement-tests/{test_id}/complete", headers=headers)
+    assert comp_res.status_code == 200
+    comp_data = comp_res.json()
+    assert comp_data["estimatedLevel"] in ("B1", "B2", "C1")
+    assert comp_data["isInsufficientData"] is False

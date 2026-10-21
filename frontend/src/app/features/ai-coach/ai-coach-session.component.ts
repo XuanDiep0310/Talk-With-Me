@@ -127,6 +127,7 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       }
 
+
       <!-- Main Content Area: Flex layout for Live Script (left) & Desktop Hint Panel (right) -->
       <div class="flex-1 flex min-h-0 relative overflow-hidden">
         <!-- Conversation Live Script (Scrollable Area) -->
@@ -749,13 +750,13 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
         this.showEndModal.set(false);
         this.voiceService.cleanup();
         this.toastService.show('Đã lưu thành công phiên luyện nói!', 'success');
-        void this.router.navigate(['/ai-coach']);
+        void this.router.navigate(['/ai-coach/sessions', this.sessionId, 'feedback']);
       },
       error: (err) => {
         this.isEnding.set(false);
         console.error('Error ending session:', err);
         this.voiceService.cleanup();
-        void this.router.navigate(['/ai-coach']);
+        void this.router.navigate(['/ai-coach/sessions', this.sessionId, 'feedback']);
       },
     });
   }

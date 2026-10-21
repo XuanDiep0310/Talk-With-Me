@@ -1,3 +1,4 @@
+import sys
 from collections.abc import AsyncGenerator
 
 import redis.asyncio as aioredis
@@ -7,6 +8,8 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+is_test_env = "pytest" in sys.modules or settings.ENVIRONMENT == "test"
+
 redis_pool = aioredis.ConnectionPool.from_url(
     settings.REDIS_URL,
     decode_responses=True,
@@ -15,7 +18,13 @@ redis_pool = aioredis.ConnectionPool.from_url(
 
 
 def get_redis_client() -> Redis:
-    return aioredis.Redis(connection_pool=redis_pool)
+    if is_test_env:
+        pool = aioredis.ConnectionPool.from_url(
+            settings.REDIS_URL,
+            decode_responses=True,
+        )
+        return Redis(connection_pool=pool)
+    return Redis(connection_pool=redis_pool)
 
 
 async def get_redis() -> AsyncGenerator[Redis, None]:

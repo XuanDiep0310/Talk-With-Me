@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,10 +32,14 @@ from app.seeds.onboarding_catalog import (
     LEVEL_SOURCE_PLACEMENT,
     LEVEL_SOURCE_SELF,
     PLACEMENT_QUESTIONS,
+    TIERED_PLACEMENT_QUESTIONS,
     WEAK_POINT_KEYS,
+    PlacementQuestionItem,
 )
 from app.services.level_estimator import (
     LevelEstimate,
+    _feature_score,
+    _score_to_level,
     compute_features,
     estimate_level,
 )
@@ -178,10 +182,10 @@ class OnboardingService:
 
 class PlacementService:
     """
-    Handles placement test lifecycle:
-      1. Create test
-      2. Submit answers (idempotent via request_id)
-      3. Complete → run estimator → write level
+    Handles placement test lifecycle with adaptive tier progression (D-25):
+      1. Create test (starts at Tier 1: A1-A2)
+      2. Submit answers (adaptive difficulty adjustment, early convergence)
+      3. Complete -> run estimator -> write level
     """
 
     def __init__(
@@ -202,6 +206,137 @@ class PlacementService:
     def get_questions(self) -> list[str]:
         return PLACEMENT_QUESTIONS
 
+    def get_tiered_questions(self) -> list[PlacementQuestionItem]:
+        return TIERED_PLACEMENT_QUESTIONS
+
+    def get_initial_question(self) -> PlacementQuestionItem:
+        return TIERED_PLACEMENT_QUESTIONS[0]
+
+    def compute_adaptive_next_step(
+        self,
+        current_question_index: int,
+        answers: list[PlacementAnswer],
+    ) -> dict[str, Any]:
+        """
+        Evaluates user's performance and selects the next adaptive question (D-25).
+        Returns metadata for progression, next question, convergence, and current estimated level.
+        """
+        total_answered = len(answers)
+
+        # 1. Determine current tier from question index
+        if 0 <= current_question_index < len(TIERED_PLACEMENT_QUESTIONS):
+            current_item = TIERED_PLACEMENT_QUESTIONS[current_question_index]
+            current_tier = current_item["tier"]
+            current_tier_label = current_item["tier_label"]
+        else:
+            # Fallback mapping if arbitrary 0-based sequential turn is passed
+            if current_question_index == 0:
+                current_tier = 1
+                current_tier_label = "Cơ bản (A1–A2)"
+            elif current_question_index == 1:
+                current_tier = 2
+                current_tier_label = "Trung cấp (B1–B2)"
+            else:
+                current_tier = 2
+                current_tier_label = "Trung cấp (B1–B2)"
+
+        # 2. Analyze the latest answer
+        last_answer = answers[-1] if answers else None
+        words = last_answer.word_count if last_answer and last_answer.word_count is not None else 0
+        duration = (
+            last_answer.speaking_duration_seconds
+            if last_answer and last_answer.speaking_duration_seconds is not None
+            else 0.0
+        )
+        confidence = (
+            last_answer.stt_confidence
+            if last_answer and last_answer.stt_confidence is not None
+            else 0.8
+        )
+        latency = (
+            last_answer.response_latency_seconds
+            if last_answer and last_answer.response_latency_seconds is not None
+            else 2.0
+        )
+
+        is_strong = words >= 15 and duration >= 5.0 and confidence >= 0.75 and latency <= 4.5
+        is_weak = words < 8 or duration < 3.0 or latency > 6.0
+
+        # 3. Determine next tier
+        if is_strong:
+            next_tier = min(3, current_tier + 1)
+        elif is_weak:
+            next_tier = max(1, current_tier - 1)
+        else:
+            next_tier = 2 if current_tier == 1 and words >= 10 else current_tier
+
+        # 4. Find unused questions in next_tier
+        answered_indices = {a.question_index for a in answers}
+
+        available_candidates = [
+            (idx, q)
+            for idx, q in enumerate(TIERED_PLACEMENT_QUESTIONS)
+            if q["tier"] == next_tier and idx not in answered_indices
+        ]
+
+        if not available_candidates:
+            # Fallback to any unanswered question
+            available_candidates = [
+                (idx, q)
+                for idx, q in enumerate(TIERED_PLACEMENT_QUESTIONS)
+                if idx not in answered_indices
+            ]
+
+        # 5. Compute current estimated level from all answers so far
+        transcripts = [a.transcript or "" for a in answers]
+        confidences = [a.stt_confidence or 0.0 for a in answers]
+        durations = [a.speaking_duration_seconds or 0.0 for a in answers]
+        latencies = [a.response_latency_seconds or 0.0 for a in answers]
+        features = compute_features(transcripts, confidences, durations, latencies)
+        current_score = _feature_score(features)
+        current_level = _score_to_level(
+            current_score,
+            a2_threshold=self._settings.PLACEMENT_A2_THRESHOLD,
+            b1_threshold=self._settings.PLACEMENT_B1_THRESHOLD,
+            b2_threshold=self._settings.PLACEMENT_B2_THRESHOLD,
+            c1_threshold=self._settings.PLACEMENT_C1_THRESHOLD,
+        )
+
+        can_finish_early = total_answered >= 3
+
+        # 6. Check convergence
+        is_converged = (
+            total_answered >= 5
+            or not available_candidates
+            or (
+                total_answered >= 3
+                and (
+                    (current_tier == 3 and is_strong)
+                    or (current_tier == 1 and is_weak)
+                    or total_answered >= 4
+                )
+            )
+        )
+
+        next_q_idx: int | None = None
+        next_q_item: PlacementQuestionItem | None = None
+        if not is_converged and available_candidates:
+            next_q_idx, next_q_item = available_candidates[0]
+
+        return {
+            "current_tier": current_tier,
+            "current_tier_label": current_tier_label,
+            "next_question": next_q_item["text"] if next_q_item else None,
+            "next_question_index": next_q_idx,
+            "next_tier": next_q_item["tier"] if next_q_item else None,
+            "next_tier_label": next_q_item["tier_label"] if next_q_item else None,
+            "next_question_translation": next_q_item["translation"] if next_q_item else None,
+            "is_converged": is_converged,
+            "can_finish_early": can_finish_early,
+            "total_answered": total_answered,
+            "current_estimated_level": current_level,
+        }
+
     async def create_test(self, user_id: uuid.UUID) -> PlacementTest:
         test = await self._test_repo.create(user_id=user_id)
         await self._test_repo.update_status(test.id, "IN_PROGRESS")
@@ -217,7 +352,7 @@ class PlacementService:
         stt_confidence: float | None,
         speaking_duration_seconds: float | None,
         response_latency_seconds: float | None,
-    ) -> PlacementAnswer:
+    ) -> tuple[PlacementAnswer, dict[str, Any]]:
         # Validate ownership (returns 404 for other user's tests — AGENTS.md §8 rule 7)
         test = await self._test_repo.get_by_id_and_user(test_id, user_id)
         if test is None:
@@ -243,11 +378,13 @@ class PlacementService:
         # Idempotency: return existing answer if request_id already exists
         existing = await self._answer_repo.get_by_request_id(test_id, request_id)
         if existing is not None:
-            return existing
+            all_answers = await self._answer_repo.list_by_test(test_id)
+            meta = self.compute_adaptive_next_step(question_index, all_answers)
+            return existing, meta
 
         word_count = len((transcript or "").split()) if transcript else 0
 
-        return await self._answer_repo.create(
+        created = await self._answer_repo.create(
             test_id=test_id,
             request_id=request_id,
             question_index=question_index,
@@ -257,6 +394,10 @@ class PlacementService:
             response_latency_seconds=response_latency_seconds,
             word_count=word_count if transcript else None,
         )
+
+        all_answers = await self._answer_repo.list_by_test(test_id)
+        meta = self.compute_adaptive_next_step(question_index, all_answers)
+        return created, meta
 
     async def complete_test(
         self,
