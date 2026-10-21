@@ -7,8 +7,11 @@ Tables:
   coach_topics         — catalog of conversation topics for AI Coach
 """
 
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -16,6 +19,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.scoring import SessionFeedback
+
 
 
 class CoachTopic(Base, TimestampMixin):
@@ -35,7 +42,7 @@ class CoachTopic(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    sessions: Mapped[list["Session"]] = relationship(back_populates="topic")
+    sessions: Mapped[list[Session]] = relationship(back_populates="topic")
 
 
 class Session(Base, TimestampMixin):
@@ -74,11 +81,18 @@ class Session(Base, TimestampMixin):
     end_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     topic: Mapped[CoachTopic | None] = relationship(back_populates="sessions")
-    transcripts: Mapped[list["TranscriptSegment"]] = relationship(
+    transcripts: Mapped[list[TranscriptSegment]] = relationship(
         back_populates="session",
         cascade="all, delete-orphan",
         order_by="TranscriptSegment.seq",
     )
+    feedback: Mapped[SessionFeedback | None] = relationship(
+        "SessionFeedback",
+        back_populates="session",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
 
 
 class TranscriptSegment(Base, TimestampMixin):
