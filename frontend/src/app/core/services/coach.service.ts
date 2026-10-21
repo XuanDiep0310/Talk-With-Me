@@ -70,10 +70,34 @@ export interface WsTicketResponse {
   expiresIn: number;
 }
 
+export interface SkillScore {
+  skillName: string;
+  label: string;
+  score: number | null;
+  isReference: boolean;
+  naReason?: string | null;
+  components?: Record<string, any>;
+}
+
+export interface SessionFeedback {
+  sessionId: string;
+  status: 'PENDING' | 'FEEDBACK_READY' | 'INSUFFICIENT_DATA' | 'FAILED';
+  formulaVersion?: string;
+  overallScore: number | null;
+  partial: boolean;
+  retryable: boolean;
+  errorMessage?: string | null;
+  skills: SkillScore[];
+  strengths: string[];
+  improvements: string[];
+  nextPractice?: string | null;
+  generatedAt?: string | null;
+}
+
 export interface FeedbackStatusResponse {
   sessionId: string;
   status: string;
-  message: string;
+  message?: string;
 }
 
 @Injectable({
@@ -134,9 +158,16 @@ export class CoachService {
     );
   }
 
-  getFeedback(sessionId: string): Observable<FeedbackStatusResponse> {
-    return this.http.get<FeedbackStatusResponse>(
+  getFeedback(sessionId: string): Observable<SessionFeedback> {
+    return this.http.get<SessionFeedback>(
       `${this.apiUrl}/coach/sessions/${sessionId}/feedback`
+    );
+  }
+
+  retryFeedback(sessionId: string): Observable<SessionFeedback> {
+    return this.http.post<SessionFeedback>(
+      `${this.apiUrl}/coach/sessions/${sessionId}/feedback/retry`,
+      {}
     );
   }
 
