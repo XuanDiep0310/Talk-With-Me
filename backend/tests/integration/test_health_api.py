@@ -61,9 +61,9 @@ async def test_real_database_and_redis_integration(async_client: AsyncClient) ->
         pytest.skip("Skipping real infrastructure integration test (RUN_INTEGRATION_TESTS != true)")
 
     response_db = await async_client.get("/api/v1/health/database")
-    assert response_db.status_code == 200
+    assert response_db.status_code == 200, f"Database health check failed: {response_db.text}"
     assert response_db.json()["status"] == "healthy"
 
     response_redis = await async_client.get("/api/v1/health/redis")
-    assert response_redis.status_code == 200
+    assert response_redis.status_code == 200, f"Redis health check failed: {response_redis.text}"
     assert response_redis.json()["status"] == "healthy"
