@@ -328,7 +328,6 @@ class CoachService:
         await enqueue_feedback_job(session.id)
 
         return EndSessionResponse(
-
             id=session.id,
             status=session.status,
             ended_at=session.ended_at,

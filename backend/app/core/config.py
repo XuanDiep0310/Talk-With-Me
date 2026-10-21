@@ -144,8 +144,9 @@ class Settings(BaseSettings):
     MTLD_MIN_WORDS: int = 10
     SPEED_GRACE_PERIOD_SECONDS: float = 2.0
     SPEED_PENALTY_PER_SECOND: float = 12.0
-    ARQ_MODE: str = "eager"  # "eager" (in-process background task for tests/dev) | "arq" (redis queue)
-
+    ARQ_MODE: str = (
+        "eager"  # "eager" (in-process background task for tests/dev) | "arq" (redis queue)
+    )
 
 
 @lru_cache

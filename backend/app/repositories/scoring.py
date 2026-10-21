@@ -59,7 +59,6 @@ class ScoringRepository:
             raise
 
     async def save_feedback(self, feedback: SessionFeedback) -> SessionFeedback:
-
         """Save updates to an existing feedback record."""
         self.db.add(feedback)
         await self.db.flush()

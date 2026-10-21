@@ -98,7 +98,10 @@ class ScoringService:
             )
 
         existing_feedback = await self.scoring_repo.get_feedback(session_id)
-        if existing_feedback and existing_feedback.status in ("FEEDBACK_READY", "INSUFFICIENT_DATA"):
+        if existing_feedback and existing_feedback.status in (
+            "FEEDBACK_READY",
+            "INSUFFICIENT_DATA",
+        ):
             return self._to_feedback_response(existing_feedback)
 
         # 1. Safely get or create feedback record in PENDING status (idempotent)
@@ -108,7 +111,6 @@ class ScoringService:
         )
         if feedback.status in ("FEEDBACK_READY", "INSUFFICIENT_DATA"):
             return self._to_feedback_response(feedback)
-
 
         # 2. Extract conversational turn metrics from transcripts
         transcripts = session.transcripts or []
@@ -183,7 +185,11 @@ class ScoringService:
             # Push notification & domain event
             await session_ws_manager.notify_session(
                 session_id,
-                {"type": "feedback.ready", "sessionId": str(session_id), "status": "INSUFFICIENT_DATA"},
+                {
+                    "type": "feedback.ready",
+                    "sessionId": str(session_id),
+                    "status": "INSUFFICIENT_DATA",
+                },
             )
             await event_bus.publish(
                 FeedbackGenerated(
@@ -194,7 +200,6 @@ class ScoringService:
                     partial=False,
                     skill_scores=dict.fromkeys(SKILL_LABELS),
                 )
-
             )
 
             reloaded = await self.scoring_repo.get_feedback(session_id)
@@ -243,8 +248,7 @@ class ScoringService:
         # 5. Call LLM for Qualitative Analysis (Comprehension & Context Relevance)
         llm = get_llm_provider()
         history = [
-            {"speaker": s.speaker, "text": s.text}
-            for s in sorted(transcripts, key=lambda x: x.seq)
+            {"speaker": s.speaker, "text": s.text} for s in sorted(transcripts, key=lambda x: x.seq)
         ]
         topic_title = session.topic.title if session.topic else "General English Conversation"
 
@@ -279,10 +283,14 @@ class ScoringService:
 
             await session_ws_manager.notify_session(
                 session_id,
-                {"type": "feedback.ready", "sessionId": str(session_id), "status": "FAILED", "retryable": True},
+                {
+                    "type": "feedback.ready",
+                    "sessionId": str(session_id),
+                    "status": "FAILED",
+                    "retryable": True,
+                },
             )
             return self._to_feedback_response(feedback, skill_scores=[])
-
 
         # 6. Synthesize Listening & Vocabulary with LLM results
         listening_score, listening_components, listening_na = compute_listening_score(
@@ -484,7 +492,6 @@ class ScoringService:
 
         skill_responses: list[SkillScoreResponse] = []
         scores_by_name = {s.skill_name: s for s in scores}
-
 
         for skill_key, label in SKILL_LABELS.items():
             record = scores_by_name.get(skill_key)

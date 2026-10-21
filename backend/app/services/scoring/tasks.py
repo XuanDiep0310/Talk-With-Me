@@ -31,7 +31,6 @@ async def arq_generate_feedback(ctx: dict[str, Any], session_id_str: str) -> Non
     await generate_feedback_task(session_id)
 
 
-
 async def enqueue_feedback_job(session_id: uuid.UUID) -> None:
     """
     Enqueue generate_feedback job.

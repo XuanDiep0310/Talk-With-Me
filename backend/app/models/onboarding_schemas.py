@@ -91,8 +91,12 @@ class PlacementTestResponse(_CamelModel):
     # Adaptive placement test fields (D-25)
     initial_tier: int = 1
     initial_tier_label: str = "Cơ bản (A1–A2)"
-    initial_question: str = "Can you introduce yourself and tell me what you like to do in your free time?"
-    initial_question_translation: str = "Bạn có thể giới thiệu bản thân và cho biết bạn thích làm gì vào thời gian rảnh không?"
+    initial_question: str = (
+        "Can you introduce yourself and tell me what you like to do in your free time?"
+    )
+    initial_question_translation: str = (
+        "Bạn có thể giới thiệu bản thân và cho biết bạn thích làm gì vào thời gian rảnh không?"
+    )
 
 
 class SubmitAnswerRequest(_CamelModel):

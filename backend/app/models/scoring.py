@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from app.models.session import Session
 
 
-
 class SessionFeedback(Base, TimestampMixin):
     """Post-session communication feedback report."""
 

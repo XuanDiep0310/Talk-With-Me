@@ -187,8 +187,6 @@ async def test_env(
         algorithm=test_settings.JWT_ALGORITHM,
     )
 
-
-
     fake_llm = FakeLlmProvider()
     with patch("app.services.scoring.service.get_llm_provider", return_value=fake_llm):
         yield {
@@ -273,9 +271,7 @@ async def test_end_session_triggers_feedback_generation(test_env: dict) -> None:
         db.add_all([t1, t2, t3, t4])
         await db.commit()
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Patch async_session_factory in tasks to use the test SQLite db
         with patch("app.services.scoring.tasks.async_session_factory", db_factory):
             # 1. Call /end
@@ -289,6 +285,7 @@ async def test_end_session_triggers_feedback_generation(test_env: dict) -> None:
 
             # Allow background task to complete
             import asyncio
+
             fb_ready = False
             res_fb = None
             for _ in range(30):
@@ -297,12 +294,17 @@ async def test_end_session_triggers_feedback_generation(test_env: dict) -> None:
                     f"/api/v1/coach/sessions/{session_id}/feedback",
                     headers={"Authorization": f"Bearer {token}"},
                 )
-                if res_check.status_code == 200 and res_check.json().get("status") == "FEEDBACK_READY":
+                if (
+                    res_check.status_code == 200
+                    and res_check.json().get("status") == "FEEDBACK_READY"
+                ):
                     fb_ready = True
                     res_fb = res_check
                     break
 
-            assert fb_ready, f"Feedback was not ready in time, last status: {res_check.status_code} {res_check.text}"
+            assert fb_ready, (
+                f"Feedback was not ready in time, last status: {res_check.status_code} {res_check.text}"
+            )
             assert res_fb is not None
             fb = res_fb.json()
             assert fb["status"] == "FEEDBACK_READY"
@@ -337,10 +339,10 @@ async def test_end_session_called_twice_is_idempotent(test_env: dict) -> None:
         db.add(session)
         await db.commit()
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        with patch("app.services.scoring.tasks.enqueue_feedback_job", new_callable=AsyncMock) as mock_enqueue:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        with patch(
+            "app.services.scoring.tasks.enqueue_feedback_job", new_callable=AsyncMock
+        ) as mock_enqueue:
             res1 = await client.post(
                 f"/api/v1/coach/sessions/{session_id}/end",
                 headers={"Authorization": f"Bearer {token}"},
@@ -409,9 +411,7 @@ async def test_insufficient_data_produces_no_fake_scores(test_env: dict) -> None
         assert resp.status == "INSUFFICIENT_DATA"
         assert resp.overall_score is None
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         res = await client.get(
             f"/api/v1/coach/sessions/{session_id}/feedback",
             headers={"Authorization": f"Bearer {token}"},
@@ -448,9 +448,7 @@ async def test_unauthorized_user_feedback_returns_404(test_env: dict) -> None:
         db.add(session)
         await db.commit()
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # User 2 attempts to view User 1's feedback
         res = await client.get(
             f"/api/v1/coach/sessions/{session_id}/feedback",
@@ -488,7 +486,6 @@ async def test_llm_failure_sets_failed_and_manual_retry_succeeds(test_env: dict)
             started_at=now,
             ended_at=now,
             spoken_seconds=10.0,
-
         )
         t1 = TranscriptSegment(
             pk=uuid.uuid4(),
@@ -516,7 +513,9 @@ async def test_llm_failure_sets_failed_and_manual_retry_succeeds(test_env: dict)
 
     # Step 1: Simulate LLM outage
     failing_llm = AsyncMock()
-    failing_llm.evaluate_post_session.side_effect = RuntimeError("OpenAI / Gemini API 503 Overloaded")
+    failing_llm.evaluate_post_session.side_effect = RuntimeError(
+        "OpenAI / Gemini API 503 Overloaded"
+    )
 
     with patch("app.services.scoring.service.get_llm_provider", return_value=failing_llm):
         async with db_factory() as db:
@@ -526,9 +525,7 @@ async def test_llm_failure_sets_failed_and_manual_retry_succeeds(test_env: dict)
             assert resp.retryable is True
             assert resp.overall_score is None
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Step 2: Query feedback -> 200 FAILED with retryable flag
         res = await client.get(
             f"/api/v1/coach/sessions/{session_id}/feedback",
@@ -557,12 +554,17 @@ async def test_llm_failure_sets_failed_and_manual_retry_succeeds(test_env: dict)
                     f"/api/v1/coach/sessions/{session_id}/feedback",
                     headers={"Authorization": f"Bearer {token}"},
                 )
-                if res_check.status_code == 200 and res_check.json().get("status") == "FEEDBACK_READY":
+                if (
+                    res_check.status_code == 200
+                    and res_check.json().get("status") == "FEEDBACK_READY"
+                ):
                     fb_ready = True
                     res_fb2 = res_check
                     break
 
-            assert fb_ready, f"Feedback retry did not complete in time: {res_check.status_code} {res_check.text}"
+            assert fb_ready, (
+                f"Feedback retry did not complete in time: {res_check.status_code} {res_check.text}"
+            )
             assert res_fb2 is not None
             fb2 = res_fb2.json()
             assert fb2["status"] == "FEEDBACK_READY"
@@ -599,9 +601,7 @@ async def test_feedback_pending_202_then_200(test_env: dict) -> None:
         db.add(pending_feedback)
         await db.commit()
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Check PENDING returns 202
         res_pending = await client.get(
             f"/api/v1/coach/sessions/{session_id}/feedback",

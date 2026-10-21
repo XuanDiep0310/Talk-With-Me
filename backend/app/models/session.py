@@ -24,7 +24,6 @@ if TYPE_CHECKING:
     from app.models.scoring import SessionFeedback
 
 
-
 class CoachTopic(Base, TimestampMixin):
     """Catalog of conversation topics available for AI Coach practice."""
 
@@ -92,7 +91,6 @@ class Session(Base, TimestampMixin):
         uselist=False,
         cascade="all, delete-orphan",
     )
-
 
 
 class TranscriptSegment(Base, TimestampMixin):

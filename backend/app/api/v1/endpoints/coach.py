@@ -29,7 +29,6 @@ from app.services.scoring import ScoringService
 router = APIRouter()
 
 
-
 @router.get("/topics", response_model=CoachTopicsResponse)
 async def get_coach_topics(
     q: str | None = Query(
@@ -173,7 +172,6 @@ async def retry_coach_session_feedback(
     """
     service = ScoringService(db)
     return await service.retry_feedback(session_id=session_id, user_id=current_user.id)
-
 
 
 @router.post("/translate", response_model=TranslateTextResponse)

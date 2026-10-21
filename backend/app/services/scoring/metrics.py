@@ -268,7 +268,6 @@ def compute_pronunciation_score(
     return round(score, 1), components, None
 
 
-
 def compute_overall_score(
     fluency: float | None,
     listening: float | None,
@@ -316,11 +315,7 @@ def is_session_data_sufficient(
     Check if session dialogue satisfies minimum data sufficiency thresholds.
     If not, entire feedback status becomes INSUFFICIENT_DATA.
     """
-    return (
-        total_words >= min_words
-        and user_turns >= min_turns
-        and spoken_seconds >= min_spoken
-    )
+    return total_words >= min_words and user_turns >= min_turns and spoken_seconds >= min_spoken
 
 
 def extract_session_turn_metrics(
@@ -331,7 +326,9 @@ def extract_session_turn_metrics(
     Extract turn-based conversational timing and lexical metrics from transcript segments.
     """
     # Filter and sort segments chronologically
-    sorted_segs = sorted(segments, key=lambda s: s.start_ms if hasattr(s, "start_ms") else s.get("start_ms", 0))
+    sorted_segs = sorted(
+        segments, key=lambda s: s.start_ms if hasattr(s, "start_ms") else s.get("start_ms", 0)
+    )
 
     user_segments = []
     user_turns: list[list[Any]] = []
@@ -347,7 +344,6 @@ def extract_session_turn_metrics(
                 user_turns.append(current_turn)
             current_speaker = spk
             current_turn = [seg]
-
 
     if current_turn and current_speaker == "USER":
         user_turns.append(current_turn)
@@ -377,7 +373,9 @@ def extract_session_turn_metrics(
             continue
         first_seg = turn[0]
         last_seg = turn[-1]
-        t_start = first_seg.start_ms if hasattr(first_seg, "start_ms") else first_seg.get("start_ms", 0)
+        t_start = (
+            first_seg.start_ms if hasattr(first_seg, "start_ms") else first_seg.get("start_ms", 0)
+        )
         t_end = last_seg.end_ms if hasattr(last_seg, "end_ms") else last_seg.get("end_ms", 0)
         span = max(0.0, (t_end - t_start) / 1000.0)
         turn_span_seconds += span
@@ -413,7 +411,6 @@ def extract_session_turn_metrics(
             latency = max(0.0, (st - last_ai_end_ms) / 1000.0)
             latencies.append(latency)
             last_ai_end_ms = None  # Consume once per turn
-
 
     avg_latency = (sum(latencies) / len(latencies)) if latencies else None
 

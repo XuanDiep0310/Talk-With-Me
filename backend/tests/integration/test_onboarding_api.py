@@ -377,7 +377,9 @@ async def test_accessing_other_users_placement_test_returns_404(client: AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_adaptive_placement_test_progression_and_early_convergence(client: AsyncClient) -> None:
+async def test_adaptive_placement_test_progression_and_early_convergence(
+    client: AsyncClient,
+) -> None:
     """Verify D-25: Tier progression from Tier 1 -> Tier 2 -> Tier 3 and early convergence at 3 answers."""
     token = await register_and_get_token(client, "adaptive_user@example.com")
     headers = {"Authorization": f"Bearer {token}"}

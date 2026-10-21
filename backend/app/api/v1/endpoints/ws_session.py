@@ -157,7 +157,6 @@ async def session_websocket_endpoint(
     # Notify client of active session
     await websocket.send_json({"type": "session.state", "state": SessionState.ACTIVE.value})
 
-
     # Resync missing transcripts if client provided lastSeq or reconnected
     async with async_session_factory() as db:
         transcript_repo = TranscriptRepository(db)
@@ -471,4 +470,3 @@ async def session_websocket_endpoint(
         # Cleanup memory buffer
         audio_buffer.clear()
         session_ws_manager.unregister(session_id, websocket)
-

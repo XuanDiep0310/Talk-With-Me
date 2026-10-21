@@ -27,4 +27,3 @@ system_clock: Clock = SystemClock()
 def get_clock() -> Clock:
     """Return the active system clock."""
     return system_clock
-

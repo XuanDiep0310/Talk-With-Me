@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-
 class LlmLevelEvaluation:
     """LLM's assessment of user level from transcript content."""
 
@@ -455,11 +454,12 @@ class GeminiLlmProvider:
                     parsed = json.loads(raw)
                     return PostSessionLlmEvaluation.model_validate(parsed)
             except Exception as exc:
-                logger.warning("Gemini evaluate_post_session attempt %s failed: %s", attempt + 1, exc)
+                logger.warning(
+                    "Gemini evaluate_post_session attempt %s failed: %s", attempt + 1, exc
+                )
                 if attempt == 2:
                     break
         return await FakeLlmProvider().evaluate_post_session(history, topic_title, user_level)
-
 
 
 class GroqLlmProvider:
@@ -701,7 +701,6 @@ class GroqLlmProvider:
                 if attempt == 2:
                     break
         return await FakeLlmProvider().evaluate_post_session(history, topic_title, user_level)
-
 
 
 def get_llm_provider() -> LlmProvider:
