@@ -72,11 +72,12 @@ test.describe('Sprint 3: AI Coach Voice Conversation Flow (The Coach Style)', ()
       await replayBtn.click();
     }
 
-    // 10. End Session via End Button & Modal
+    // 10. End Session via End Button & Modal -> Redirects to Feedback Screen
     await page.click('button:has-text("Kết thúc")');
     await expect(page.locator('text=Kết thúc phiên luyện nói?')).toBeVisible();
 
     await page.click('button:has-text("Xác nhận kết thúc")');
-    await expect(page).toHaveURL(/\/ai-coach/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/feedback/, { timeout: 10000 });
+    await expect(page.locator('text=Kết quả & Phản hồi buổi nói')).toBeVisible({ timeout: 10000 });
   });
 });
