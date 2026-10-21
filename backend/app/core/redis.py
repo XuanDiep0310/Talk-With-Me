@@ -1,6 +1,5 @@
 import sys
 from collections.abc import AsyncGenerator
-from typing import cast
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
@@ -20,7 +19,11 @@ redis_pool = aioredis.ConnectionPool.from_url(
 
 def get_redis_client() -> Redis:
     if is_test_env:
-        return cast(Redis, Redis.from_url(settings.REDIS_URL, decode_responses=True))
+        pool = aioredis.ConnectionPool.from_url(
+            settings.REDIS_URL,
+            decode_responses=True,
+        )
+        return Redis(connection_pool=pool)
     return Redis(connection_pool=redis_pool)
 
 
