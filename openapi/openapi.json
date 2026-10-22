@@ -787,7 +787,7 @@
           "Onboarding"
         ],
         "summary": "Create a new placement test",
-        "description": "Initializes a new placement test session. Returns the test ID and question list.",
+        "description": "Initializes a new placement test session. Returns the test ID, question list, and initial adaptive question.",
         "operationId": "create_placement_test_api_v1_placement_tests_post",
         "responses": {
           "201": {
@@ -814,7 +814,7 @@
           "Onboarding"
         ],
         "summary": "Submit a placement test answer",
-        "description": "Submit one voice answer for the placement test. Idempotent: re-sending the same request_id returns the existing answer without creating a duplicate.",
+        "description": "Submit one voice answer for the placement test with adaptive tier adjustment (D-25). Idempotent: re-sending the same request_id returns the existing answer without creating a duplicate.",
         "operationId": "submit_placement_answer_api_v1_placement_tests__test_id__answers_post",
         "security": [
           {
@@ -1338,8 +1338,67 @@
           "Coach"
         ],
         "summary": "Get Coach Session Feedback",
-        "description": "Get post-session feedback status.\nReturns HTTP 202 PENDING for Sprint 3 (full scoring engine implemented in Sprint 4).",
+        "description": "Get post-session feedback report.\nReturns HTTP 202 when PENDING.\nReturns HTTP 200 when FEEDBACK_READY, INSUFFICIENT_DATA, or FAILED (with retryable flag).\nReturns HTTP 404 if session does not exist or unauthorized.",
         "operationId": "get_coach_session_feedback_api_v1_coach_sessions__session_id__feedback_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feedback generated or finalized (FEEDBACK_READY, INSUFFICIENT_DATA, FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionFeedbackResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Feedback calculation in progress (PENDING)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionFeedbackResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/coach/sessions/{session_id}/feedback/retry": {
+      "post": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Retry Coach Session Feedback",
+        "description": "Manually retry feedback generation for a failed session.\nResets feedback status to PENDING and triggers background calculation.",
+        "operationId": "retry_coach_session_feedback_api_v1_coach_sessions__session_id__feedback_retry_post",
         "security": [
           {
             "HTTPBearer": []
@@ -1363,7 +1422,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionFeedbackStatusResponse"
+                  "$ref": "#/components/schemas/SessionFeedbackResponse"
                 }
               }
             }
@@ -1602,6 +1661,91 @@
             "type": "string",
             "format": "date-time",
             "title": "Createdat"
+          },
+          "currentTier": {
+            "type": "integer",
+            "title": "Currenttier",
+            "default": 1
+          },
+          "currentTierLabel": {
+            "type": "string",
+            "title": "Currenttierlabel",
+            "default": "Cơ bản (A1–A2)"
+          },
+          "nextQuestion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextquestion"
+          },
+          "nextQuestionIndex": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextquestionindex"
+          },
+          "nextTier": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nexttier"
+          },
+          "nextTierLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nexttierlabel"
+          },
+          "nextQuestionTranslation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextquestiontranslation"
+          },
+          "isConverged": {
+            "type": "boolean",
+            "title": "Isconverged",
+            "default": false
+          },
+          "canFinishEarly": {
+            "type": "boolean",
+            "title": "Canfinishearly",
+            "default": false
+          },
+          "totalAnswered": {
+            "type": "integer",
+            "title": "Totalanswered",
+            "default": 1
+          },
+          "currentEstimatedLevel": {
+            "type": "string",
+            "title": "Currentestimatedlevel",
+            "default": "A1"
           }
         },
         "type": "object",
@@ -2182,6 +2326,13 @@
             },
             "type": "array",
             "title": "Placementquestions"
+          },
+          "tieredQuestions": {
+            "items": {
+              "$ref": "#/components/schemas/TieredQuestionSchema"
+            },
+            "type": "array",
+            "title": "Tieredquestions"
           }
         },
         "type": "object",
@@ -2273,6 +2424,26 @@
             "type": "string",
             "format": "date-time",
             "title": "Createdat"
+          },
+          "initialTier": {
+            "type": "integer",
+            "title": "Initialtier",
+            "default": 1
+          },
+          "initialTierLabel": {
+            "type": "string",
+            "title": "Initialtierlabel",
+            "default": "Cơ bản (A1–A2)"
+          },
+          "initialQuestion": {
+            "type": "string",
+            "title": "Initialquestion",
+            "default": "Can you introduce yourself and tell me what you like to do in your free time?"
+          },
+          "initialQuestionTranslation": {
+            "type": "string",
+            "title": "Initialquestiontranslation",
+            "default": "Bạn có thể giới thiệu bản thân và cho biết bạn thích làm gì vào thời gian rảnh không?"
           }
         },
         "type": "object",
@@ -2431,7 +2602,7 @@
         ],
         "title": "ServiceHealthResponse"
       },
-      "SessionFeedbackStatusResponse": {
+      "SessionFeedbackResponse": {
         "properties": {
           "sessionId": {
             "type": "string",
@@ -2440,20 +2611,97 @@
           },
           "status": {
             "type": "string",
-            "title": "Status",
-            "default": "PENDING"
+            "title": "Status"
           },
-          "message": {
+          "formulaVersion": {
             "type": "string",
-            "title": "Message",
-            "default": "Feedback calculation is queued and will be available in Sprint 4"
+            "title": "Formulaversion",
+            "default": "1.0.0"
+          },
+          "overallScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overallscore"
+          },
+          "partial": {
+            "type": "boolean",
+            "title": "Partial",
+            "default": false
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable",
+            "default": false
+          },
+          "errorMessage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errormessage"
+          },
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/SkillScoreResponse"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strengths"
+          },
+          "improvements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Improvements"
+          },
+          "nextPractice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextpractice"
+          },
+          "generatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generatedat"
           }
         },
         "type": "object",
         "required": [
-          "sessionId"
+          "sessionId",
+          "status"
         ],
-        "title": "SessionFeedbackStatusResponse"
+        "title": "SessionFeedbackResponse",
+        "description": "Post-session feedback report response schema."
       },
       "SessionResponse": {
         "properties": {
@@ -2661,6 +2909,57 @@
         ],
         "title": "SettingsResponse"
       },
+      "SkillScoreResponse": {
+        "properties": {
+          "skillName": {
+            "type": "string",
+            "title": "Skillname"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "isReference": {
+            "type": "boolean",
+            "title": "Isreference",
+            "default": false
+          },
+          "naReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nareason"
+          },
+          "components": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Components"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skillName",
+          "label"
+        ],
+        "title": "SkillScoreResponse",
+        "description": "Detailed score report for an individual communication skill."
+      },
       "SubmitAnswerRequest": {
         "properties": {
           "requestId": {
@@ -2802,6 +3101,39 @@
           "text"
         ],
         "title": "TTSResponse"
+      },
+      "TieredQuestionSchema": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tier": {
+            "type": "integer",
+            "title": "Tier"
+          },
+          "tierLabel": {
+            "type": "string",
+            "title": "Tierlabel"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "translation": {
+            "type": "string",
+            "title": "Translation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tier",
+          "tierLabel",
+          "text",
+          "translation"
+        ],
+        "title": "TieredQuestionSchema"
       },
       "TokenResponse": {
         "properties": {

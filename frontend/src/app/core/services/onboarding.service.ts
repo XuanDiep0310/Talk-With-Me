@@ -34,6 +34,10 @@ export interface PlacementTestResponse {
   status: string;
   questions: string[];
   createdAt: string;
+  initialTier?: number;
+  initialTierLabel?: string;
+  initialQuestion?: string;
+  initialQuestionTranslation?: string;
 }
 
 export interface SubmitAnswerRequest {
@@ -53,6 +57,17 @@ export interface AnswerResponse {
   transcript: string | null;
   wordCount: number | null;
   createdAt: string;
+  currentTier?: number;
+  currentTierLabel?: string;
+  nextQuestion?: string | null;
+  nextQuestionIndex?: number | null;
+  nextTier?: number | null;
+  nextTierLabel?: string | null;
+  nextQuestionTranslation?: string | null;
+  isConverged?: boolean;
+  canFinishEarly?: boolean;
+  totalAnswered?: number;
+  currentEstimatedLevel?: string;
 }
 
 export interface PlacementCompleteResponse {
@@ -115,5 +130,12 @@ export class OnboardingService {
 
   completeOnboarding(): Observable<OnboardingCompleteResponse> {
     return this.http.post<OnboardingCompleteResponse>(`${this.BASE}/me/onboarding/complete`, {});
+  }
+
+  translate(text: string, targetLang = 'vi'): Observable<{ originalText: string; translatedText: string }> {
+    return this.http.post<{ originalText: string; translatedText: string }>(
+      `${this.BASE}/coach/translate`,
+      { text, targetLang }
+    );
   }
 }

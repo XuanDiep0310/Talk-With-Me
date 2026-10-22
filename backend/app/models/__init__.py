@@ -10,6 +10,7 @@ from app.models.auth import (
 )
 from app.models.base import Base, TimestampMixin
 from app.models.onboarding import LevelHistory, PlacementAnswer, PlacementTest
+from app.models.scoring import ScoringAudit, SessionFeedback, SessionSkillScore
 from app.models.session import CoachTopic, Session, TranscriptSegment
 
 __all__ = [
@@ -27,4 +28,7 @@ __all__ = [
     "CoachTopic",
     "Session",
     "TranscriptSegment",
+    "SessionFeedback",
+    "SessionSkillScore",
+    "ScoringAudit",
 ]

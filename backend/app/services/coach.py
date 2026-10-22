@@ -322,6 +322,11 @@ class CoachService:
 
         await self.session_repo.save(session)
 
+        # Trigger background feedback generation (Sprint 4)
+        from app.services.scoring.tasks import enqueue_feedback_job
+
+        await enqueue_feedback_job(session.id)
+
         return EndSessionResponse(
             id=session.id,
             status=session.status,

@@ -36,12 +36,21 @@ class OptionItemSchema(_CamelModel):
     label: str
 
 
+class TieredQuestionSchema(_CamelModel):
+    id: str
+    tier: int
+    tier_label: str
+    text: str
+    translation: str
+
+
 class OnboardingOptionsResponse(_CamelModel):
     interests: list[OptionItemSchema]
     goals: list[OptionItemSchema]
     weak_points: list[OptionItemSchema]
     cefr_levels: list[str]
     placement_questions: list[str]
+    tiered_questions: list[TieredQuestionSchema] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +88,15 @@ class PlacementTestResponse(_CamelModel):
     status: str
     questions: list[str]
     created_at: datetime
+    # Adaptive placement test fields (D-25)
+    initial_tier: int = 1
+    initial_tier_label: str = "Cơ bản (A1–A2)"
+    initial_question: str = (
+        "Can you introduce yourself and tell me what you like to do in your free time?"
+    )
+    initial_question_translation: str = (
+        "Bạn có thể giới thiệu bản thân và cho biết bạn thích làm gì vào thời gian rảnh không?"
+    )
 
 
 class SubmitAnswerRequest(_CamelModel):
@@ -100,6 +118,18 @@ class AnswerResponse(_CamelModel):
     transcript: str | None
     word_count: int | None
     created_at: datetime
+    # Adaptive placement test progression (D-25)
+    current_tier: int = 1
+    current_tier_label: str = "Cơ bản (A1–A2)"
+    next_question: str | None = None
+    next_question_index: int | None = None
+    next_tier: int | None = None
+    next_tier_label: str | None = None
+    next_question_translation: str | None = None
+    is_converged: bool = False
+    can_finish_early: bool = False
+    total_answered: int = 1
+    current_estimated_level: str = "A1"
 
 
 class PlacementCompleteResponse(_CamelModel):
@@ -152,7 +182,6 @@ class OnboardingCompleteResponse(_CamelModel):
 
 
 def _check_keys(values: list[str], valid: frozenset[str], field: str) -> None:
-
     invalid = [v for v in values if v not in valid]
     if invalid:
         raise ValueError(f"Invalid {field} keys: {invalid}")

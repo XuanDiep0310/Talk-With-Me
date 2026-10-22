@@ -130,6 +130,24 @@ class Settings(BaseSettings):
     PLACEMENT_B2_THRESHOLD: float = 0.60
     PLACEMENT_C1_THRESHOLD: float = 0.80
 
+    # Scoring Engine & Post-Session Feedback (Sprint 4)
+    SCORING_FORMULA_VERSION: str = "1.0.0"
+    SCORING_MIN_USER_WORDS: int = 5
+    SCORING_MIN_USER_TURNS: int = 1
+    SCORING_MIN_SPOKEN_SECONDS: float = 5.0
+    CONTINUITY_TARGET_RATIO: float = 0.85
+    PAUSE_THRESHOLD_MS: int = 1500
+    PAUSE_PENALTY_PER_MIN: float = 12.0
+    FILLER_PENALTY_PER_100: float = 8.0
+    MTLD_FACTOR_THRESHOLD: float = 0.72
+    MTLD_TARGET_BENCHMARK: float = 50.0
+    MTLD_MIN_WORDS: int = 10
+    SPEED_GRACE_PERIOD_SECONDS: float = 2.0
+    SPEED_PENALTY_PER_SECOND: float = 12.0
+    ARQ_MODE: str = (
+        "eager"  # "eager" (in-process background task for tests/dev) | "arq" (redis queue)
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -25,6 +25,7 @@ from app.core.database import async_session_factory
 from app.core.providers.llm_provider import get_llm_provider
 from app.core.providers.stt_provider import get_stt_provider
 from app.core.redis import get_redis_client
+from app.core.ws_manager import session_ws_manager
 from app.models.session import TranscriptSegment
 from app.repositories.session import SessionRepository, TranscriptRepository
 from app.services.session_state_machine import (
@@ -150,6 +151,9 @@ async def session_websocket_endpoint(
                 await websocket.close(code=4000)
                 return
 
+    # Register active websocket for session notifications
+    session_ws_manager.register(session_id, websocket)
+
     # Notify client of active session
     await websocket.send_json({"type": "session.state", "state": SessionState.ACTIVE.value})
 
@@ -217,10 +221,8 @@ async def session_websocket_endpoint(
             if "bytes" in message and message["bytes"]:
                 raw_bytes = message["bytes"]
                 # Rule: accept audio only when session status is ACTIVE
-                async with async_session_factory() as db:
-                    sess = await SessionRepository(db).get_by_id(session_id)
-                    if not sess or sess.status != SessionState.ACTIVE.value:
-                        continue
+                if not is_session_active:
+                    continue
 
                 audio_buffer.extend(raw_bytes)
 
@@ -467,3 +469,4 @@ async def session_websocket_endpoint(
 
         # Cleanup memory buffer
         audio_buffer.clear()
+        session_ws_manager.unregister(session_id, websocket)
