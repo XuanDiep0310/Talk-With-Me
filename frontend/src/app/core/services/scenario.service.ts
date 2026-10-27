@@ -187,7 +187,7 @@ export interface ChunkBankResponse {
 })
 export class ScenarioService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/api/v1`;
+  private readonly baseUrl = environment.apiUrl;
 
   getScenarios(filter?: {
     category?: string;

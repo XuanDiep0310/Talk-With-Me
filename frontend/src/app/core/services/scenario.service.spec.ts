@@ -38,7 +38,7 @@ describe('ScenarioService', () => {
 
     const req = httpMock.expectOne(
       (r) =>
-        r.url === `${environment.apiUrl}/api/v1/scenarios` &&
+        r.url === `${environment.apiUrl}/scenarios` &&
         r.params.get('category') === 'DAILY_LIFE' &&
         r.params.get('level') === 'A2' &&
         r.params.get('q') === 'supermarket'
@@ -60,7 +60,7 @@ describe('ScenarioService', () => {
       expect(res.sessionId).toBe('sess-456');
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/v1/scenarios/scen-123/roleplays`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/scenarios/scen-123/roleplays`);
     expect(req.request.method).toBe('POST');
     req.flush({
       sessionId: 'sess-456',
@@ -82,7 +82,7 @@ describe('ScenarioService', () => {
         expect(res.success).toBeTrue();
       });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/v1/scenarios/scen-123/drills`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/scenarios/scen-123/drills`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body.action).toBe('NEXT');
     req.flush({
@@ -99,7 +99,7 @@ describe('ScenarioService', () => {
       expect(res.allMandatoryPassed).toBeTrue();
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/v1/roleplays/sess-456/evaluation`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/roleplays/sess-456/evaluation`);
     expect(req.request.method).toBe('GET');
     req.flush({
       id: 'eval-1',
