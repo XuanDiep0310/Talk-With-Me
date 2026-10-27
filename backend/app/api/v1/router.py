@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     coach,
     health,
     onboarding,
+    scenarios,
     users,
     voice,
     ws_session,
@@ -18,5 +19,6 @@ api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(onboarding.router)
 api_router.include_router(coach.router, prefix="/coach", tags=["Coach"])
+api_router.include_router(scenarios.router)
 api_router.include_router(ws_tickets.router, tags=["WebSocket Tickets"])
 api_router.include_router(ws_session.router, tags=["WebSocket Practice"])
