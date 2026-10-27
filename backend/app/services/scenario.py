@@ -5,7 +5,6 @@ Adheres to Communication-First philosophy, Rule D-03, Rule D-10, and DoD.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import uuid
 from datetime import UTC
@@ -434,6 +433,7 @@ class ScenarioService:
         if existing:
             return TranscriptSegmentResponse(
                 id=existing.id,
+                session_id=existing.session_id,
                 speaker=existing.speaker,
                 text=existing.text,
                 start_ms=existing.start_ms,
@@ -491,7 +491,12 @@ class ScenarioService:
         now = self.clock.now()
         current_state = SessionState(session.status)
 
-        if current_state not in (SessionState.ENDED, SessionState.FEEDBACK_READY):
+        if current_state not in (
+            SessionState.ENDED,
+            SessionState.FEEDBACK_READY,
+            SessionState.INSUFFICIENT_DATA,
+            SessionState.FAILED,
+        ):
             if current_state == SessionState.CREATED:
                 SessionStateMachine.transition(SessionState.CREATED, SessionState.ACTIVE)
                 session.status = SessionState.ACTIVE.value
@@ -516,12 +521,15 @@ class ScenarioService:
                 )
             await self.session_repo.save(session)
 
-        # Trigger background evaluation
-        asyncio.create_task(self.evaluate_roleplay_session(session_id))
+        # Trigger evaluation for the ended session
+        try:
+            await self.evaluate_roleplay_session(session_id)
+        except Exception as eval_err:
+            logger.warning("Error evaluating roleplay %s: %s", session_id, eval_err)
 
         return EndSessionResponse(
             id=session.id,
-            status=session.status,
+            status=SessionState.ENDED.value,
             ended_at=session.ended_at or now,
             duration_seconds=session.duration_seconds,
             spoken_seconds=session.spoken_seconds,

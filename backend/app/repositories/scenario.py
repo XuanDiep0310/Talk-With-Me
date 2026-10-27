@@ -223,7 +223,24 @@ class ScenarioRepository:
         return res.scalar_one_or_none()
 
     async def save_evaluation(self, evaluation: RoleplayEvaluation) -> RoleplayEvaluation:
-        self.db.add(evaluation)
+        stmt = select(RoleplayEvaluation).where(
+            RoleplayEvaluation.session_id == evaluation.session_id
+        )
+        res = await self.db.execute(stmt)
+        existing = res.scalar_one_or_none()
+        if existing:
+            existing.status = evaluation.status
+            existing.passed = evaluation.passed
+            existing.requirements_evaluation = evaluation.requirements_evaluation
+            existing.chunks_used_well = evaluation.chunks_used_well
+            existing.chunks_to_improve = evaluation.chunks_to_improve
+            existing.strengths = evaluation.strengths
+            existing.improvements = evaluation.improvements
+            existing.next_practice = evaluation.next_practice
+            existing.evaluated_at = evaluation.evaluated_at
+            evaluation = existing
+        else:
+            self.db.add(evaluation)
         await self.db.commit()
         await self.db.refresh(evaluation)
         return evaluation
