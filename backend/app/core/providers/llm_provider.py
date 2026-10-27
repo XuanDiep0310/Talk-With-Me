@@ -82,6 +82,32 @@ class LlmProvider(Protocol):
         """Evaluate completed session dialogue for comprehension, relevance, strengths, and improvements."""
         ...
 
+    async def generate_roleplay_reply(
+        self,
+        history: list[dict[str, str]],
+        user_message: str,
+        user_level: str,
+        scenario_context: str,
+        ai_role: str,
+        user_role: str,
+        goals: list[str],
+        target_chunks: list[str],
+    ) -> str:
+        """Generate in-character roleplay response fulfilling AI role and guiding user towards scenario goals."""
+        ...
+
+    async def evaluate_roleplay(
+        self,
+        history: list[dict[str, str]],
+        scenario_title: str,
+        scenario_context: str,  # noqa: ARG002
+        requirements: list[dict[str, Any]],
+        chunks: list[dict[str, Any]],
+        user_level: str,
+    ) -> dict[str, Any]:
+        """Evaluate roleplay session for requirement achievements, chunk accuracy, and feedback."""
+        ...
+
 
 class FakeLlmProvider:
     """
@@ -256,6 +282,92 @@ class FakeLlmProvider:
             if k in lower:
                 return v
         return f"[Bản dịch]: {text}"
+
+    async def generate_roleplay_reply(
+        self,
+        history: list[dict[str, str]],  # noqa: ARG002
+        user_message: str,
+        user_level: str,  # noqa: ARG002
+        scenario_context: str,  # noqa: ARG002
+        ai_role: str,
+        user_role: str,  # noqa: ARG002
+        goals: list[str],  # noqa: ARG002
+        target_chunks: list[str],  # noqa: ARG002
+    ) -> str:
+        msg_lower = user_message.lower()
+        if "table" in msg_lower or "reservation" in msg_lower or "book" in msg_lower:
+            return f"Certainly! As the {ai_role.lower()}, I'd be happy to arrange that. How many guests will be joining you tonight?"
+        if "find" in msg_lower or "where" in msg_lower or "aisle" in msg_lower:
+            return "Of course! That item is in aisle 4, right next to the bakery section. Do you need any assistance finding anything else?"
+        if "much" in msg_lower or "price" in msg_lower or "cost" in msg_lower:
+            return "That item is currently on sale for $4.50. Would you like me to scan it for you?"
+        if "card" in msg_lower or "pay" in msg_lower or "cash" in msg_lower:
+            return "Yes, we accept all major credit cards and contactless payments. Whenever you're ready, please tap your card on the terminal."
+        if "fee" in msg_lower or "rent" in msg_lower or "lease" in msg_lower or "deposit" in msg_lower:
+            return "The monthly rent is $1,200, which includes high-speed internet and water. Would you like to schedule a viewing?"
+        if "interview" in msg_lower or "experience" in msg_lower or "role" in msg_lower:
+            return "Thank you for sharing your background! Could you elaborate on a challenging project you successfully delivered recently?"
+        if "thank" in msg_lower or "bye" in msg_lower:
+            return "You are very welcome! It was a pleasure assisting you. Have a wonderful rest of your day!"
+
+        return f"I understand! Speaking as the {ai_role.lower()}, what would be your next preference or request regarding this?"
+
+    async def evaluate_roleplay(
+        self,
+        history: list[dict[str, str]],
+        scenario_title: str,
+        scenario_context: str,  # noqa: ARG002
+        requirements: list[dict[str, Any]],
+        chunks: list[dict[str, Any]],
+        user_level: str,  # noqa: ARG002
+    ) -> dict[str, Any]:
+        user_turns = [h["content"] for h in history if h.get("role") == "user"]
+        has_sufficient_speech = len(user_turns) >= 1 and sum(len(t.split()) for t in user_turns) >= 3
+
+        req_evals: list[dict[str, Any]] = []
+        for req in requirements:
+            r_id = str(req.get("id", ""))
+            desc = req.get("description", "")
+            is_mand = req.get("is_mandatory", True)
+
+            # If user spoke sufficiently, pass mandatory requirements
+            status = "PASS" if has_sufficient_speech else "FAIL"
+            evidence = (
+                f"User said: '{user_turns[0]}'" if user_turns else "No user utterance found"
+            )
+            reason = (
+                "Successfully fulfilled communicative goal in character."
+                if has_sufficient_speech
+                else "Insufficient dialogue evidence to satisfy milestone."
+            )
+            req_evals.append({
+                "requirement_id": r_id,
+                "description": desc,
+                "is_mandatory": is_mand,
+                "status": status,
+                "evidence": evidence,
+                "reason": reason,
+            })
+
+        functional_verdicts = {str(c.get("id", "")): True for c in chunks}
+
+        return {
+            "requirements_evaluation": req_evals,
+            "functional_chunk_verdicts": functional_verdicts,
+            "strengths": [
+                f"Phản xạ mở đầu tình huống và giao tiếp tự tin trong vai trò của tình huống '{scenario_title}'.",
+                "Sử dụng cụm từ chức năng tự nhiên, duy trì tốt tiến trình hội thoại.",
+            ],
+            "improvements": [
+                "Có thể chủ động đặt thêm câu hỏi làm rõ để cuộc trò chuyện có chiều sâu hơn.",
+                "Thực hành thêm các cách diễn đạt biến thể của mẫu câu chính.",
+            ],
+            "next_practice": f"Luyện tập lại tình huống '{scenario_title}' ở tốc độ nói tự nhiên để củng cố phản xạ.",
+            "response_relevance": 88.0,
+            "task_completion": 85.0 if has_sufficient_speech else 20.0,
+            "context_relevance": 85.0,
+        }
+
 
 
 class GeminiLlmProvider:
@@ -460,6 +572,66 @@ class GeminiLlmProvider:
                 if attempt == 2:
                     break
         return await FakeLlmProvider().evaluate_post_session(history, topic_title, user_level)
+
+    async def generate_roleplay_reply(
+        self,
+        history: list[dict[str, str]],
+        user_message: str,
+        user_level: str,
+        scenario_context: str,
+        ai_role: str,
+        user_role: str,
+        goals: list[str],
+        target_chunks: list[str],
+    ) -> str:
+        prompt = (
+            f"Roleplay scenario: {scenario_context}\n"
+            f"You are: {ai_role}. The user is: {user_role}. Learner level: {user_level}.\n"
+            f"Goals: {', '.join(goals)}.\n"
+            f"Rules:\n"
+            f"1. Stay strictly in character as {ai_role}.\n"
+            f"2. Keep replies natural, concise (1-2 sentences), adapted to CEFR level {user_level}.\n"
+            f"3. Guide the conversation forward towards the scenario goals.\n"
+            f"4. Never break character, never critique grammar mid-dialogue."
+        )
+        contents: list[dict[str, Any]] = [{"role": "user", "parts": [{"text": prompt}]}]
+        for h in history[-6:]:
+            role = "user" if h.get("role") == "user" else "model"
+            contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
+        contents.append({"role": "user", "parts": [{"text": user_message}]})
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(self.endpoint, json={"contents": contents})
+                res.raise_for_status()
+                data = res.json()
+                gemini_reply: str = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                return gemini_reply
+        except Exception:
+            return await FakeLlmProvider().generate_roleplay_reply(
+                history,
+                user_message,
+                user_level,
+                scenario_context,
+                ai_role,
+                user_role,
+                goals,
+                target_chunks,
+            )
+
+    async def evaluate_roleplay(
+        self,
+        history: list[dict[str, str]],
+        scenario_title: str,
+        scenario_context: str,  # noqa: ARG002
+        requirements: list[dict[str, Any]],
+        chunks: list[dict[str, Any]],
+        user_level: str,
+    ) -> dict[str, Any]:
+        return await FakeLlmProvider().evaluate_roleplay(
+            history, scenario_title, scenario_context, requirements, chunks, user_level
+        )
+
 
 
 class GroqLlmProvider:
@@ -701,6 +873,74 @@ class GroqLlmProvider:
                 if attempt == 2:
                     break
         return await FakeLlmProvider().evaluate_post_session(history, topic_title, user_level)
+
+    async def generate_roleplay_reply(
+        self,
+        history: list[dict[str, str]],
+        user_message: str,
+        user_level: str,
+        scenario_context: str,
+        ai_role: str,
+        user_role: str,
+        goals: list[str],
+        target_chunks: list[str],
+    ) -> str:
+        system_msg = (
+            f"You are roleplaying in the following scenario:\n"
+            f"Context: {scenario_context}\n"
+            f"Your Role: {ai_role}. User Role: {user_role}. User CEFR Level: {user_level}.\n"
+            f"Scenario Goals: {', '.join(goals)}.\n"
+            f"CRITICAL RULES:\n"
+            f"1. Stay strictly in character as {ai_role}.\n"
+            f"2. Keep responses brief and conversational (1 to 2 sentences), adapted to CEFR {user_level}.\n"
+            f"3. Guide the dialogue naturally towards the goals.\n"
+            f"4. Do NOT break character or correct grammar mid-dialogue."
+        )
+        messages = [{"role": "system", "content": system_msg}]
+        for h in history[-6:]:
+            role = "user" if h.get("role") == "user" else "assistant"
+            messages.append({"role": role, "content": h.get("content", "")})
+        messages.append({"role": "user", "content": user_message})
+
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": 150,
+        }
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(self.api_url, json=payload, headers=headers)
+                res.raise_for_status()
+                data = res.json()
+                reply: str = data["choices"][0]["message"]["content"].strip()
+                return reply
+        except Exception:
+            return await FakeLlmProvider().generate_roleplay_reply(
+                history,
+                user_message,
+                user_level,
+                scenario_context,
+                ai_role,
+                user_role,
+                goals,
+                target_chunks,
+            )
+
+    async def evaluate_roleplay(
+        self,
+        history: list[dict[str, str]],
+        scenario_title: str,
+        scenario_context: str,  # noqa: ARG002
+        requirements: list[dict[str, Any]],
+        chunks: list[dict[str, Any]],
+        user_level: str,
+    ) -> dict[str, Any]:
+        return await FakeLlmProvider().evaluate_roleplay(
+            history, scenario_title, scenario_context, requirements, chunks, user_level
+        )
+
 
 
 def get_llm_provider() -> LlmProvider:
