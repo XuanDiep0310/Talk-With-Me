@@ -106,3 +106,44 @@ Khi session có `session.type == "ROLEPLAY"`, hệ thống chuyển đổi promp
    - AI không ngắt lời khi người dùng ngập ngừng.
    - Giữ độ dài câu trả lời ngắn gọn (1–3 câu) mô phỏng người đối thoại đời thực, tránh độc thoại thuyết giảng.
    - Khéo léo đưa ra câu hỏi gợi mở để người dùng kích hoạt các mục tiêu tiếp theo trong tình huống.
+
+
+---
+
+## 6. Kiến trúc Trải nghiệm Người dùng Chuẩn "The Coach" (The Coach-style Chunk Drill UX)
+
+Nhằm tối ưu hóa khả năng ghi nhớ dài hạn và kích hoạt phản xạ vô điều kiện (automaticity), luồng học chi tiết của mỗi tình huống được thiết kế theo 4 bước trực quan, tương tự như ứng dụng **The Coach**, đồng thời tuân thủ 100% hệ thống màu thương hiệu TalkWithMe (`#286FB4` Primary Blue, `#E2F0F9` Light Accent, `#1e293b` Dark Navy, `#16a34a` Success Green, `#f59e0b` Amber, `#DF4C73` Recording Accent):
+
+### 6.1. Màn Chuẩn bị: "ĐỂ TRẢ LỜI CÂU HỎI" & "BẠN CẦN NHỚ CỤM SAU"
+- **Thẻ mục tiêu nổi bật (Dark Navy Card):** Nhấn mạnh câu hỏi hoặc bối cảnh cần giải quyết (e.g. *"What are you looking for in a job? / Bạn đang tìm kiếm điều gì ở một công việc?"*), cùng nút xem chi tiết vai diễn và nhiệm vụ.
+- **Danh sách mẫu câu cần nhớ:** Hiển thị toàn bộ các chunk của bài học kèm:
+  - Nút loa 🔊 phát âm mẫu chuẩn.
+  - Phân loại thẻ chức năng (`OPENING`, `REQUEST`, `CLARIFY`, `AGREE_DECLINE`, `CLOSING`).
+  - Mẫu câu và câu ví dụ thực tế.
+  - Nút bookmark 🔖 lưu vào Chunk Bank cá nhân và huy hiệu hoàn thành ✓.
+- **Thẻ Huấn luyện viên Alex:** Thể hiện tinh thần đồng hành 1-1 cùng AI Coach.
+- **Nút "Bắt đầu" toàn chiều rộng:** Khởi động bài nạp cụm mượt mà.
+
+### 6.2. Màn "Nạp cụm" (Pronunciation Score Meter & Word-level Highlighting)
+- **Vòng tròn điểm phát âm SVG (Circular Score Meter):**
+  - Bán kính $r=40$, chu vi $C = 2\pi r \approx 251.33$.
+  - Thuộc tính `stroke-dashoffset = C \times (1 - \text{Score} / 100)` tạo hiệu ứng quét kim đồng hồ mượt mà.
+  - Mã màu theo thang điểm: Xanh lá `#16a34a` ($\ge 70$), Hổ phách `#f59e0b` ($50-69$), Đỏ thắm `#dc2626` ($<50$).
+- **Hệ thống điều khiển âm thanh kép (Dual Audio Speed):**
+  - 🔊 Nút loa thường (`rate = 0.9 - 1.0`): Nghe với tốc độ tự nhiên.
+  - 🐌 Nút ốc sên (`rate = 0.65`): Nghe chậm rãi, rõ từng âm tiết và nối âm.
+- **Tô màu từng từ theo kết quả phát âm (Word-by-word Coloring):**
+  - Từ phát âm đúng: Xanh ngọc `#16a34a` + in đậm.
+  - Từ phát âm chưa rõ / cần cải thiện: Đỏ `#dc2626` / Hổ phách.
+- **Phiên âm quốc tế (Phonetic IPA):** Tự động sinh phiên âm chuẩn IPA (e.g. `/aɪm ˈlʊk.ɪŋ fɔːr/`) bên dưới mẫu câu.
+- **Nút Micro trung tâm nổi bật:** Có sóng xung kích (pulse animation) khi đang lắng nghe.
+
+### 6.3. Màn "Ghép câu" — Nghe và Đọc lại (Sentence Assembly)
+- Giúp người học liên kết chunk vừa nạp vào một câu hoàn chỉnh đầy đủ ngữ cảnh trong tình huống thực tế.
+- Tích hợp phát âm thường và chậm để học cách nối âm giữa chunk và phần ngữ cảnh.
+
+### 6.4. Màn "Ghép câu" — Điền khuyết Phản xạ (Fill-in-the-blank Memory Retrieval)
+- **Hiệu ứng che chunk:** Cụm từ mục tiêu được ẩn đi bằng các nét gạch trống `_____ _____ _____`, kèm theo phần đuôi của câu và gợi ý nghĩa tiếng Việt.
+- **Tooltip hướng dẫn tương tác:** Bong bóng nổi *"Bấm vào đây để nói"* chỉ thẳng vào micro trung tâm.
+- **Nút "Gợi ý" (Hint):** Cho phép bật/tắt để xem trước câu gốc nếu người học chưa nhớ ra.
+- **Nút "Bắt đầu Roleplay ngay 🎭":** Chuyển tiếp liền mạch sang phòng thoại hội thoại với AI để ứng dụng ngay những gì vừa luyện tập.
