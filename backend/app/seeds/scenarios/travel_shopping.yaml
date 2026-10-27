@@ -1,0 +1,390 @@
+scenarios:
+  - slug: "hotel-check-in"
+    category: "TRAVEL_SHOPPING"
+    title_vi: "Check-in khách sạn"
+    title_en: "Hotel Check-in & Inquiries"
+    level: "A2"
+    estimated_duration_minutes: 12
+    context: "Bạn vừa hạ cánh sau chuyến bay dài và đến quầy lễ tân khách sạn Grand Hotel để làm thủ tục nhận phòng đã đặt trước qua mạng."
+    user_role: "Khách lưu trú"
+    ai_role: "Lễ tân khách sạn"
+    goals:
+      - "Nêu thông tin đặt phòng và tên khách hàng"
+      - "Hỏi về giờ phục vụ bữa sáng và mật khẩu Wi-Fi"
+      - "Yêu cầu phòng ở tầng cao hoặc hướng nhìn đẹp"
+    sort_order: 11
+    requirements:
+      - description: "Chào hỏi và thông báo làm thủ tục check-in"
+        type: "TASK"
+        expected_chunk_function: "OPENING"
+        is_mandatory: true
+        sort_order: 1
+      - description: "Cung cấp mã đặt phòng hoặc giấy tờ tùy thân"
+        type: "TASK"
+        expected_chunk_function: "REQUEST"
+        is_mandatory: true
+        sort_order: 2
+      - description: "Hỏi làm rõ tiện ích như Wi-Fi hoặc giờ ăn sáng"
+        type: "TASK"
+        expected_chunk_function: "CLARIFY"
+        is_mandatory: true
+        sort_order: 3
+      - description: "Nhận chìa khóa và cảm ơn nhân viên lễ tân"
+        type: "TASK"
+        expected_chunk_function: "CLOSING"
+        is_mandatory: false
+        sort_order: 4
+    chunks:
+      - function_tag: "OPENING"
+        text: "Hi, I have a reservation under the name..."
+        meaning_vi: "Xin chào, tôi có đặt phòng trước dưới tên..."
+        example_sentence: "Hi, I have a reservation under the name of Nguyen for three nights."
+        accepted_variations:
+          - "Hello, I'd like to check in, my name is..."
+          - "I booked a room under..."
+        sort_order: 1
+      - function_tag: "REQUEST"
+        text: "Could I have a room on a higher floor?"
+        meaning_vi: "Tôi có thể lấy phòng ở tầng cao hơn được không?"
+        example_sentence: "If possible, could I have a room on a higher floor with a nice view?"
+        accepted_variations:
+          - "Is there a room available on an upper floor?"
+          - "Can we get a room with a city view?"
+        sort_order: 2
+      - function_tag: "CLARIFY"
+        text: "What time is breakfast served in the morning?"
+        meaning_vi: "Bữa sáng được phục vụ vào lúc mấy giờ sáng?"
+        example_sentence: "What time is breakfast served, and where is the dining hall located?"
+        accepted_variations:
+          - "When does breakfast start in the morning?"
+          - "Could you tell me the breakfast hours?"
+        sort_order: 3
+      - function_tag: "AGREE_DECLINE"
+        text: "That works wonderfully for us."
+        meaning_vi: "Điều đó rất tuyệt vời đối với chúng tôi."
+        example_sentence: "Room 802 sounds lovely, that works wonderfully for us."
+        accepted_variations:
+          - "That sounds great, thank you."
+          - "Perfect, that's very helpful."
+        sort_order: 4
+      - function_tag: "CLOSING"
+        text: "Thank you for the warm welcome!"
+        meaning_vi: "Cảm ơn vì sự đón tiếp nồng hậu!"
+        example_sentence: "Thank you for the warm welcome! We'll head up to our room now."
+        accepted_variations:
+          - "Thanks for your assistance!"
+          - "Thank you very much, have a good day!"
+        sort_order: 5
+
+  - slug: "asking-directions"
+    category: "TRAVEL_SHOPPING"
+    title_vi: "Hỏi đường & Di chuyển"
+    title_en: "Asking for Directions in the City"
+    level: "A2"
+    estimated_duration_minutes: 10
+    context: "Bạn đang đi dạo ở khu phố cổ và muốn tìm đường đến ga tàu điện ngầm gần nhất. Bạn dừng lại hỏi một người dân địa phương tốt bụng."
+    user_role: "Khách du lịch"
+    ai_role: "Người dân địa phương"
+    goals:
+      - "Lịch sự hỏi đường tới điểm đến mong muốn"
+      - "Xác nhận khoảng cách và thời gian đi bộ"
+      - "Hỏi xem có tuyến xe buýt hoặc tàu điện nào thuận tiện không"
+    sort_order: 12
+    requirements:
+      - description: "Xin phép và lịch sự hỏi đường"
+        type: "TASK"
+        expected_chunk_function: "OPENING"
+        is_mandatory: true
+        sort_order: 1
+      - description: "Hỏi cụ thể địa điểm ga tàu điện hoặc bến xe"
+        type: "TASK"
+        expected_chunk_function: "REQUEST"
+        is_mandatory: true
+        sort_order: 2
+      - description: "Hỏi làm rõ thời gian đi bộ hoặc mốc nhận biết"
+        type: "TASK"
+        expected_chunk_function: "CLARIFY"
+        is_mandatory: true
+        sort_order: 3
+      - description: "Cảm ơn sự chỉ dẫn và chúc ngày tốt lành"
+        type: "TASK"
+        expected_chunk_function: "CLOSING"
+        is_mandatory: false
+        sort_order: 4
+    chunks:
+      - function_tag: "OPENING"
+        text: "Excuse me, I seem to be a bit lost."
+        meaning_vi: "Xin lỗi, hình như tôi bị lạc đường một chút."
+        example_sentence: "Excuse me, I seem to be a bit lost. Could you help me?"
+        accepted_variations:
+          - "Pardon me, could you point me in the right direction?"
+          - "Sorry to bother you, but I'm looking for..."
+        sort_order: 1
+      - function_tag: "REQUEST"
+        text: "How do I get to the nearest metro station?"
+        meaning_vi: "Làm thế nào để tôi đến ga tàu điện ngầm gần nhất?"
+        example_sentence: "Could you tell me how to get to the central station from here?"
+        accepted_variations:
+          - "Which way is the subway station?"
+          - "Can you direct me to the nearest station?"
+        sort_order: 2
+      - function_tag: "CLARIFY"
+        text: "Is it within walking distance?"
+        meaning_vi: "Chỗ đó có nằm trong khoảng cách đi bộ được không?"
+        example_sentence: "Is it within walking distance, or should I catch a bus?"
+        accepted_variations:
+          - "How long does it take on foot?"
+          - "Is it far to walk there?"
+        sort_order: 3
+      - function_tag: "AGREE_DECLINE"
+        text: "Got it, turn right at the traffic lights."
+        meaning_vi: "Tôi hiểu rồi, rẽ phải ở cột đèn giao thông."
+        example_sentence: "Got it, go straight two blocks and turn right at the traffic lights."
+        accepted_variations:
+          - "I see, that sounds straightforward."
+          - "Understood, thank you for clarifying."
+        sort_order: 4
+      - function_tag: "CLOSING"
+        text: "I really appreciate your guidance, thank you!"
+        meaning_vi: "Tôi rất cảm ơn sự chỉ dẫn của bạn!"
+        example_sentence: "I really appreciate your guidance, thank you and have a lovely day!"
+        accepted_variations:
+          - "Thanks a lot for the help!"
+          - "Much appreciated, thank you!"
+        sort_order: 5
+
+  - slug: "shopping-clothing-store"
+    category: "TRAVEL_SHOPPING"
+    title_vi: "Mua sắm tại trung tâm"
+    title_en: "Shopping at a Clothing Store"
+    level: "B1"
+    estimated_duration_minutes: 15
+    context: "Bạn đang chọn quần áo tại một trung tâm mua sắm lớn. Bạn tìm thấy một chiếc áo khoác ưng ý nhưng cần đổi kích cỡ và hỏi thử đồ."
+    user_role: "Khách mua sắm"
+    ai_role: "Nhân viên bán hàng"
+    goals:
+      - "Hỏi nhân viên kiểm tra kích cỡ khác trong kho"
+      - "Hỏi vị trí phòng thử đồ"
+      - "Hỏi về chính sách đổi trả hoặc giảm giá"
+    sort_order: 13
+    requirements:
+      - description: "Mở lời và hỏi sự hỗ trợ của nhân viên bán hàng"
+        type: "TASK"
+        expected_chunk_function: "OPENING"
+        is_mandatory: true
+        sort_order: 1
+      - description: "Yêu cầu đổi size hoặc màu sắc khác"
+        type: "TASK"
+        expected_chunk_function: "REQUEST"
+        is_mandatory: true
+        sort_order: 2
+      - description: "Hỏi làm rõ vị trí phòng thay đồ hoặc khuyến mãi"
+        type: "TASK"
+        expected_chunk_function: "CLARIFY"
+        is_mandatory: true
+        sort_order: 3
+      - description: "Quyết định mua hoặc từ chối lịch sự"
+        type: "TASK"
+        expected_chunk_function: "AGREE_DECLINE"
+        is_mandatory: false
+        sort_order: 4
+      - description: "Thanh toán hoặc cảm ơn nhân viên"
+        type: "TASK"
+        expected_chunk_function: "CLOSING"
+        is_mandatory: false
+        sort_order: 5
+    chunks:
+      - function_tag: "OPENING"
+        text: "Could you help me check if you have this in...?"
+        meaning_vi: "Bạn có thể kiểm tra giúp tôi xem có món này màu/cỡ... không?"
+        example_sentence: "Could you help me check if you have this jacket in a medium size?"
+        accepted_variations:
+          - "Do you have this in a size...?"
+          - "Does this jacket come in other colors?"
+        sort_order: 1
+      - function_tag: "REQUEST"
+        text: "Where are the fitting rooms located?"
+        meaning_vi: "Phòng thử đồ nằm ở vị trí nào vậy?"
+        example_sentence: "Where are the fitting rooms located? I'd like to try this on."
+        accepted_variations:
+          - "Can I try this on in the dressing room?"
+          - "Where can I try this jacket on?"
+        sort_order: 2
+      - function_tag: "CLARIFY"
+        text: "Is there any current discount on this item?"
+        meaning_vi: "Món đồ này hiện có đang được giảm giá không?"
+        example_sentence: "Is there any current discount or promotion on this item?"
+        accepted_variations:
+          - "Is this on sale today?"
+          - "Are there any promotions running right now?"
+        sort_order: 3
+      - function_tag: "AGREE_DECLINE"
+        text: "It fits like a glove, I'll take it."
+        meaning_vi: "Nó vừa như in luôn, tôi sẽ mua nó."
+        example_sentence: "It fits like a glove! I'll definitely take this one."
+        accepted_variations:
+          - "It fits very well, I'll buy it."
+          - "I love how it looks on me, I'll take it."
+        sort_order: 4
+      - function_tag: "CLOSING"
+        text: "Thanks for assisting me today!"
+        meaning_vi: "Cảm ơn bạn đã hỗ trợ tôi hôm nay!"
+        example_sentence: "Thanks for assisting me today, you've been so kind!"
+        accepted_variations:
+          - "Thank you for all your help!"
+          - "Much appreciated, have a good day!"
+        sort_order: 5
+
+  - slug: "museum-tour"
+    category: "TRAVEL_SHOPPING"
+    title_vi: "Tham quan bảo tàng"
+    title_en: "Visiting a Museum"
+    level: "B2"
+    estimated_duration_minutes: 16
+    context: "Bạn đang tham quan Viện bảo tàng Lịch sử và Nghệ thuật Quốc gia. Bạn ghé quầy dịch vụ để thuê thiết bị hướng dẫn âm thanh (audio guide) và hỏi về triển lãm đặc biệt."
+    user_role: "Khách tham quan"
+    ai_role: "Hướng dẫn viên bảo tàng"
+    goals:
+      - "Hỏi thông tin về triển lãm nổi bật trong ngày"
+      - "Thuê thiết bị thuyết minh tai nghe có tiếng Anh"
+      - "Hỏi về quy định chụp ảnh và giờ mở cửa"
+    sort_order: 14
+    requirements:
+      - description: "Chào hỏi và nêu sự quan tâm đến triển lãm"
+        type: "TASK"
+        expected_chunk_function: "OPENING"
+        is_mandatory: true
+        sort_order: 1
+      - description: "Hỏi thuê thiết bị hướng dẫn âm thanh"
+        type: "TASK"
+        expected_chunk_function: "REQUEST"
+        is_mandatory: true
+        sort_order: 2
+      - description: "Hỏi làm rõ quy định chụp ảnh bên trong phòng tranh"
+        type: "TASK"
+        expected_chunk_function: "CLARIFY"
+        is_mandatory: true
+        sort_order: 3
+      - description: "Cảm ơn và bắt đầu chuyến tham quan"
+        type: "TASK"
+        expected_chunk_function: "CLOSING"
+        is_mandatory: false
+        sort_order: 4
+    chunks:
+      - function_tag: "OPENING"
+        text: "Could you recommend the highlights of today's exhibition?"
+        meaning_vi: "Bạn có thể gợi ý những điểm nổi bật nhất của triển lãm hôm nay không?"
+        example_sentence: "Could you recommend the highlights of today's special exhibition for a first-time visitor?"
+        accepted_variations:
+          - "What are the must-see galleries here?"
+          - "Which exhibitions would you recommend seeing first?"
+        sort_order: 1
+      - function_tag: "REQUEST"
+        text: "I'd like to rent an English audio guide, please."
+        meaning_vi: "Tôi muốn thuê một thiết bị thuyết minh bằng tiếng Anh."
+        example_sentence: "I'd like to rent an English audio guide for the main gallery, please."
+        accepted_variations:
+          - "Are audio guides available in English?"
+          - "Can I get an English audio guide headset?"
+        sort_order: 2
+      - function_tag: "CLARIFY"
+        text: "Is flash photography permitted inside the halls?"
+        meaning_vi: "Có được phép chụp ảnh dùng đèn flash trong các phòng trưng bày không?"
+        example_sentence: "Is photography allowed, and is flash photography strictly prohibited?"
+        accepted_variations:
+          - "Are visitors allowed to take pictures inside?"
+          - "Can I take photos without flash?"
+        sort_order: 3
+      - function_tag: "AGREE_DECLINE"
+        text: "Understood, no flash and no touching the exhibits."
+        meaning_vi: "Tôi đã hiểu, không dùng đèn flash và không chạm vào hiện vật."
+        example_sentence: "Understood, no flash and no touching the artifacts. Thanks for the heads up."
+        accepted_variations:
+          - "Clear, I will follow the gallery rules."
+          - "Got it, thank you for the reminder."
+        sort_order: 4
+      - function_tag: "CLOSING"
+        text: "Thank you for the detailed information!"
+        meaning_vi: "Cảm ơn bạn vì những thông tin chi tiết!"
+        example_sentence: "Thank you for the detailed information, I'm excited for the tour!"
+        accepted_variations:
+          - "Thank you, that's very helpful!"
+          - "Have a wonderful day!"
+        sort_order: 5
+
+  - slug: "airport-transit"
+    category: "TRAVEL_SHOPPING"
+    title_vi: "Quá cảnh và thủ tục sân bay"
+    title_en: "Airport Transit & Boarding Gate"
+    level: "B1"
+    estimated_duration_minutes: 14
+    context: "Bạn đang trong chuyến bay nối chuyến tại một sân bay quốc tế lớn. Bạn cần tìm cửa ra máy bay (gate) tiếp theo và hỏi về việc hành lý ký gửi có tự động chuyển tiếp không."
+    user_role: "Hành khách quá cảnh"
+    ai_role: "Nhân viên đại diện hãng bay tại sân bay"
+    goals:
+      - "Hỏi cửa lên máy bay và thời gian bắt đầu lên máy bay"
+      - "Hỏi kiểm tra tình trạng hành lý chuyển tiếp"
+      - "Xác nhận có cần làm lại thủ tục an ninh không"
+    sort_order: 15
+    requirements:
+      - description: "Xuất trình thẻ lên máy bay và hỏi cửa khởi hành"
+        type: "TASK"
+        expected_chunk_function: "OPENING"
+        is_mandatory: true
+        sort_order: 1
+      - description: "Hỏi tình trạng hành lý ký gửi chuyển tiếp"
+        type: "TASK"
+        expected_chunk_function: "REQUEST"
+        is_mandatory: true
+        sort_order: 2
+      - description: "Hỏi làm rõ cổng an ninh trung chuyển"
+        type: "TASK"
+        expected_chunk_function: "CLARIFY"
+        is_mandatory: true
+        sort_order: 3
+      - description: "Cảm ơn nhân viên hãng bay và di chuyển ra cửa lên máy bay"
+        type: "TASK"
+        expected_chunk_function: "CLOSING"
+        is_mandatory: false
+        sort_order: 4
+    chunks:
+      - function_tag: "OPENING"
+        text: "Could you check which gate my connecting flight departs from?"
+        meaning_vi: "Bạn có thể kiểm tra giúp tôi chuyến bay nối chuyến khởi hành từ cửa nào không?"
+        example_sentence: "Excuse me, could you check which gate flight VN302 departs from?"
+        accepted_variations:
+          - "Where is the departure gate for my flight?"
+          - "Could you tell me the gate for flight...?"
+        sort_order: 1
+      - function_tag: "REQUEST"
+        text: "Will my checked luggage be transferred automatically?"
+        meaning_vi: "Hành lý ký gửi của tôi có được tự động chuyển sang chuyến bay tiếp theo không?"
+        example_sentence: "Will my checked baggage be transferred automatically to my final destination?"
+        accepted_variations:
+          - "Do I need to collect my luggage here?"
+          - "Is my bag checked all the way through?"
+        sort_order: 2
+      - function_tag: "CLARIFY"
+        text: "What time does boarding start for this flight?"
+        meaning_vi: "Mấy giờ thì bắt đầu mở cửa lên máy bay cho chuyến này?"
+        example_sentence: "What time does boarding start, and how far is Gate 45 from here?"
+        accepted_variations:
+          - "When will boarding commence?"
+          - "At what time does the gate open?"
+        sort_order: 3
+      - function_tag: "AGREE_DECLINE"
+        text: "That gives me plenty of time to get there."
+        meaning_vi: "Khoảng thời gian đó đủ rộng rãi để tôi đi bộ tới đó."
+        example_sentence: "Forty minutes gives me plenty of time to get through transit security."
+        accepted_variations:
+          - "Good to know, that's enough time."
+          - "Understood, I will head over right away."
+        sort_order: 4
+      - function_tag: "CLOSING"
+        text: "Thank you for clearing that up, have a safe shift!"
+        meaning_vi: "Cảm ơn bạn đã giải đáp rõ ràng, chúc bạn ca làm việc an toàn!"
+        example_sentence: "Thank you for clearing that up, I appreciate your assistance!"
+        accepted_variations:
+          - "Thanks for your help, have a good day!"
+          - "Thank you so much!"
+        sort_order: 5
