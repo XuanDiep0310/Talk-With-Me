@@ -1,75 +1,36 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  computed,
+  inject,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
 import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
-import { MOCK_SCENARIO_CHUNKS } from '../../core/data/mock-data';
+import {
+  ScenarioService,
+  ScenarioDetail,
+  ScenarioChunk,
+  ChunkFunctionalTag,
+} from '../../core/services/scenario.service';
 
-export interface Chunk {
-  id: string;
-  label: string;
-  function: string;
-  chunk: string;
-  meaning: string;
-  example: string;
-  exampleVi: string;
-  color: string;
-  bg: string;
-}
+export type DetailStep = 'context' | 'chunks' | 'drill';
 
-export type DetailStep = "context" | "chunks" | "drill";
-
-export const GENERIC_CHUNKS: Chunk[] = [
-  {
-    id: "g1", label: "Mở đầu", function: "Bắt đầu tình huống",
-    chunk: "Excuse me, could I...?",
-    meaning: "Xin lỗi, tôi có thể...?",
-    example: "Excuse me, could I ask you something about this?",
-    exampleVi: "Xin lỗi, tôi có thể hỏi bạn điều này được không?",
-    color: "#286FB4", bg: "#E2F0F9",
-  },
-  {
-    id: "g2", label: "Đề nghị / Yêu cầu", function: "Nêu yêu cầu chính",
-    chunk: "I'd like to...",
-    meaning: "Tôi muốn...",
-    example: "I'd like to know more about the options available.",
-    exampleVi: "Tôi muốn biết thêm về các lựa chọn hiện có.",
-    color: "#7c3aed", bg: "#F5F3FF",
-  },
-  {
-    id: "g3", label: "Làm rõ", function: "Hỏi thêm để hiểu rõ hơn",
-    chunk: "Could you explain...?",
-    meaning: "Bạn có thể giải thích...?",
-    example: "Could you explain how this works exactly?",
-    exampleVi: "Bạn có thể giải thích chính xác điều này hoạt động thế nào không?",
-    color: "#059669", bg: "#ECFDF5",
-  },
-  {
-    id: "g4", label: "Đồng ý / Xác nhận", function: "Đồng ý hoặc xác nhận thông tin",
-    chunk: "That works for me.",
-    meaning: "Điều đó phù hợp với tôi.",
-    example: "That works for me. Let's go ahead with that plan.",
-    exampleVi: "Điều đó phù hợp với tôi. Hãy tiếp tục với kế hoạch đó.",
-    color: "#f59e0b", bg: "#FFF5E5",
-  },
-  {
-    id: "g5", label: "Từ chối / Thay thế", function: "Lịch sự từ chối hoặc đề xuất thay thế",
-    chunk: "I'm afraid I can't..., but maybe...",
-    meaning: "Tôi e rằng tôi không thể..., nhưng có lẽ...",
-    example: "I'm afraid I can't do that right now, but maybe we could schedule it for next week?",
-    exampleVi: "Tôi e rằng tôi không thể làm điều đó ngay bây giờ, nhưng có lẽ chúng ta có thể lên lịch cho tuần sau?",
-    color: "#DF4C73", bg: "#FFF0F3",
-  },
-  {
-    id: "g6", label: "Kết thúc", function: "Kết thúc cuộc trò chuyện",
-    chunk: "Thank you so much for your help!",
-    meaning: "Cảm ơn bạn rất nhiều vì đã giúp đỡ!",
-    example: "Thank you so much for your help! I really appreciate it.",
-    exampleVi: "Cảm ơn bạn rất nhiều vì đã giúp đỡ! Tôi thực sự trân trọng điều đó.",
-    color: "#64748b", bg: "#F1F5F9",
-  }
-];
+const FUNCTIONAL_TAG_CONFIG: Record<
+  ChunkFunctionalTag,
+  { label: string; color: string; bg: string }
+> = {
+  OPENING: { label: 'Mở đầu', color: '#286FB4', bg: '#E2F0F9' },
+  REQUEST: { label: 'Yêu cầu', color: '#7c3aed', bg: '#F5F3FF' },
+  CLARIFY: { label: 'Làm rõ', color: '#059669', bg: '#ECFDF5' },
+  AGREE_DECLINE: { label: 'Đồng ý / Từ chối', color: '#f59e0b', bg: '#FFF5E5' },
+  CLOSING: { label: 'Kết thúc', color: '#64748b', bg: '#F1F5F9' },
+};
 
 @Component({
   selector: 'app-scenario-detail',
@@ -80,18 +41,35 @@ export const GENERIC_CHUNKS: Chunk[] = [
     <div class="p-5 md:p-8 max-w-4xl mx-auto space-y-6">
       <!-- Top header bar -->
       <div class="flex items-center gap-4">
-        <button class="w-9 h-9 rounded-xl flex items-center justify-center btn-secondary cursor-pointer" (click)="appState.go('scenarios')">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
+        <button
+          type="button"
+          aria-label="Quay lại danh sách"
+          class="w-10 h-10 rounded-xl flex items-center justify-center btn-secondary cursor-pointer"
+          (click)="goBack()"
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path d="M19 12H5M12 5l-7 7 7 7" />
+          </svg>
         </button>
-        <div>
-          <h1 class="text-2xl font-800" style="font-weight: 800; color: #1e293b">{{ title() }}</h1>
-          <p class="text-sm" style="color: #64748b">{{ category() }} · Level {{ level() }}</p>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-800 truncate" style="font-weight: 800; color: #1e293b">
+              {{ scenario()?.titleVi || 'Tình huống' }}
+            </h1>
+            <span class="badge" style="background: #E2F0F9; color: #286FB4; font-weight: 700">
+              {{ scenario()?.level }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 font-500 italic">
+            {{ scenario()?.titleEn }} · ⏱ {{ scenario()?.estimatedMinutes }} phút · +{{ scenario()?.xpReward }} XP
+          </p>
         </div>
       </div>
 
       <!-- Steps tab bar -->
       <div class="flex border-b border-slate-200 gap-8">
         <button
+          type="button"
           class="pb-3 text-sm font-700 transition-all border-b-2 cursor-pointer"
           [style.borderColor]="step() === 'context' ? '#286FB4' : 'transparent'"
           [style.color]="step() === 'context' ? '#286FB4' : '#64748b'"
@@ -100,6 +78,7 @@ export const GENERIC_CHUNKS: Chunk[] = [
           1. Bối cảnh & Mục tiêu
         </button>
         <button
+          type="button"
           class="pb-3 text-sm font-700 transition-all border-b-2 cursor-pointer"
           [style.borderColor]="step() === 'chunks' ? '#286FB4' : 'transparent'"
           [style.color]="step() === 'chunks' ? '#286FB4' : '#64748b'"
@@ -108,6 +87,7 @@ export const GENERIC_CHUNKS: Chunk[] = [
           2. Mẫu câu (Chunks)
         </button>
         <button
+          type="button"
           class="pb-3 text-sm font-700 transition-all border-b-2 cursor-pointer"
           [style.borderColor]="step() === 'drill' ? '#286FB4' : 'transparent'"
           [style.color]="step() === 'drill' ? '#286FB4' : '#64748b'"
@@ -117,262 +97,416 @@ export const GENERIC_CHUNKS: Chunk[] = [
         </button>
       </div>
 
-      <!-- Step content -->
-      @switch (step()) {
-        @case ('context') {
+      <!-- Loading / Error states -->
+      @if (isLoading()) {
+        <div class="py-16 text-center text-slate-400">
+          <div class="text-3xl animate-bounce mb-2">⏳</div>
+          <p class="text-sm">Đang tải nội dung tình huống...</p>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="card p-6 text-center text-rose-600 bg-rose-50 border-rose-200">
+          <p>{{ errorMessage() }}</p>
+          <button type="button" class="btn-secondary mt-3 cursor-pointer" (click)="loadScenario()">
+            Thử lại
+          </button>
+        </div>
+      } @else {\n        @if (scenario(); as s) {
+        <!-- Tab 1: Context & Goals -->
+        @if (step() === 'context') {
           <div class="card p-6 space-y-6">
+            <!-- Context description -->
             <div>
-              <h3 class="font-700 text-base mb-2" style="font-weight: 700; color: #1e293b">Mô tả bối cảnh</h3>
-              <p class="text-sm leading-relaxed" style="color: #475569">{{ desc() }}</p>
+              <h3 class="font-700 text-base mb-2" style="font-weight: 700; color: #1e293b">
+                📖 Bối cảnh tình huống
+              </h3>
+              <p class="text-sm leading-relaxed text-slate-700 mb-2">
+                {{ s.contextVi }}
+              </p>
+              <p class="text-xs italic text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                "{{ s.contextEn }}"
+              </p>
             </div>
 
+            <!-- Roles -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div class="p-4 rounded-xl bg-sky-50 border border-sky-100">
+                <div class="text-xs text-sky-700 font-700 uppercase tracking-wider mb-1">
+                  👤 Vai của bạn
+                </div>
+                <div class="text-sm font-700 text-slate-800">{{ s.userRole }}</div>
+              </div>
+              <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+                <div class="text-xs text-indigo-700 font-700 uppercase tracking-wider mb-1">
+                  🤖 Vai của AI
+                </div>
+                <div class="text-sm font-700 text-slate-800">{{ s.aiRole }}</div>
+              </div>
+            </div>
+
+            <!-- Objectives / Requirements -->
             <div>
-              <h3 class="font-700 text-base mb-3" style="font-weight: 700; color: #1e293b">Mục tiêu bài luyện</h3>
-              <div class="space-y-2">
-                @for (obj of objectives(); track obj) {
-                  <div class="flex items-center gap-2 text-sm text-slate-700">
-                    <span class="text-emerald-500 font-bold">✓</span>
-                    <span>{{ obj }}</span>
+              <h3 class="font-700 text-base mb-3" style="font-weight: 700; color: #1e293b">
+                🎯 Mục tiêu nhiệm vụ cần đạt
+              </h3>
+              <div class="space-y-2.5">
+                @for (req of s.requirements; track req.id) {
+                  <div class="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50">
+                    <span class="text-emerald-600 font-bold text-sm mt-0.5">✓</span>
+                    <div class="flex-1">
+                      <div class="text-sm font-600 text-slate-800">{{ req.descriptionVi }}</div>
+                      <div class="text-xs text-slate-500 italic">{{ req.descriptionEn }}</div>
+                    </div>
+                    @if (req.isMandatory) {
+                      <span class="badge" style="background: #FEE2E2; color: #991B1B; font-size: 10px; font-weight: 700">
+                        Bắt buộc
+                      </span>
+                    }
                   </div>
                 }
               </div>
             </div>
 
-            <div class="pt-4 border-t flex justify-end">
-              <button class="btn-primary cursor-pointer" (click)="step.set('chunks')">
+            <!-- Next button -->
+            <div class="pt-4 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                class="btn-primary cursor-pointer px-6 py-2.5"
+                (click)="step.set('chunks')"
+              >
                 Tiếp tục: Học Chunks mẫu →
               </button>
             </div>
           </div>
         }
 
-        @case ('chunks') {
+        <!-- Tab 2: Chunks list -->
+        @if (step() === 'chunks') {
           <div class="space-y-4">
-            <p class="text-sm text-slate-600">Các mẫu câu (Language Chunks) quan trọng nhất cho tình huống này:</p>
-            
+            <p class="text-sm text-slate-600">
+              Các mẫu câu (Language Chunks) quan trọng nhất cho tình huống này. Hãy nghe và ghi nhớ để dùng trong hội thoại:
+            </p>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              @for (c of chunks; track c.id) {
-                <div class="card p-5 border-l-4" [style.borderLeftColor]="c.color">
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="badge" [style.background]="c.bg" [style.color]="c.color">{{ c.label }}</span>
-                    <span class="text-xs text-slate-400">{{ c.function }}</span>
+              @for (c of s.chunks; track c.id) {
+                <div
+                  class="card p-5 border-l-4 flex flex-col justify-between"
+                  [style.borderLeftColor]="getTagMeta(c.functionalTag).color"
+                >
+                  <div>
+                    <div class="flex items-center justify-between mb-2">
+                      <span
+                        class="badge"
+                        [style.background]="getTagMeta(c.functionalTag).bg"
+                        [style.color]="getTagMeta(c.functionalTag).color"
+                        style="font-weight: 700; font-size: 11px"
+                      >
+                        {{ getTagMeta(c.functionalTag).label }}
+                      </span>
+                      <button
+                        type="button"
+                        class="w-8 h-8 rounded-full flex items-center justify-center bg-sky-50 hover:bg-sky-100 text-sky-700 transition cursor-pointer"
+                        title="Nghe mẫu phát âm"
+                        (click)="playAudio(c.text, c.audioUrl)"
+                      >
+                        🔊
+                      </button>
+                    </div>
+
+                    <div class="font-700 text-lg mb-1" style="font-weight: 700; color: #1e293b">
+                      "{{ c.text }}"
+                    </div>
+                    <div class="text-xs text-slate-500 mb-3">{{ c.meaningVi }}</div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 text-xs text-slate-700 border border-slate-100 space-y-1">
+                      <div class="font-600 text-slate-800">💬 {{ c.exampleSentence }}</div>
+                    </div>
                   </div>
-                  <div class="font-700 text-base mb-1" style="font-weight: 700; color: #1e293b">"{{ c.chunk }}"</div>
-                  <div class="text-xs text-slate-500 mb-3">{{ c.meaning }}</div>
-                  <div class="p-3 rounded-xl bg-slate-50 text-xs italic text-slate-700 border border-slate-200">
-                    <div>💬 {{ c.example }}</div>
-                    <div class="text-slate-400 mt-1 not-italic">{{ c.exampleVi }}</div>
-                  </div>
+
+                  @if (c.acceptedVariations.length > 0) {
+                    <div class="mt-3 pt-2 border-t border-slate-100 text-xs text-slate-400">
+                      Biến thể chấp nhận: <span class="italic text-slate-600">{{ c.acceptedVariations.join(', ') }}</span>
+                    </div>
+                  }
                 </div>
               }
             </div>
 
-            <div class="pt-4 flex justify-end">
-              <button class="btn-primary cursor-pointer" (click)="step.set('drill')">
+            <div class="pt-4 flex justify-between items-center">
+              <button
+                type="button"
+                class="btn-secondary cursor-pointer"
+                (click)="step.set('context')"
+              >
+                ← Quay lại bối cảnh
+              </button>
+              <button
+                type="button"
+                class="btn-primary cursor-pointer px-6 py-2.5"
+                (click)="step.set('drill')"
+              >
                 Tiếp tục: Luyện phản xạ →
               </button>
             </div>
           </div>
         }
 
-        @case ('drill') {
+        <!-- Tab 3: Reflex Drill -->
+        @if (step() === 'drill') {
           <div class="card p-6 text-center space-y-6">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-700 bg-sky-100 text-sky-800">
-              Chunk {{ drillIdx() + 1 }} / {{ chunks.length }}
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-700 bg-sky-100 text-sky-800">
+                Chunk {{ drillIdx() + 1 }} / {{ s.chunks.length }}
+              </span>
+              <span class="text-xs text-slate-400">Luyện phản xạ trước khi Roleplay</span>
             </div>
 
             @if (currentChunk(); as c) {
               <div>
-                <h3 class="text-2xl font-800 mb-2" style="font-weight: 800; color: #1e293b">"{{ c.chunk }}"</h3>
-                <p class="text-sm text-slate-500">{{ c.meaning }}</p>
-              </div>
-
-              <div class="p-4 rounded-2xl bg-sky-50 text-sky-900 text-sm max-w-lg mx-auto border border-sky-100">
-                <div class="font-600 mb-1">Ví dụ nói:</div>
-                <div class="italic">"{{ c.example }}"</div>
-              </div>
-
-              <div class="flex flex-col items-center gap-4 pt-2">
-                <div class="flex flex-col items-center gap-2">
+                <div class="flex items-center justify-center gap-2 mb-2">
+                  <h3 class="text-2xl font-800" style="font-weight: 800; color: #1e293b">
+                    "{{ c.text }}"
+                  </h3>
                   <button
                     type="button"
-                    class="w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white transition-colors cursor-pointer"
-                    [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
-                    [attr.aria-label]="isListening() ? 'Dừng ghi âm' : 'Bắt đầu luyện nói bằng microphone'"
-                    [attr.aria-pressed]="isListening()"
-                    (click)="toggleMicrophone()"
+                    class="w-8 h-8 rounded-full flex items-center justify-center bg-sky-50 hover:bg-sky-100 text-sky-700 cursor-pointer"
+                    title="Nghe mẫu phát âm"
+                    (click)="playAudio(c.text, c.audioUrl)"
                   >
-                    {{ isListening() ? '⏹' : '🎙️' }}
+                    🔊
                   </button>
-                  <span class="text-sm text-slate-500">
-                    {{ isListening() ? 'Đang nghe, hãy đọc lại mẫu câu...' : 'Nhấn mic để đọc lại mẫu câu' }}
-                  </span>
                 </div>
+                <p class="text-sm text-slate-500">{{ c.meaningVi }}</p>
+              </div>
+
+              <div class="p-4 rounded-2xl bg-sky-50 text-sky-900 text-sm max-w-lg mx-auto border border-sky-100 text-left">
+                <div class="font-700 mb-1">Ví dụ nói trong thực tế:</div>
+                <div class="italic">"{{ c.exampleSentence }}"</div>
+              </div>
+
+              <!-- Mic button and speech recognition -->
+              <div class="flex flex-col items-center gap-4 pt-2">
+                <button
+                  type="button"
+                  class="w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white transition-all cursor-pointer shadow-md hover:scale-105"
+                  [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
+                  [attr.aria-label]="isListening() ? 'Dừng ghi âm' : 'Bắt đầu đọc lại chunk'"
+                  (click)="toggleMicrophone()"
+                >
+                  {{ isListening() ? '⏹' : '🎙️' }}
+                </button>
+                <span class="text-sm text-slate-500">
+                  {{ isListening() ? 'Đang nghe, bạn hãy đọc to mẫu câu...' : 'Nhấn mic và đọc to câu mẫu trên' }}
+                </span>
 
                 @if (recognizedSpeech()) {
-                  <div class="w-full max-w-lg rounded-xl border border-sky-100 bg-sky-50 p-3 text-sm text-sky-900" aria-live="polite">
-                    <span class="font-600">Bạn đã nói:</span> {{ recognizedSpeech() }}
+                  <div class="w-full max-w-lg rounded-xl border border-sky-100 bg-sky-50 p-3 text-sm text-sky-900">
+                    <span class="font-700">Bạn đã nói:</span> "{{ recognizedSpeech() }}"
                   </div>
                 }
-                @if (isChunkCompleted(c.id)) {
-                  <p class="text-sm font-600 text-emerald-700">COMPLETED</p>
-                }
-                <p class="text-sm text-slate-500" aria-live="polite">
-                  Đã hoàn thành {{ completedChunkIds().length }}/{{ chunks.length }} chunks ({{ drillProgressPct() }}%).
-                  @if (drillComplete()) { Bạn đã hoàn thành phần Drill. }
-                </p>
-                @if (microphoneError()) {
-                  <p class="max-w-lg text-sm text-rose-600" role="alert">{{ microphoneError() }}</p>
+
+                @if (drillMessage()) {
+                  <p class="text-sm font-600 text-emerald-700">{{ drillMessage() }}</p>
                 }
 
-                <div class="flex flex-wrap justify-center gap-3">
-                  <button class="btn-secondary cursor-pointer" type="button" (click)="repeatCurrentChunk()">
+                <!-- Actions: Nói lại, Câu tiếp theo, Bỏ qua -->
+                <div class="flex flex-wrap justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    class="btn-secondary cursor-pointer px-4 py-2 text-sm font-600"
+                    (click)="repeatChunk(c.id)"
+                  >
                     🔄 Nói lại
                   </button>
-                  @if (drillIdx() < chunks.length - 1) {
-                    <button class="btn-primary cursor-pointer" type="button" (click)="nextChunk()">
+                  <button
+                    type="button"
+                    class="btn-secondary cursor-pointer px-4 py-2 text-sm font-600"
+                    (click)="skipChunk(c.id)"
+                  >
+                    ⏭ Bỏ qua
+                  </button>
+                  @if (drillIdx() < s.chunks.length - 1) {
+                    <button
+                      type="button"
+                      class="btn-primary cursor-pointer px-4 py-2 text-sm font-600"
+                      (click)="nextChunk(c.id)"
+                    >
                       → Câu tiếp theo
                     </button>
-                  } @else if (drillComplete()) {
-                    <span class="inline-flex items-center rounded-xl bg-emerald-50 px-4 py-2 text-sm font-600 text-emerald-700" role="status">
-                      Đã hoàn thành tất cả
-                    </span>
                   }
                 </div>
-                @if (chunkNavigationMessage()) {
-                  <p class="text-sm font-600 text-amber-700" role="alert">{{ chunkNavigationMessage() }}</p>
-                }
 
-                <div class="flex flex-wrap justify-center gap-3">
-                  <button class="btn-primary px-6 py-3 text-base cursor-pointer" (click)="startRoleplay()">
-                    🎭 Bắt đầu Roleplay ngay!
+                <!-- Roleplay launch -->
+                <div class="pt-6 border-t border-slate-100 w-full flex justify-center">
+                  <button
+                    type="button"
+                    class="btn-primary px-8 py-3.5 text-base font-700 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+                    [disabled]="isStartingRoleplay()"
+                    (click)="startRoleplay()"
+                  >
+                    {{ isStartingRoleplay() ? 'Đang tạo phòng roleplay...' : '🎭 Bắt đầu Roleplay ngay!' }}
                   </button>
                 </div>
-                @if (roleplayMessage()) {
-                  <p class="text-sm font-600 text-amber-700" role="alert">{{ roleplayMessage() }}</p>
-                }
               </div>
             }
           </div>
         }
+        }
       }
     </div>
-  `
+  `,
 })
 export class ScenarioDetailComponent implements OnInit, OnDestroy {
-  readonly appState = inject(AppStateService);
+  private readonly scenarioService = inject(ScenarioService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  readonly appState = inject(AppStateService);
   readonly speechService = inject(SpeechRecognitionService);
 
-  readonly step = signal<DetailStep>("context");
+  readonly step = signal<DetailStep>('context');
   readonly drillIdx = signal(0);
   readonly isListening = signal(false);
-  readonly recognizedSpeech = signal("");
-  readonly microphoneError = signal("");
-  readonly chunks = MOCK_SCENARIO_CHUNKS;
-  private readonly speechSubscriptions = new Subscription();
-  readonly completedChunkIds = signal<string[]>([]);
-  readonly drillResult = signal<'correct' | 'incorrect' | null>(null);
-  readonly drillComplete = computed(() => this.chunks.length > 0 && this.completedChunkIds().length === this.chunks.length);
-  readonly drillProgressPct = computed(() => this.chunks.length ? Math.round((this.completedChunkIds().length / this.chunks.length) * 1000) / 10 : 0);
-  readonly roleplayMessage = signal('');
-  readonly chunkNavigationMessage = signal('');
-  private ignoreNextSpeechResult = false;
+  readonly recognizedSpeech = signal('');
+  readonly drillMessage = signal<string | null>(null);
 
-  readonly title = computed(() => this.appState.selectedScenario()?.title ?? '');
-  readonly category = computed(() => this.appState.selectedScenario()?.category ?? '');
-  readonly level = computed(() => this.appState.selectedScenario()?.level ?? '');
-  readonly desc = computed(() => this.appState.selectedScenario()?.description ?? '');
-  readonly objectives = computed(() => this.appState.selectedScenario()?.objectives ?? []);
+  readonly isLoading = signal(true);
+  readonly errorMessage = signal<string | null>(null);
+  readonly isStartingRoleplay = signal(false);
 
-  readonly currentChunk = computed(() => this.chunks[this.drillIdx()]);
+  readonly scenario = signal<ScenarioDetail | null>(null);
+
+  private speechSub?: Subscription;
+
+  readonly currentChunk = computed<ScenarioChunk | null>(() => {
+    const s = this.scenario();
+    if (!s || !s.chunks || s.chunks.length === 0) return null;
+    const idx = this.drillIdx();
+    return s.chunks[idx] || s.chunks[0];
+  });
 
   ngOnInit(): void {
-    if (!this.appState.selectedScenario()) { void this.router.navigateByUrl('/scenarios'); return; }
-    this.speechSubscriptions.add(this.speechService.isListening$.subscribe(listening => {
-      this.isListening.set(listening);
-      if (!listening && this.ignoreNextSpeechResult) this.ignoreNextSpeechResult = false;
-    }));
-    this.speechSubscriptions.add(this.speechService.speechResult$.subscribe(result => {
-      if (this.ignoreNextSpeechResult) {
-        this.ignoreNextSpeechResult = false;
-        return;
-      }
-      if (result.text.trim()) {
-        this.recognizedSpeech.set(result.text.trim());
-        this.speechService.stopListening();
-        this.mockSuccessfulDrillResult();
-      }
-    }));
-    this.speechSubscriptions.add(this.speechService.error$.subscribe(error => this.microphoneError.set(error)));
+    this.loadScenario();
+    this.speechSub = this.speechService.speechResult$.subscribe((res) => {
+      this.recognizedSpeech.set(res.text);
+      this.isListening.set(false);
+      this.drillMessage.set('Đã ghi nhận câu nói của bạn!');
+    });
   }
 
   ngOnDestroy(): void {
-    if (this.isListening()) this.speechService.stopListening();
-    this.speechSubscriptions.unsubscribe();
+    this.speechSub?.unsubscribe();
   }
 
-  async toggleMicrophone(): Promise<void> {
-    this.microphoneError.set("");
+  loadScenario(): void {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    const paramId = this.route.snapshot.paramMap.get('id') || 'supermarket-shopping';
+
+    this.scenarioService.getScenario(paramId).subscribe({
+      next: (data) => {
+        this.scenario.set(data);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Không thể tải thông tin tình huống.');
+        this.isLoading.set(false);
+      },
+    });
+  }
+
+  getTagMeta(tag: ChunkFunctionalTag) {
+    return (
+      FUNCTIONAL_TAG_CONFIG[tag] || {
+        label: tag,
+        color: '#286FB4',
+        bg: '#E2F0F9',
+      }
+    );
+  }
+
+  playAudio(text: string, audioUrl?: string | null): void {
+    this.scenarioService.playChunkAudio(text, audioUrl);
+  }
+
+  toggleMicrophone(): void {
     if (this.isListening()) {
       this.speechService.stopListening();
-      return;
+      this.isListening.set(false);
+    } else {
+      this.recognizedSpeech.set('');
+      this.drillMessage.set(null);
+      this.isListening.set(true);
+      this.speechService.startListening('en-US').catch(() => {
+        this.isListening.set(false);
+      });
     }
-    if (!this.speechService.isSupported) {
-      this.microphoneError.set("Trình duyệt này chưa hỗ trợ nhận diện giọng nói.");
-      return;
-    }
-    this.recognizedSpeech.set("");
-    await this.speechService.startListening("en-US");
   }
 
-  isChunkCompleted(chunkId: string): boolean {
-    return this.completedChunkIds().includes(chunkId);
-  }
-
-  repeatCurrentChunk(): void {
-    if (this.isListening()) {
-      this.ignoreNextSpeechResult = true;
-      this.speechService.stopListening();
-    }
+  repeatChunk(chunkId: string): void {
+    const s = this.scenario();
+    if (!s) return;
+    this.scenarioService
+      .recordDrill(s.id, {
+        chunkId,
+        action: 'REPEAT',
+        spokenText: this.recognizedSpeech() || undefined,
+      })
+      .subscribe();
     this.recognizedSpeech.set('');
-    this.microphoneError.set('');
-    this.drillResult.set(null);
-    this.chunkNavigationMessage.set('');
+    this.drillMessage.set('Đã lưu lượt nói lại. Hãy thử đọc lại thật trôi chảy!');
   }
 
-  nextChunk(): void {
-    const chunk = this.currentChunk();
-    if (!chunk || !this.isChunkCompleted(chunk.id)) {
-      this.chunkNavigationMessage.set('Bạn cần hoàn thành câu này trước khi chuyển sang câu tiếp theo.');
-      return;
-    }
-
-    if (this.drillIdx() >= this.chunks.length - 1) return;
-    this.drillIdx.update(index => index + 1);
+  skipChunk(chunkId: string): void {
+    const s = this.scenario();
+    if (!s) return;
+    this.scenarioService
+      .recordDrill(s.id, {
+        chunkId,
+        action: 'SKIP',
+      })
+      .subscribe();
     this.recognizedSpeech.set('');
-    this.drillResult.set(null);
-    this.microphoneError.set('');
-    this.chunkNavigationMessage.set('');
-  }
-
-  private mockSuccessfulDrillResult(): void {
-    const chunk = this.currentChunk();
-    if (!chunk || this.isChunkCompleted(chunk.id)) return;
-
-    this.drillResult.set('correct');
-    this.completedChunkIds.update(ids => [...ids, chunk.id]);
-    this.roleplayMessage.set('');
-    this.chunkNavigationMessage.set('');
-  }
-
-  async startRoleplay(): Promise<void> {
-    if (this.completedChunkIds().length !== this.chunks.length) {
-      this.roleplayMessage.set('Bạn cần hoàn thành 6/6 chunks trước khi bắt đầu Roleplay.');
-      return;
+    this.drillMessage.set(null);
+    if (this.drillIdx() < s.chunks.length - 1) {
+      this.drillIdx.update((i) => i + 1);
     }
-    this.roleplayMessage.set('');
-    const navigated = await this.appState.go("scenario-roleplay");
-    if (!navigated) this.roleplayMessage.set('Không thể mở Roleplay. Hãy thử lại.');
+  }
+
+  nextChunk(chunkId: string): void {
+    const s = this.scenario();
+    if (!s) return;
+    this.scenarioService
+      .recordDrill(s.id, {
+        chunkId,
+        action: 'NEXT',
+        spokenText: this.recognizedSpeech() || undefined,
+      })
+      .subscribe();
+    this.recognizedSpeech.set('');
+    this.drillMessage.set(null);
+    if (this.drillIdx() < s.chunks.length - 1) {
+      this.drillIdx.update((i) => i + 1);
+    }
+  }
+
+  startRoleplay(): void {
+    const s = this.scenario();
+    if (!s) return;
+
+    this.isStartingRoleplay.set(true);
+    this.scenarioService.startRoleplay(s.id).subscribe({
+      next: (res) => {
+        this.isStartingRoleplay.set(false);
+        this.router.navigate(['/scenario-roleplay', res.sessionId]);
+      },
+      error: () => {
+        this.isStartingRoleplay.set(false);
+        this.errorMessage.set('Không thể khởi tạo phiên Roleplay. Vui lòng thử lại.');
+      },
+    });
+  }
+
+  goBack(): void {
+    this.router.navigate(['/scenarios']);
   }
 }

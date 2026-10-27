@@ -1,29 +1,28 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit, OnDestroy } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  signal,
+  computed,
+  inject,
+  OnInit,
+  OnDestroy,
+  ElementRef,
+  ViewChild,
+  effect,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AppStateService } from '../../core/services/app-state.service';
-import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
+import {
+  CoachVoiceService,
+  LiveTranscriptItem,
+} from '../../core/services/coach-voice.service';
+import {
+  ScenarioService,
+  ScenarioDetail,
+  ScenarioChunk,
+} from '../../core/services/scenario.service';
 import { FormatTimePipe } from '../../shared/pipes/app-pipes';
-import { GENERIC_CHUNKS } from './scenario-detail.component';
-
-export interface Line {
-  id: number;
-  speaker: "AI" | "User";
-  text: string;
-  translation?: string;
-  time: string;
-  detectedChunk?: string;
-}
-
-export const SCRIPT: Line[] = [
-  { id: 1, speaker: "AI", text: "Good evening! Welcome to The Garden Restaurant. Do you have a reservation?", translation: "Chào buổi tối! Chào mừng đến The Garden. Quý khách có đặt bàn trước không?", time: "00:05" },
-  { id: 2, speaker: "User", text: "Good evening! Could I have a table for two, please? We don't have a reservation.", time: "00:18", detectedChunk: "c1" },
-  { id: 3, speaker: "AI", text: "Of course! Right this way. Here's the menu. Can I start you with something to drink?", translation: "Tất nhiên! Mời quý khách đi theo đây. Đây là thực đơn. Quý khách muốn dùng gì trước không?", time: "00:30" },
-  { id: 4, speaker: "User", text: "Could you tell me more about today's specials? And I'd like to order a sparkling water for now.", time: "00:52", detectedChunk: "c3" },
-  { id: 5, speaker: "AI", text: "Sure! Today's special is pan-seared sea bass with lemon butter sauce. It's very popular!", translation: "Dạ! Đặc biệt hôm nay là cá vược áp chảo với sốt bơ chanh. Rất được ưa chuộng!", time: "01:05" },
-  { id: 6, speaker: "User", text: "That sounds great, I'll go with the sea bass. And I'd like to order the Caesar salad as well.", time: "01:22", detectedChunk: "c4" }
-];
 
 @Component({
   selector: 'app-scenario-roleplay',
@@ -31,248 +30,374 @@ export const SCRIPT: Line[] = [
   imports: [CommonModule, FormatTimePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="fixed inset-0 flex flex-col z-50" style="background: #0f172a">
-      <!-- Header -->
-      <div class="flex flex-wrap items-center gap-3 px-3 sm:px-4 py-3 shrink-0" style="background: #1e293b; border-bottom: 1px solid #334155">
-        <div class="text-xl">🎭</div>
-        <div class="flex-1 min-w-0">
-          <div class="text-white font-700 text-sm truncate" style="font-weight: 700">
-            {{ appState.selectedScenario()?.title || "Roleplay Tình huống" }}
+    <main
+      tabindex="-1"
+      class="fixed inset-0 flex flex-col z-50 select-none"
+      style="background: #0f172a; color: #f8fafc"
+    >
+      <!-- Top Header -->
+      <header
+        class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 shrink-0"
+        style="background: #1e293b; border-bottom: 1px solid #334155"
+      >
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center bg-indigo-500/20 text-indigo-400 font-700 text-lg">
+            🎭
           </div>
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span class="text-xs text-emerald-400">Đang roleplay</span>
-          </div>
-        </div>
-
-        <span class="font-700 text-base shrink-0 font-mono text-sky-400" style="font-weight: 700">
-          {{ timer() | formatTime }}
-        </span>
-
-        <button
-          class="text-xs py-1.5 px-3 rounded-lg cursor-pointer shrink-0"
-          [style.background]="showHints() ? '#334155' : '#0f172a'"
-          [attr.aria-expanded]="showHints()"
-          (click)="toggleHints()"
-        >
-          🧩 Chunks
-        </button>
-
-        <button
-          class="btn-accent text-xs py-1.5 px-3 cursor-pointer shrink-0"
-          (click)="showEndModal.set(true)"
-        >
-          Hoàn thành
-        </button>
-      </div>
-
-      <!-- Transcript and live practice hints -->
-      <div class="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
-        <div class="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 max-w-3xl mx-auto w-full">
-          @for (line of transcript(); track line.id) {
-            <div class="flex gap-3" [class.flex-row-reverse]="line.speaker === 'User'">
-              <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-700 text-xs text-white" [style.background]="line.speaker === 'AI' ? '#286FB4' : '#7c3aed'">
-                {{ line.speaker }}
-              </div>
-              <div class="min-w-0 max-w-[90%] sm:max-w-md rounded-2xl p-4 text-sm break-words" [style.background]="line.speaker === 'AI' ? '#243b5e' : '#31215f'" [style.color]="'#fff'">
-                <div>{{ line.text }}</div>
-                @if (line.translation) {
-                  <div class="text-xs mt-1 text-slate-400 border-t border-slate-700 pt-1">{{ line.translation }}</div>
-                }
-              </div>
+          <div class="min-w-0">
+            <h1 class="font-700 text-base sm:text-lg truncate text-slate-100">
+              {{ scenario()?.titleVi || 'Roleplay Tình huống' }}
+            </h1>
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" [ngClass]="statusDotClass()"></span>
+              <span class="text-xs text-slate-300 font-500">{{ statusLabel() }}</span>
+              <span class="text-xs text-slate-500 hidden sm:inline">|</span>
+              <span class="text-xs text-indigo-300 hidden sm:inline">
+                Vai: {{ scenario()?.userRole }} vs {{ scenario()?.aiRole }}
+              </span>
             </div>
-          }
+          </div>
         </div>
 
-        @if (showHints()) {
-          <aside class="w-full lg:w-80 max-h-48 lg:max-h-none shrink-0 overflow-y-auto p-4 space-y-5" style="background: #111c30; border-top: 1px solid #334155; border-left: 1px solid #334155">
-            <section>
-              <div class="flex items-center justify-between mb-2 text-xs font-700 text-slate-400">
-                <span>🎯 NHIỆM VỤ</span>
-                <span>{{ completedTaskCount() }}/{{ tasks().length }}</span>
-              </div>
-              <div class="h-1.5 rounded-full bg-slate-700 overflow-hidden mb-3">
-                <div class="h-full rounded-full transition-all" style="background: #3b82f6" [style.width.%]="taskProgressPct()"></div>
-              </div>
-              <div class="space-y-2">
-                @for (task of taskStates(); track task.id) {
-                  <div class="flex items-center gap-2 text-xs" [style.color]="task.done ? '#94a3b8' : '#e2e8f0'">
-                    <span class="w-4 h-4 rounded flex items-center justify-center shrink-0" [style.background]="task.done ? '#22c55e' : '#334155'" [style.color]="'#fff'">
-                      {{ task.done ? '✓' : '' }}
-                    </span>
-                    <span [class.line-through]="task.done">{{ task.label }}</span>
-                  </div>
-                }
-              </div>
-            </section>
+        <div class="flex items-center gap-3">
+          <!-- Session Timer -->
+          <span class="font-700 text-base font-mono text-sky-400 bg-slate-800/80 px-3 py-1 rounded-lg border border-slate-700">
+            {{ timer() | formatTime }}
+          </span>
 
-            <section>
-              <h2 class="text-xs font-700 text-slate-400 mb-2">🧩 CHUNKS MỤC TIÊU</h2>
-              <div class="space-y-2">
-                @for (chunk of targetChunks; track chunk.id) {
-                  <div class="rounded-lg p-2.5" style="background: #0f172a; border: 1px solid #334155">
-                    <span class="inline-block rounded-full px-2 py-0.5 text-[10px] font-600 mb-1" [style.background]="chunk.bg" [style.color]="chunk.color">{{ chunk.label }}</span>
-                    <div class="text-xs italic text-slate-200">"{{ chunk.chunk }}"</div>
-                  </div>
-                }
+          <!-- Chunks Target Drawer Toggle -->
+          <button
+            type="button"
+            class="text-xs font-600 py-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            [style.background]="showChunks() ? '#3b82f6' : '#334155'"
+            [style.color]="'#fff'"
+            (click)="toggleChunks()"
+          >
+            <span>🧩</span>
+            <span class="hidden sm:inline">Mẫu câu</span> ({{ scenario()?.chunks?.length || 0 }})
+          </button>
+
+          <!-- Complete Session button -->
+          <button
+            type="button"
+            class="btn-accent text-xs font-700 py-2 px-4 rounded-xl cursor-pointer"
+            (click)="showEndModal.set(true)"
+          >
+            Hoàn thành
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Layout: Transcripts + Chunks Side Drawer -->
+      <div class="flex-1 min-h-0 flex overflow-hidden relative">
+        <!-- Conversation Area -->
+        <div class="flex-1 min-h-0 flex flex-col overflow-hidden max-w-4xl mx-auto w-full">
+          <!-- Message transcript stream -->
+          <div
+            #transcriptContainer
+            class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4"
+          >
+            <!-- Scenario Context Card at top of stream -->
+            @if (scenario(); as s) {
+              <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700 text-xs text-slate-300 space-y-1 mb-2">
+                <div class="font-700 text-indigo-300 text-sm">🎯 Bối cảnh Roleplay:</div>
+                <p>{{ s.contextVi }}</p>
+                <div class="pt-1 text-slate-400 italic">
+                  Bạn nhập vai <strong class="text-slate-200">{{ s.userRole }}</strong>, AI là <strong class="text-slate-200">{{ s.aiRole }}</strong>. Hãy hoàn thành các mục tiêu mà không ngần ngại nhé!
+                </div>
               </div>
-            </section>
+            }
+
+            @for (t of voiceService.liveTranscripts(); track t.id) {
+              <div
+                class="flex gap-3"
+                [class.flex-row-reverse]="t.speaker === 'USER'"
+              >
+                <!-- Avatar icon -->
+                <div
+                  class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-700 text-xs text-white shadow"
+                  [style.background]="t.speaker === 'AI' ? '#286FB4' : '#7c3aed'"
+                >
+                  {{ t.speaker === 'AI' ? 'AI' : 'Bạn' }}
+                </div>
+
+                <!-- Bubble -->
+                <div
+                  class="min-w-0 max-w-[85%] sm:max-w-md rounded-2xl p-4 text-sm break-words shadow-sm"
+                  [style.background]="t.speaker === 'AI' ? '#1e293b' : '#312e81'"
+                  [style.border]="t.speaker === 'AI' ? '1px solid #334155' : '1px solid #4338ca'"
+                >
+                  <div class="text-slate-100 font-500 leading-relaxed">{{ t.text }}</div>
+                  @if (t.translation) {
+                    <div class="text-xs mt-1.5 pt-1.5 border-t border-slate-700 text-slate-400">
+                      {{ t.translation }}
+                    </div>
+                  }
+                  <div class="text-[10px] text-slate-400 text-right mt-1">
+                    {{ t.time }}
+                  </div>
+                </div>
+              </div>
+            }
+
+            @if (voiceService.liveTranscripts().length === 0) {
+              <div class="py-12 text-center text-slate-500 text-sm">
+                Đang chuẩn bị câu chào từ AI...
+              </div>
+            }
+          </div>
+
+          <!-- Controls Bar at bottom -->
+          <div
+            class="p-4 sm:p-5 shrink-0 flex flex-col items-center gap-3"
+            style="background: #1e293b; border-top: 1px solid #334155"
+          >
+            <!-- Microphone Tap-To-Speak Button -->
+            <div class="flex items-center gap-4">
+              <button
+                type="button"
+                class="w-16 h-16 rounded-full flex items-center justify-center text-2xl text-white transition-all duration-300 cursor-pointer shadow-lg hover:scale-105"
+                [style.background]="micButtonBackground()"
+                [attr.aria-label]="voiceService.isRecordingTurn() ? 'Dừng nói' : 'Bắt đầu nói'"
+                (click)="toggleSpeaking()"
+              >
+                {{ voiceService.isRecordingTurn() ? '⏹' : '🎙️' }}
+              </button>
+            </div>
+
+            <!-- Hint text -->
+            <div class="text-xs text-slate-400 text-center">
+              {{ micHintText() }}
+            </div>
+
+            <!-- Manual text input fallback -->
+            <div class="w-full max-w-lg flex items-center gap-2 pt-1">
+              <input
+                #fallbackInput
+                type="text"
+                placeholder="Hoặc gõ câu thoại tại đây rồi Enter..."
+                class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-sky-500"
+                (keydown.enter)="sendFallbackText(fallbackInput)"
+              />
+              <button
+                type="button"
+                class="btn-primary text-xs px-3.5 py-2 rounded-xl cursor-pointer"
+                (click)="sendFallbackText(fallbackInput)"
+              >
+                Gửi
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chunks Target Drawer (Slide in/out) -->
+        @if (showChunks()) {
+          <aside
+            class="w-80 shrink-0 border-l border-slate-700 p-4 overflow-y-auto hidden md:block"
+            style="background: #0f172a"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-700 text-sm text-sky-400 uppercase tracking-wider">
+                🧩 Mẫu câu gợi ý
+              </h3>
+              <button
+                type="button"
+                class="text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
+                (click)="showChunks.set(false)"
+              >
+                Đóng ✕
+              </button>
+            </div>
+            <p class="text-xs text-slate-400 mb-4">
+              Dùng các mẫu câu này trong hội thoại để đạt điểm cao và ghi nhận hoàn thành:
+            </p>
+
+            <div class="space-y-3">
+              @for (c of scenario()?.chunks; track c.id) {
+                <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
+                  <div class="text-[10px] font-700 text-sky-400 uppercase mb-0.5">
+                    {{ c.functionalTag }}
+                  </div>
+                  <div class="text-xs font-700 text-slate-100">
+                    "{{ c.text }}"
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-1">
+                    {{ c.meaningVi }}
+                  </div>
+                </div>
+              }
+            </div>
           </aside>
         }
       </div>
 
-      <!-- Footer controls -->
-      <div class="p-4 shrink-0 flex flex-col items-center gap-2" style="background: #1e293b; border-top: 1px solid #334155">
-        <div class="flex flex-wrap items-center justify-center gap-3">
-          <button
-            class="btn-primary px-7 py-3 rounded-full text-base font-600 cursor-pointer"
-            [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
-            [attr.aria-pressed]="isListening()"
-            (click)="toggleMicrophone()"
-          >
-            {{ isListening() ? '⏹ Dừng nghe' : '🎙️ Nhấn để nói' }}
-          </button>
-          <button class="btn-secondary text-xs cursor-pointer" [disabled]="scriptIdx() >= scriptLength" (click)="nextSpeechStep()">
-            ⏭️ Tiếp câu mẫu
-          </button>
-          <button class="btn-secondary text-xs cursor-pointer" (click)="addMockUserTurn()">Add mock User turn</button>
-        </div>
-        @if (speechError()) {
-          <p class="text-xs text-rose-300" role="alert">{{ speechError() }}</p>
-        }
-      </div>
-
-      <!-- End Confirmation Modal -->
+      <!-- End confirmation modal -->
       @if (showEndModal()) {
-        <div class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <section role="dialog" aria-modal="true" aria-label="Finish roleplay confirmation" class="card p-5 sm:p-6 max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto bg-slate-800 text-white border-slate-700 text-center">
-            <div class="text-4xl mb-3">🎉</div>
-            <h3 class="text-lg font-700 mb-2">Hoàn thành Roleplay?</h3>
-            <p class="text-xs text-slate-400 mb-6">Bạn đã sử dụng thành công các Chunks trong tình huống này.</p>
-            <div class="flex gap-3 justify-center">
-              <button class="btn-secondary text-sm cursor-pointer" (click)="showEndModal.set(false)">Tiếp tục</button>
-              <button class="btn-primary text-sm cursor-pointer" (click)="finishRoleplay()">Xem kết quả</button>
+        <div class="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div class="card max-w-sm w-full p-6 space-y-4 bg-slate-800 border-slate-700 text-slate-100 shadow-2xl">
+            <h3 class="font-700 text-lg text-white">Kết thúc phiên Roleplay?</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              AI sẽ chấm điểm 5 kỹ năng, kiểm tra các mục tiêu nhiệm vụ bạn đã đạt và thống kê các chunk bạn dùng tốt.
+            </p>
+            <div class="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                class="btn-secondary text-xs px-4 py-2 cursor-pointer"
+                (click)="showEndModal.set(false)"
+              >
+                Tiếp tục nói
+              </button>
+              <button
+                type="button"
+                class="btn-accent text-xs px-4 py-2 font-700 cursor-pointer"
+                [disabled]="isEnding()"
+                (click)="confirmEndSession()"
+              >
+                {{ isEnding() ? 'Đang chấm điểm...' : 'Xác nhận hoàn thành' }}
+              </button>
             </div>
-          </section>
+          </div>
         </div>
       }
-    </div>
-  `
+    </main>
+  `,
 })
 export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
-  readonly appState = inject(AppStateService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  readonly speechService = inject(SpeechRecognitionService);
+  readonly voiceService = inject(CoachVoiceService);
+  private readonly scenarioService = inject(ScenarioService);
+  readonly appState = inject(AppStateService);
 
-  readonly timer = signal(0);
-  readonly transcript = signal<Line[]>([SCRIPT[0]]);
-  readonly showEndModal = signal(false);
-  readonly scriptIdx = signal(1);
-  readonly isListening = signal(false);
-  readonly speechError = signal('');
-  readonly showHints = signal(true);
-  readonly targetChunks = GENERIC_CHUNKS;
-  readonly scriptLength = SCRIPT.length;
-  readonly tasks = computed(() => this.appState.selectedScenario()?.objectives ?? []);
-  readonly taskStates = computed(() => this.tasks().map((label, id) => ({ id, label, done: false })));
-  readonly completedTaskCount = computed(() => 0);
-  readonly taskProgressPct = computed(() => 0);
+  @ViewChild('transcriptContainer')
+  private transcriptContainer?: ElementRef<HTMLDivElement>;
 
-  private timerInterval: ReturnType<typeof setInterval> | null = null;
-  private readonly speechSubscriptions = new Subscription();
+  readonly sessionId = signal<string>('');
+  readonly scenario = signal<ScenarioDetail | null>(null);
+  readonly timer = signal<number>(0);
+  readonly showChunks = signal<boolean>(true);
+  readonly showEndModal = signal<boolean>(false);
+  readonly isEnding = signal<boolean>(false);
 
-  toggleHints(): void {
-    this.showHints.update(visible => !visible);
+  private timerInterval?: ReturnType<typeof setInterval>;
+
+  readonly statusLabel = computed(() => {
+    const s = this.voiceService.uxState();
+    switch (s) {
+      case 'user_speaking':
+        return 'Bạn đang nói...';
+      case 'ai_speaking':
+        return 'AI đang phản hồi...';
+      case 'processing':
+        return 'AI đang suy nghĩ...';
+      case 'reconnecting':
+        return 'Đang kết nối lại...';
+      default:
+        return 'Sẵn sàng hội thoại';
+    }
+  });
+
+  readonly statusDotClass = computed(() => {
+    const s = this.voiceService.uxState();
+    if (s === 'user_speaking') return 'bg-emerald-400 animate-ping';
+    if (s === 'ai_speaking') return 'bg-sky-400 animate-pulse';
+    if (s === 'reconnecting') return 'bg-amber-400';
+    return 'bg-emerald-500';
+  });
+
+  readonly micButtonBackground = computed(() => {
+    if (this.voiceService.isRecordingTurn()) return '#DF4C73';
+    const s = this.voiceService.uxState();
+    if (s === 'ai_speaking') return '#64748b';
+    return '#286FB4';
+  });
+
+  readonly micHintText = computed(() => {
+    if (this.voiceService.isRecordingTurn()) {
+      return 'Đang thu âm... Nhấn lại để hoàn thành lượt nói của bạn.';
+    }
+    const s = this.voiceService.uxState();
+    if (s === 'ai_speaking') return 'AI đang trả lời, lắng nghe nhé...';
+    return 'Chạm vào micro để bắt đầu nói với AI';
+  });
+
+  constructor() {
+    effect(() => {
+      // Auto-scroll when new transcript arrives
+      this.voiceService.liveTranscripts();
+      setTimeout(() => {
+        if (this.transcriptContainer) {
+          const el = this.transcriptContainer.nativeElement;
+          el.scrollTop = el.scrollHeight;
+        }
+      }, 80);
+    });
   }
 
   ngOnInit(): void {
-    if (!this.appState.selectedScenario()) { void this.router.navigateByUrl('/scenarios'); return; }
-    this.transcript.set([SCRIPT[0]]);
-    this.timerInterval = setInterval(() => {
-      this.timer.update(t => t + 1);
-    }, 1000);
-    this.speechSubscriptions.add(this.speechService.isListening$.subscribe(listening => this.isListening.set(listening)));
-    this.speechSubscriptions.add(this.speechService.speechResult$.subscribe(result => {
-      if (result.text.trim()) {
-        this.appendRecognizedSpeech(result.text.trim());
-        this.speechService.stopListening();
-      }
-    }));
-    this.speechSubscriptions.add(this.speechService.error$.subscribe(error => this.speechError.set(error)));
+    const id = this.route.snapshot.paramMap.get('id') || '';
+    this.sessionId.set(id);
+
+    if (id) {
+      // Connect to WebSocket roleplay session
+      this.voiceService.startVoiceSession(id);
+
+      // Load scenario details for context
+      this.loadScenarioContext();
+
+      // Start timer
+      this.timerInterval = setInterval(() => {
+        this.timer.update((t) => t + 1);
+      }, 1000);
+    }
   }
 
   ngOnDestroy(): void {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-    if (this.isListening()) this.speechService.stopListening();
-    this.speechSubscriptions.unsubscribe();
-  }
-
-  async toggleMicrophone(): Promise<void> {
-    this.speechError.set('');
-    if (this.isListening()) {
-      this.speechService.stopListening();
-      return;
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
     }
-    if (!this.speechService.isSupported) {
-      this.speechError.set('Trình duyệt này chưa hỗ trợ nhận diện giọng nói. Bạn có thể dùng câu mẫu.');
-      return;
-    }
-    await this.speechService.startListening('en-US');
+    this.voiceService.cleanup();
   }
 
-  private appendRecognizedSpeech(text: string): void {
-    const userLine: Line = {
-      id: Date.now(),
-      speaker: 'User',
-      text,
-      time: this.formatElapsedTime()
-    };
-    const nextScriptIndex = this.scriptIdx();
-    const nextLine = SCRIPT.slice(nextScriptIndex).find(line => line.speaker === 'AI');
-    const reply = nextLine?.speaker === 'AI' ? nextLine : undefined;
-
-    this.transcript.update(lines => reply ? [...lines, userLine, reply] : [...lines, userLine]);
-    this.scriptIdx.set(reply ? SCRIPT.indexOf(reply) + 1 : SCRIPT.length);
-  }
-
-  private formatElapsedTime(): string {
-    const totalSeconds = this.timer();
-    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-    return `${minutes}:${seconds}`;
-  }
-
-  nextSpeechStep(): void {
-    const idx = this.scriptIdx();
-    if (idx < SCRIPT.length) {
-      this.transcript.update(list => [...list, SCRIPT[idx]]);
-      this.scriptIdx.update(i => i + 1);
-    } else {
-      this.showEndModal.set(true);
-    }
-  }
-
-  addMockUserTurn(): void {
-    const samples = ["Could you tell me more about that?", "I'd like to know what you recommend.", "That sounds good, thank you."];
-    const turn = this.transcript().filter(line => line.speaker === 'User').length;
-    const userLine: Line = { id: Date.now(), speaker: 'User', text: samples[turn % samples.length], time: this.formatElapsedTime() };
-    const nextAi = SCRIPT.slice(this.scriptIdx()).find(line => line.speaker === 'AI');
-    this.transcript.update(lines => nextAi ? [...lines, userLine, { ...nextAi, id: Date.now() + 1, time: this.formatElapsedTime() }] : [...lines, userLine]);
-    this.scriptIdx.set(nextAi ? SCRIPT.indexOf(nextAi) + 1 : SCRIPT.length);
-  }
-
-  finishRoleplay(): void {
-    if (this.timerInterval) clearInterval(this.timerInterval);
-    this.timerInterval = null;
-    this.showEndModal.set(false);
-    const scenario = this.appState.selectedScenario();
-    const tasks = (scenario?.objectives ?? []).map((label, id) => ({ id, label, pass: true }));
-    const status = tasks.length > 0 && tasks.every(task => task.pass) ? 'PASS' as const : 'NOT PASSED' as const;
-    this.appState.completeRoleplay({
-      scenarioId: scenario?.id ?? '', scenarioTitle: scenario?.title ?? 'Roleplay', tasks,
-      passCount: tasks.filter(task => task.pass).length, totalTasks: tasks.length,
-      xp: status === 'PASS' ? scenario?.xp ?? 40 : 20, status, completedAt: new Date().toISOString()
+  loadScenarioContext(): void {
+    // Attempt to load scenario info from backend
+    this.scenarioService.getScenario('supermarket-shopping').subscribe({
+      next: (s) => this.scenario.set(s),
     });
-    this.appState.go("scenario-result");
+  }
+
+  toggleChunks(): void {
+    this.showChunks.update((v) => !v);
+  }
+
+  async toggleSpeaking(): Promise<void> {
+    await this.voiceService.toggleSpeakingTurn();
+  }
+
+  sendFallbackText(input: HTMLInputElement): void {
+    const val = input.value.trim();
+    if (!val) return;
+    this.voiceService.sendUserText(val);
+    input.value = '';
+  }
+
+  confirmEndSession(): void {
+    const id = this.sessionId();
+    if (!id) return;
+
+    this.isEnding.set(true);
+    this.scenarioService.endRoleplay(id).subscribe({
+      next: () => {
+        this.isEnding.set(false);
+        this.showEndModal.set(false);
+        this.router.navigate(['/scenario-result', id]);
+      },
+      error: () => {
+        this.isEnding.set(false);
+        this.showEndModal.set(false);
+        // Fallback navigation
+        this.router.navigate(['/scenario-result', id]);
+      },
+    });
   }
 }
