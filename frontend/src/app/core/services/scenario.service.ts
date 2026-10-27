@@ -14,47 +14,49 @@ export interface ScenarioSummary {
   titleVi: string;
   titleEn: string;
   level: string;
-  estimatedMinutes: number;
+  estimatedDurationMinutes: number;
   userRole: string;
   aiRole: string;
+  goals: string[];
+  sortOrder: number;
   status: ScenarioStatus;
   highestScore: number | null;
-  sortOrder: number;
   xpReward: number;
+  chunksCount: number;
 }
 
 export interface ScenarioCategorySummary {
-  labelVi: string;
-  total: number;
-  completed: number;
+  category: string;
+  nameVi: string;
+  totalCount: number;
+  completedCount: number;
 }
 
 export interface ScenarioLibraryResponse {
-  categories: Record<string, ScenarioCategorySummary>;
-  totalScenarios: number;
-  completedScenarios: number;
-  completionRatePercent: number;
   scenarios: ScenarioSummary[];
+  totalCount: number;
+  completedCount: number;
+  totalProgressPct: number;
+  categories: ScenarioCategorySummary[];
+  xpReward: number;
 }
 
 export interface ScenarioRequirement {
   id: string;
-  scenarioId: string;
-  descriptionVi: string;
-  descriptionEn: string;
-  requirementType: string;
-  expectedFunctionalTag: string;
+  description: string;
+  type: string;
+  expectedChunkFunction?: string | null;
   isMandatory: boolean;
   sortOrder: number;
 }
 
 export interface ScenarioChunk {
   id: string;
-  scenarioId: string;
-  functionalTag: ChunkFunctionalTag;
+  scenarioId?: string;
+  functionTag: ChunkFunctionalTag;
   text: string;
   meaningVi: string;
-  audioUrl: string | null;
+  audioUrl?: string | null;
   exampleSentence: string;
   acceptedVariations: string[];
   sortOrder: number;
@@ -67,36 +69,38 @@ export interface ScenarioDetail {
   titleVi: string;
   titleEn: string;
   level: string;
-  estimatedMinutes: number;
-  contextVi: string;
-  contextEn: string;
+  estimatedDurationMinutes: number;
+  context: string;
   userRole: string;
   aiRole: string;
   goals: string[];
+  sortOrder: number;
   status: ScenarioStatus;
   highestScore: number | null;
+  xpReward: number;
   requirements: ScenarioRequirement[];
   chunks: ScenarioChunk[];
-  xpReward: number;
+  practicedChunks: string[];
 }
 
 export interface ScenarioChunksResponse {
   scenarioId: string;
+  scenarioTitle: string;
   chunks: ScenarioChunk[];
 }
 
 export interface RecordDrillRequest {
   chunkId: string;
-  action: 'REPEAT' | 'NEXT' | 'SKIP';
-  spokenText?: string;
+  isSkipped?: boolean;
 }
 
 export interface RecordDrillResponse {
-  success: boolean;
-  action: string;
+  attemptId: string;
   chunkId: string;
-  completedChunksCount: number;
-  totalChunksCount: number;
+  scenarioId: string;
+  isSkipped: boolean;
+  practicedChunks: string[];
+  message: string;
 }
 
 export interface RoleplaySessionResponse {
@@ -120,49 +124,41 @@ export interface RequirementEvaluationItem {
   requirementId: string;
   description: string;
   isMandatory: boolean;
-  passed: boolean;
-  evidenceTranscript: string | null;
-  feedback: string;
+  status: 'PASS' | 'FAIL';
+  evidence: string | null;
+  reason: string;
 }
 
 export interface ChunkUsedWellItem {
   chunkId: string;
-  expectedText: string;
-  userSpokenText: string;
-  similarityScore: number;
+  text: string;
+  functionTag: string;
+  matchedUtterance: string;
   matchType: string;
 }
 
 export interface ChunkToImproveItem {
   chunkId: string;
   text: string;
+  functionTag: string;
   meaningVi: string;
   reason: string;
 }
 
-export interface SkillScoresBreakdown {
-  pronunciation?: number | null;
-  fluency?: number | null;
-  vocabulary?: number | null;
-  grammar?: number | null;
-  coherence?: number | null;
-}
-
 export interface RoleplayEvaluationResponse {
-  id: string;
   sessionId: string;
   scenarioId: string;
-  status: 'PENDING' | 'COMPLETED' | 'INSUFFICIENT_DATA';
-  allMandatoryPassed: boolean;
-  scenarioCompleted: boolean;
+  scenarioTitle: string;
+  status: 'PENDING' | 'FEEDBACK_READY' | 'INSUFFICIENT_DATA' | 'FAILED';
+  passed: boolean;
   overallScore: number | null;
   requirements: RequirementEvaluationItem[];
   chunksUsedWell: ChunkUsedWellItem[];
   chunksToImprove: ChunkToImproveItem[];
   strengths: string[];
   improvements: string[];
-  nextPracticeSuggestions: string[];
-  skillScores?: SkillScoresBreakdown | null;
+  nextPractice: string | null;
+  evaluatedAt: string | null;
 }
 
 export interface ChunkBankItem {

@@ -224,7 +224,7 @@ const SCENARIO_EMOJIS: Record<string, string> = {
                     </div>
 
                     <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <span class="text-xs" style="color: #94a3b8">⏱ {{ s.estimatedMinutes }} phút</span>
+                      <span class="text-xs" style="color: #94a3b8">⏱ {{ s.estimatedDurationMinutes || 10 }} phút</span>
                       <span class="text-xs font-700" style="color: #f59e0b; font-weight: 700">
                         +{{ s.xpReward }} XP
                       </span>
@@ -285,13 +285,13 @@ export class ScenariosComponent implements OnInit {
     { id: 'WORKPLACE', label: 'Nơi làm việc', emoji: '💼' },
   ] as const;
 
-  readonly totalCount = computed(() => this.libraryData()?.totalScenarios ?? 0);
-  readonly completedCount = computed(() => this.libraryData()?.completedScenarios ?? 0);
+  readonly totalCount = computed(() => this.libraryData()?.totalCount ?? 0);
+  readonly completedCount = computed(() => this.libraryData()?.completedCount ?? 0);
   readonly remainingCount = computed(
-    () => (this.libraryData()?.totalScenarios ?? 0) - (this.libraryData()?.completedScenarios ?? 0)
+    () => (this.libraryData()?.totalCount ?? 0) - (this.libraryData()?.completedCount ?? 0)
   );
   readonly completionPercent = computed(
-    () => this.libraryData()?.completionRatePercent ?? 0
+    () => this.libraryData()?.totalProgressPct ?? 0
   );
 
   readonly groupedScenarios = computed(() => {

@@ -101,7 +101,7 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
             @if (scenario(); as s) {
               <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700 text-xs text-slate-300 space-y-1 mb-2">
                 <div class="font-700 text-indigo-300 text-sm">🎯 Bối cảnh Roleplay:</div>
-                <p>{{ s.contextVi }}</p>
+                <p>{{ s.context }}</p>
                 <div class="pt-1 text-slate-400 italic">
                   Bạn nhập vai <strong class="text-slate-200">{{ s.userRole }}</strong>, AI là <strong class="text-slate-200">{{ s.aiRole }}</strong>. Hãy hoàn thành các mục tiêu mà không ngần ngại nhé!
                 </div>
@@ -216,7 +216,7 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
               @for (c of scenario()?.chunks; track c.id) {
                 <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
                   <div class="text-[10px] font-700 text-sky-400 uppercase mb-0.5">
-                    {{ c.functionalTag }}
+                    {{ c.functionTag }}
                   </div>
                   <div class="text-xs font-700 text-slate-100">
                     "{{ c.text }}"
