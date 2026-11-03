@@ -303,7 +303,9 @@ async def test_drill_recording_and_skip(scenario_test_env: dict) -> None:
 
     # 1. Practice drill (listen and repeat)
     drill_payload = {"chunkId": chunk_id, "isSkipped": False}
-    resp1 = await client.post(f"/api/v1/scenarios/{scen_id}/drills", json=drill_payload, headers=headers)
+    resp1 = await client.post(
+        f"/api/v1/scenarios/{scen_id}/drills", json=drill_payload, headers=headers
+    )
     assert resp1.status_code == 201
     data1 = resp1.json()
     assert str(chunk_id) in data1["practicedChunks"]
@@ -311,7 +313,9 @@ async def test_drill_recording_and_skip(scenario_test_env: dict) -> None:
     # 2. Skip next drill
     chunk_id_2 = scen["chunks"][1]["id"]
     skip_payload = {"chunkId": chunk_id_2, "isSkipped": True}
-    resp2 = await client.post(f"/api/v1/scenarios/{scen_id}/drills", json=skip_payload, headers=headers)
+    resp2 = await client.post(
+        f"/api/v1/scenarios/{scen_id}/drills", json=skip_payload, headers=headers
+    )
     assert resp2.status_code == 201
 
     # Verify scenario detail reflects IN_PROGRESS and practiced chunks
@@ -349,7 +353,9 @@ async def test_roleplay_lifecycle_and_evaluation_flow(scenario_test_env: dict) -
         "confidence": 0.95,
         "isFinal": True,
     }
-    t1_resp = await client.post(f"/api/v1/roleplays/{session_id}/transcript", json=t1_payload, headers=headers)
+    t1_resp = await client.post(
+        f"/api/v1/roleplays/{session_id}/transcript", json=t1_payload, headers=headers
+    )
     assert t1_resp.status_code == 201
 
     t2_payload = {
@@ -361,7 +367,9 @@ async def test_roleplay_lifecycle_and_evaluation_flow(scenario_test_env: dict) -
         "confidence": 0.96,
         "isFinal": True,
     }
-    t2_resp = await client.post(f"/api/v1/roleplays/{session_id}/transcript", json=t2_payload, headers=headers)
+    t2_resp = await client.post(
+        f"/api/v1/roleplays/{session_id}/transcript", json=t2_payload, headers=headers
+    )
     assert t2_resp.status_code == 201
 
     # 3. End roleplay
@@ -439,10 +447,14 @@ async def test_other_user_roleplay_access_returns_404(scenario_test_env: dict) -
     token: str = scenario_test_env["token"]
     other_token: str = scenario_test_env["other_token"]
 
-    scen_resp = await client.get("/api/v1/scenarios/job-interview", headers={"Authorization": f"Bearer {token}"})
+    scen_resp = await client.get(
+        "/api/v1/scenarios/job-interview", headers={"Authorization": f"Bearer {token}"}
+    )
     scen_id = scen_resp.json()["id"]
 
-    rp_resp = await client.post(f"/api/v1/scenarios/{scen_id}/roleplays", headers={"Authorization": f"Bearer {token}"})
+    rp_resp = await client.post(
+        f"/api/v1/scenarios/{scen_id}/roleplays", headers={"Authorization": f"Bearer {token}"}
+    )
     sess_id = rp_resp.json()["sessionId"]
 
     # Other user attempts to access
@@ -452,7 +464,13 @@ async def test_other_user_roleplay_access_returns_404(scenario_test_env: dict) -
 
     resp_trans = await client.post(
         f"/api/v1/roleplays/{sess_id}/transcript",
-        json={"id": str(uuid.uuid4()), "speaker": "USER", "text": "Hacked", "startMs": 0, "endMs": 1000},
+        json={
+            "id": str(uuid.uuid4()),
+            "speaker": "USER",
+            "text": "Hacked",
+            "startMs": 0,
+            "endMs": 1000,
+        },
         headers=other_headers,
     )
     assert resp_trans.status_code == 404

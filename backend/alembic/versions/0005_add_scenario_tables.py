@@ -44,8 +44,18 @@ def upgrade() -> None:
         sa.Column("ai_role", sa.String(255), nullable=False),
         sa.Column("goals", sa.JSON(), nullable=False),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
     )
     op.create_index("ix_scenarios_slug", "scenarios", ["slug"])
     op.create_index("ix_scenarios_category", "scenarios", ["category"])
@@ -66,10 +76,22 @@ def upgrade() -> None:
         sa.Column("expected_chunk_function", sa.String(50), nullable=True),
         sa.Column("is_mandatory", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
     )
-    op.create_index("ix_scenario_requirements_scenario_id", "scenario_requirements", ["scenario_id"])
+    op.create_index(
+        "ix_scenario_requirements_scenario_id", "scenario_requirements", ["scenario_id"]
+    )
 
     # 3. scenario_chunks table
     op.create_table(
@@ -88,8 +110,18 @@ def upgrade() -> None:
         sa.Column("example_sentence", sa.Text(), nullable=False),
         sa.Column("accepted_variations", sa.JSON(), nullable=False),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default="0"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
     )
     op.create_index("ix_scenario_chunks_scenario_id", "scenario_chunks", ["scenario_id"])
 
@@ -114,12 +146,24 @@ def upgrade() -> None:
         sa.Column("practiced_chunks", sa.JSON(), nullable=False),
         sa.Column("last_attempt_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.UniqueConstraint("user_id", "scenario_id", name="uq_user_scenario_progress"),
     )
     op.create_index("ix_user_scenario_progress_user_id", "user_scenario_progress", ["user_id"])
-    op.create_index("ix_user_scenario_progress_scenario_id", "user_scenario_progress", ["scenario_id"])
+    op.create_index(
+        "ix_user_scenario_progress_scenario_id", "user_scenario_progress", ["scenario_id"]
+    )
     op.create_index("ix_user_scenario_progress_status", "user_scenario_progress", ["status"])
 
     # 5. drill_attempts table
@@ -145,8 +189,18 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("is_skipped", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
     )
     op.create_index("ix_drill_attempts_user_id", "drill_attempts", ["user_id"])
     op.create_index("ix_drill_attempts_scenario_id", "drill_attempts", ["scenario_id"])
@@ -170,8 +224,18 @@ def upgrade() -> None:
         ),
         sa.Column("status", sa.String(30), nullable=False, server_default="NEEDS_PRACTICE"),
         sa.Column("last_reviewed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.UniqueConstraint("user_id", "chunk_id", name="uq_user_chunk_bank"),
     )
     op.create_index("ix_chunk_bank_user_id", "chunk_bank", ["user_id"])
@@ -210,8 +274,18 @@ def upgrade() -> None:
         sa.Column("improvements", sa.JSON(), nullable=False),
         sa.Column("next_practice", sa.Text(), nullable=True),
         sa.Column("evaluated_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
     )
     op.create_index("ix_roleplay_evaluations_session_id", "roleplay_evaluations", ["session_id"])
     op.create_index("ix_roleplay_evaluations_scenario_id", "roleplay_evaluations", ["scenario_id"])

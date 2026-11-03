@@ -92,9 +92,7 @@ class ScenarioService:
     ) -> ScenarioLibraryResponse:
         await self.ensure_scenarios_seeded()
 
-        all_scenarios = await self.scenario_repo.list_scenarios(
-            category=category, level=level, q=q
-        )
+        all_scenarios = await self.scenario_repo.list_scenarios(category=category, level=level, q=q)
         user_progress_list = await self.scenario_repo.list_user_progress(user_id)
         progress_map = {p.scenario_id: p for p in user_progress_list}
 
@@ -130,9 +128,7 @@ class ScenarioService:
         # Overall completion statistics across all scenarios in library
         full_catalog = await self.scenario_repo.list_scenarios()
         total_count = len(full_catalog)
-        completed_count = sum(
-            1 for p in user_progress_list if p.status == "COMPLETED"
-        )
+        completed_count = sum(1 for p in user_progress_list if p.status == "COMPLETED")
         total_progress_pct = (
             round((completed_count / max(1, total_count)) * 100) if total_count > 0 else 0
         )
@@ -350,9 +346,13 @@ class ScenarioService:
             f"How can I help you today?"
         )
         if scenario.slug == "restaurant-reservation":
-            opening_text = "Good evening! Welcome to The Garden Restaurant. How can I help you tonight?"
+            opening_text = (
+                "Good evening! Welcome to The Garden Restaurant. How can I help you tonight?"
+            )
         elif scenario.slug == "supermarket-shopping":
-            opening_text = "Hello! Welcome to our store. Are you looking for anything specific today?"
+            opening_text = (
+                "Hello! Welcome to our store. Are you looking for anything specific today?"
+            )
         elif scenario.slug == "hotel-check-in":
             opening_text = "Good afternoon, welcome to the Grand Hotel. Are you checking in today?"
         elif scenario.slug == "doctor-visit":
@@ -516,9 +516,7 @@ class ScenarioService:
                     started = started.replace(tzinfo=UTC)
                 elif started.tzinfo is not None and now.tzinfo is None:
                     now = now.replace(tzinfo=UTC)
-                session.duration_seconds = max(
-                    0.0, (now - started).total_seconds()
-                )
+                session.duration_seconds = max(0.0, (now - started).total_seconds())
             await self.session_repo.save(session)
 
         # Trigger evaluation for the ended session
@@ -536,9 +534,7 @@ class ScenarioService:
             end_reason=session.end_reason,
         )
 
-    async def evaluate_roleplay_session(
-        self, session_id: uuid.UUID
-    ) -> RoleplayEvaluation:
+    async def evaluate_roleplay_session(self, session_id: uuid.UUID) -> RoleplayEvaluation:
         """
         Post-roleplay evaluation (idempotent):
         1. Evaluates each requirement PASS/FAIL with transcript evidence.
@@ -561,9 +557,7 @@ class ScenarioService:
 
         scenario = await self.scenario_repo.get_by_id(session.scenario_id)
         if not scenario:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Scenario not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scenario not found")
 
         # 1. Run 5-skill scoring engine from Sprint 4
         scoring_service = ScoringService(self.db)
@@ -572,7 +566,9 @@ class ScenarioService:
             feedback_res = await scoring_service.generate_feedback(session_id)
             overall_score = feedback_res.overall_score
         except Exception as scoring_err:
-            logger.warning("Scoring calculation warning for roleplay %s: %s", session_id, scoring_err)
+            logger.warning(
+                "Scoring calculation warning for roleplay %s: %s", session_id, scoring_err
+            )
 
         # 2. Extract dialogue history and user utterances
         transcripts = await self.transcript_repo.list_by_session(session_id)
@@ -667,11 +663,7 @@ class ScenarioService:
             for re in raw_req_evals
             if re.get("status") == "PASS" and str(re.get("requirement_id")) in mandatory_req_ids
         }
-        is_passed = (
-            len(passed_mandatories) == len(mandatory_req_ids)
-            if mandatory_req_ids
-            else True
-        )
+        is_passed = len(passed_mandatories) == len(mandatory_req_ids) if mandatory_req_ids else True
 
         now = self.clock.now()
 
@@ -721,9 +713,7 @@ class ScenarioService:
                 scenario_id=scenario.id,
                 user_id=session.user_id,
                 passed=is_passed,
-                requirements_passed=len(
-                    [r for r in raw_req_evals if r.get("status") == "PASS"]
-                ),
+                requirements_passed=len([r for r in raw_req_evals if r.get("status") == "PASS"]),
                 requirements_total=len(raw_req_evals),
                 used_chunks_count=len(chunks_used_well),
                 needs_practice_chunks_count=len(chunks_to_improve),
@@ -830,9 +820,7 @@ class ScenarioService:
             elif r.status == "MASTERED":
                 mastered += 1
 
-            scenario_title = (
-                r.chunk.scenario.title_vi if r.chunk.scenario else "Tình huống"
-            )
+            scenario_title = r.chunk.scenario.title_vi if r.chunk.scenario else "Tình huống"
             items.append(
                 ChunkBankItemSchema(
                     chunk_id=r.chunk.id,

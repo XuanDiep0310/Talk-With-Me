@@ -16,7 +16,6 @@ import {
   ScenarioService,
   ScenarioDetail,
   ScenarioChunk,
-  ChunkFunctionalTag,
   evaluatePronunciation,
   getIpaPhonetic,
   WordPronunciationScore,

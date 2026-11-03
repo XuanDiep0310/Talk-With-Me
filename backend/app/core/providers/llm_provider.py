@@ -303,7 +303,12 @@ class FakeLlmProvider:
             return "That item is currently on sale for $4.50. Would you like me to scan it for you?"
         if "card" in msg_lower or "pay" in msg_lower or "cash" in msg_lower:
             return "Yes, we accept all major credit cards and contactless payments. Whenever you're ready, please tap your card on the terminal."
-        if "fee" in msg_lower or "rent" in msg_lower or "lease" in msg_lower or "deposit" in msg_lower:
+        if (
+            "fee" in msg_lower
+            or "rent" in msg_lower
+            or "lease" in msg_lower
+            or "deposit" in msg_lower
+        ):
             return "The monthly rent is $1,200, which includes high-speed internet and water. Would you like to schedule a viewing?"
         if "interview" in msg_lower or "experience" in msg_lower or "role" in msg_lower:
             return "Thank you for sharing your background! Could you elaborate on a challenging project you successfully delivered recently?"
@@ -322,7 +327,9 @@ class FakeLlmProvider:
         user_level: str,  # noqa: ARG002
     ) -> dict[str, Any]:
         user_turns = [h["content"] for h in history if h.get("role") == "user"]
-        has_sufficient_speech = len(user_turns) >= 1 and sum(len(t.split()) for t in user_turns) >= 3
+        has_sufficient_speech = (
+            len(user_turns) >= 1 and sum(len(t.split()) for t in user_turns) >= 3
+        )
 
         req_evals: list[dict[str, Any]] = []
         for req in requirements:
@@ -332,22 +339,22 @@ class FakeLlmProvider:
 
             # If user spoke sufficiently, pass mandatory requirements
             status = "PASS" if has_sufficient_speech else "FAIL"
-            evidence = (
-                f"User said: '{user_turns[0]}'" if user_turns else "No user utterance found"
-            )
+            evidence = f"User said: '{user_turns[0]}'" if user_turns else "No user utterance found"
             reason = (
                 "Successfully fulfilled communicative goal in character."
                 if has_sufficient_speech
                 else "Insufficient dialogue evidence to satisfy milestone."
             )
-            req_evals.append({
-                "requirement_id": r_id,
-                "description": desc,
-                "is_mandatory": is_mand,
-                "status": status,
-                "evidence": evidence,
-                "reason": reason,
-            })
+            req_evals.append(
+                {
+                    "requirement_id": r_id,
+                    "description": desc,
+                    "is_mandatory": is_mand,
+                    "status": status,
+                    "evidence": evidence,
+                    "reason": reason,
+                }
+            )
 
         functional_verdicts = {str(c.get("id", "")): True for c in chunks}
 
@@ -367,7 +374,6 @@ class FakeLlmProvider:
             "task_completion": 85.0 if has_sufficient_speech else 20.0,
             "context_relevance": 85.0,
         }
-
 
 
 class GeminiLlmProvider:
@@ -631,7 +637,6 @@ class GeminiLlmProvider:
         return await FakeLlmProvider().evaluate_roleplay(
             history, scenario_title, scenario_context, requirements, chunks, user_level
         )
-
 
 
 class GroqLlmProvider:
@@ -940,7 +945,6 @@ class GroqLlmProvider:
         return await FakeLlmProvider().evaluate_roleplay(
             history, scenario_title, scenario_context, requirements, chunks, user_level
         )
-
 
 
 def get_llm_provider() -> LlmProvider:

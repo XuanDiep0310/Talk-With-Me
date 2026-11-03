@@ -14,7 +14,14 @@ class TestChunkMatcherTableDriven:
         return ChunkMatcher(exact_threshold=0.90, approx_threshold=0.72)
 
     @pytest.mark.parametrize(
-        ("target_text", "variations", "user_utterances", "llm_verdict", "expected_type", "expected_used_well"),
+        (
+            "target_text",
+            "variations",
+            "user_utterances",
+            "llm_verdict",
+            "expected_type",
+            "expected_used_well",
+        ),
         [
             # 1. Exact match
             (
@@ -28,7 +35,10 @@ class TestChunkMatcherTableDriven:
             # 2. Accepted variation match
             (
                 "Excuse me, where can I find...?",
-                ["Could you tell me where the produce section is?", "Where is the fresh fruit section?"],
+                [
+                    "Could you tell me where the produce section is?",
+                    "Where is the fresh fruit section?",
+                ],
                 ["Hi, could you tell me where the produce section is please?"],
                 None,
                 ChunkMatchType.VARIATION,
@@ -95,9 +105,7 @@ class TestScenarioCompletionRules:
     """Verifies that a scenario is completed if and only if all mandatory requirements PASS."""
 
     @staticmethod
-    def is_scenario_completed(
-        requirements: list[dict], requirement_evals: list[dict]
-    ) -> bool:
+    def is_scenario_completed(requirements: list[dict], requirement_evals: list[dict]) -> bool:
         mandatory_ids = {r["id"] for r in requirements if r.get("is_mandatory", True)}
         passed_ids = {
             e["requirement_id"]

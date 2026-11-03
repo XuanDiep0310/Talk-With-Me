@@ -35,13 +35,17 @@ class FakeTtsProvider:
         self.mock_audio_url = mock_audio_url
 
     async def synthesize(
-        self, text: str, voice: str = "en-US-AvaNeural"  # noqa: ARG002
+        self,
+        text: str,
+        voice: str = "en-US-AvaNeural",  # noqa: ARG002
     ) -> bytes:
         # Return mock MP3 frame header / placeholder bytes
         return b"\xff\xfb\x90d" + text.encode("utf-8")[:128]
 
     async def get_audio_url_or_none(
-        self, text: str, voice: str = "en-US-AvaNeural"  # noqa: ARG002
+        self,
+        text: str,  # noqa: ARG002
+        voice: str = "en-US-AvaNeural",  # noqa: ARG002
     ) -> str | None:
         return self.mock_audio_url
 
@@ -67,7 +71,9 @@ class EdgeTtsProvider:
         return buffer.getvalue()
 
     async def get_audio_url_or_none(
-        self, text: str, voice: str = DEFAULT_VOICE  # noqa: ARG002
+        self,
+        text: str,  # noqa: ARG002
+        voice: str = DEFAULT_VOICE,  # noqa: ARG002
     ) -> str | None:
         # By default in MVP, returning None delegates synthesis to browser Web Speech API
         return None

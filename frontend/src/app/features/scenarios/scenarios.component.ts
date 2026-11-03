@@ -349,7 +349,7 @@ export class ScenariosComponent implements OnInit {
           this.libraryData.set(res);
           this.isLoading.set(false);
         },
-        error: (err) => {
+        error: () => {
           this.errorMessage.set('Không thể tải danh sách tình huống. Vui lòng thử lại.');
           this.isLoading.set(false);
         },

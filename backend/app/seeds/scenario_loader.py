@@ -71,9 +71,7 @@ def validate_scenario_dict(item: dict[str, Any]) -> None:
             "sort_order",
         ]:
             if ckey not in chunk:
-                raise ValueError(
-                    f"Chunk in scenario {item['slug']} missing key '{ckey}': {chunk}"
-                )
+                raise ValueError(f"Chunk in scenario {item['slug']} missing key '{ckey}': {chunk}")
         if chunk["function_tag"] not in VALID_FUNCTIONS:
             raise ValueError(
                 f"Invalid function_tag '{chunk['function_tag']}' in scenario {item['slug']}. Must be one of {VALID_FUNCTIONS}"
@@ -133,10 +131,14 @@ async def seed_scenarios(db: AsyncSession, seeds_dir: Path | None = None) -> int
         slug = s_dict["slug"]
         s_id = uuid.uuid5(SCENARIO_NAMESPACE, f"scenario:{slug}")
 
-        stmt = select(Scenario).options(
-            selectinload(Scenario.requirements),
-            selectinload(Scenario.chunks),
-        ).where(Scenario.slug == slug)
+        stmt = (
+            select(Scenario)
+            .options(
+                selectinload(Scenario.requirements),
+                selectinload(Scenario.chunks),
+            )
+            .where(Scenario.slug == slug)
+        )
         res = await db.execute(stmt)
         scenario = res.scalar_one_or_none()
 

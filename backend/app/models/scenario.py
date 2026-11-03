@@ -113,9 +113,7 @@ class UserScenarioProgress(Base, TimestampMixin):
     """User progress and completion tracking for a scenario."""
 
     __tablename__ = "user_scenario_progress"
-    __table_args__ = (
-        UniqueConstraint("user_id", "scenario_id", name="uq_user_scenario_progress"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "scenario_id", name="uq_user_scenario_progress"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -131,7 +129,9 @@ class UserScenarioProgress(Base, TimestampMixin):
         index=True,
     )
     # NOT_STARTED | IN_PROGRESS | COMPLETED
-    status: Mapped[str] = mapped_column(String(30), default="NOT_STARTED", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(30), default="NOT_STARTED", nullable=False, index=True
+    )
     highest_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     practiced_chunks: Mapped[list[str]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"), default=list, nullable=False
@@ -177,9 +177,7 @@ class ChunkBank(Base, TimestampMixin):
     """User personal chunk bank for spaced practice and mastery."""
 
     __tablename__ = "chunk_bank"
-    __table_args__ = (
-        UniqueConstraint("user_id", "chunk_id", name="uq_user_chunk_bank"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "chunk_id", name="uq_user_chunk_bank"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
@@ -198,7 +196,9 @@ class ChunkBank(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(
         String(30), default="NEEDS_PRACTICE", nullable=False, index=True
     )
-    last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     user: Mapped[User] = relationship("User")
     chunk: Mapped[ScenarioChunk] = relationship("ScenarioChunk")

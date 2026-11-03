@@ -97,9 +97,7 @@ class ScenarioRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_user_progress(
-        self, user_id: uuid.UUID
-    ) -> Sequence[UserScenarioProgress]:
+    async def list_user_progress(self, user_id: uuid.UUID) -> Sequence[UserScenarioProgress]:
         stmt = select(UserScenarioProgress).where(UserScenarioProgress.user_id == user_id)
         result = await self.db.execute(stmt)
         return result.scalars().all()
@@ -129,8 +127,10 @@ class ScenarioRepository:
             )
             self.db.add(progress)
         else:
-            if status and status != progress.status and (
-                progress.status != "COMPLETED" or status == "COMPLETED"
+            if (
+                status
+                and status != progress.status
+                and (progress.status != "COMPLETED" or status == "COMPLETED")
             ):
                 progress.status = status
             if score is not None and (
