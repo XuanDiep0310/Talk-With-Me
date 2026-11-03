@@ -1,7 +1,7 @@
 """
 In-process asynchronous domain event bus.
 Enables loose coupling between modules (e.g. Coach/Scoring emitting FeedbackGenerated,
-Gamification listening to grant XP in Sprint 6).
+RoleplayEvaluated, Gamification listening to grant XP in Sprint 6).
 """
 
 import asyncio
@@ -32,6 +32,21 @@ class FeedbackGenerated(Event):
     overall_score: float | None
     partial: bool
     skill_scores: dict[str, float | None]
+
+
+@dataclass
+class RoleplayEvaluated(Event):
+    """Event emitted whenever post-roleplay mission evaluation is completed."""
+
+    session_id: uuid.UUID
+    scenario_id: uuid.UUID
+    user_id: uuid.UUID
+    passed: bool
+    requirements_passed: int
+    requirements_total: int
+    used_chunks_count: int
+    needs_practice_chunks_count: int
+    overall_score: float | None
 
 
 EventHandler = Callable[[Any], Coroutine[Any, Any, None]]

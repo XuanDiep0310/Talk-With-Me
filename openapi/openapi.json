@@ -1536,6 +1536,523 @@
         }
       }
     },
+    "/api/v1/scenarios": {
+      "get": {
+        "tags": [
+          "Scenarios"
+        ],
+        "summary": "List scenarios with filters and completion stats",
+        "description": "Retrieve all scenarios with personalized user progress, categorized counts, and filters.",
+        "operationId": "list_scenarios_api_v1_scenarios_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Category filter (DAILY_LIFE, SOCIAL, TRAVEL_SHOPPING, WORKPLACE)",
+              "title": "Category"
+            },
+            "description": "Category filter (DAILY_LIFE, SOCIAL, TRAVEL_SHOPPING, WORKPLACE)"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "CEFR level filter (A1, A2, B1, B2, C1)",
+              "title": "Level"
+            },
+            "description": "CEFR level filter (A1, A2, B1, B2, C1)"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Status filter (NOT_STARTED, IN_PROGRESS, COMPLETED)",
+              "title": "Status"
+            },
+            "description": "Status filter (NOT_STARTED, IN_PROGRESS, COMPLETED)"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search term for title or context",
+              "title": "Q"
+            },
+            "description": "Search term for title or context"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioLibraryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scenarios/{id}": {
+      "get": {
+        "tags": [
+          "Scenarios"
+        ],
+        "summary": "Get scenario detail with requirements, chunks, and progress",
+        "description": "Get full scenario details by UUID or slug, including requirements, chunks, and practiced status.",
+        "operationId": "get_scenario_detail_api_v1_scenarios__id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scenarios/{id}/chunks": {
+      "get": {
+        "tags": [
+          "Scenarios"
+        ],
+        "summary": "Get scenario chunks for learning and reflex practice",
+        "description": "Retrieve useful language chunks for the scenario.",
+        "operationId": "get_scenario_chunks_api_v1_scenarios__id__chunks_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioChunksResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scenarios/{id}/drills": {
+      "post": {
+        "tags": [
+          "Scenarios"
+        ],
+        "summary": "Record chunk reflex drill attempt",
+        "description": "Record an ungraded listen-and-repeat chunk drill attempt or skip.",
+        "operationId": "record_drill_attempt_api_v1_scenarios__id__drills_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordDrillRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordDrillResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/scenarios/{id}/roleplays": {
+      "post": {
+        "tags": [
+          "Scenarios"
+        ],
+        "summary": "Start an interactive roleplay session for a scenario",
+        "description": "Create a new roleplay session (type=ROLEPLAY) and generate initial AI greeting.",
+        "operationId": "start_scenario_roleplay_api_v1_scenarios__id__roleplays_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateRoleplayRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleplaySessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/roleplays/{id}/transcript": {
+      "post": {
+        "tags": [
+          "Roleplays"
+        ],
+        "summary": "Add a transcript segment to roleplay session",
+        "description": "Idempotently add a Live Script dialogue turn to the roleplay session.",
+        "operationId": "add_roleplay_transcript_segment_api_v1_roleplays__id__transcript_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTranscriptSegmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptSegmentResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/roleplays/{id}/end": {
+      "post": {
+        "tags": [
+          "Roleplays"
+        ],
+        "summary": "End roleplay session and trigger evaluation",
+        "description": "End the roleplay session and asynchronously trigger requirement and scoring evaluation.",
+        "operationId": "end_roleplay_session_api_v1_roleplays__id__end_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EndSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/roleplays/{id}/evaluation": {
+      "get": {
+        "tags": [
+          "Roleplays"
+        ],
+        "summary": "Get mission evaluation and chunk feedback for roleplay session",
+        "description": "Retrieve PASS/FAIL milestones, chunk usage, strengths, improvements, and next practice.",
+        "operationId": "get_roleplay_evaluation_api_v1_roleplays__id__evaluation_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleplayEvaluationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/chunk-bank": {
+      "get": {
+        "tags": [
+          "Chunk Bank"
+        ],
+        "summary": "Retrieve user personal chunk bank",
+        "description": "Retrieve user's personal language chunk bank with review statuses.",
+        "operationId": "get_my_chunk_bank_api_v1_me_chunk_bank_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChunkBankResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/ws-tickets": {
       "post": {
         "tags": [
@@ -1840,6 +2357,193 @@
         ],
         "title": "ChangePasswordRequest"
       },
+      "ChunkBankItemSchema": {
+        "properties": {
+          "chunkId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunkid"
+          },
+          "scenarioId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenarioid"
+          },
+          "scenarioTitle": {
+            "type": "string",
+            "title": "Scenariotitle"
+          },
+          "functionTag": {
+            "type": "string",
+            "title": "Functiontag"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "meaningVi": {
+            "type": "string",
+            "title": "Meaningvi"
+          },
+          "exampleSentence": {
+            "type": "string",
+            "title": "Examplesentence"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "lastReviewedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastreviewedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunkId",
+          "scenarioId",
+          "scenarioTitle",
+          "functionTag",
+          "text",
+          "meaningVi",
+          "exampleSentence",
+          "status"
+        ],
+        "title": "ChunkBankItemSchema"
+      },
+      "ChunkBankResponse": {
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          },
+          "needsPracticeCount": {
+            "type": "integer",
+            "title": "Needspracticecount"
+          },
+          "masteredCount": {
+            "type": "integer",
+            "title": "Masteredcount"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ChunkBankItemSchema"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "totalCount",
+          "needsPracticeCount",
+          "masteredCount",
+          "items"
+        ],
+        "title": "ChunkBankResponse"
+      },
+      "ChunkToImproveItem": {
+        "properties": {
+          "chunkId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Chunkid"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "functionTag": {
+            "type": "string",
+            "title": "Functiontag"
+          },
+          "meaningVi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meaningvi"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunkId",
+          "text",
+          "functionTag",
+          "reason"
+        ],
+        "title": "ChunkToImproveItem"
+      },
+      "ChunkUsedWellItem": {
+        "properties": {
+          "chunkId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Chunkid"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "functionTag": {
+            "type": "string",
+            "title": "Functiontag"
+          },
+          "matchedUtterance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matchedutterance"
+          },
+          "matchType": {
+            "type": "string",
+            "title": "Matchtype"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunkId",
+          "text",
+          "functionTag",
+          "matchType"
+        ],
+        "title": "ChunkUsedWellItem"
+      },
       "CoachTopicGroupSchema": {
         "properties": {
           "category": {
@@ -1965,6 +2669,11 @@
         },
         "type": "object",
         "title": "CreateCoachSessionRequest"
+      },
+      "CreateRoleplayRequest": {
+        "properties": {},
+        "type": "object",
+        "title": "CreateRoleplayRequest"
       },
       "EndSessionRequest": {
         "properties": {
@@ -2488,6 +3197,69 @@
         ],
         "title": "PreferencesResponse"
       },
+      "RecordDrillRequest": {
+        "properties": {
+          "chunkId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunkid"
+          },
+          "isSkipped": {
+            "type": "boolean",
+            "title": "Isskipped",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "chunkId"
+        ],
+        "title": "RecordDrillRequest"
+      },
+      "RecordDrillResponse": {
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Attemptid"
+          },
+          "chunkId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Chunkid"
+          },
+          "scenarioId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenarioid"
+          },
+          "isSkipped": {
+            "type": "boolean",
+            "title": "Isskipped"
+          },
+          "practicedChunks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Practicedchunks"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "attemptId",
+          "chunkId",
+          "scenarioId",
+          "isSkipped",
+          "practicedChunks",
+          "message"
+        ],
+        "title": "RecordDrillResponse"
+      },
       "RefreshRequest": {
         "properties": {
           "refreshToken": {
@@ -2533,6 +3305,52 @@
         ],
         "title": "RegisterRequest"
       },
+      "RequirementEvaluationItem": {
+        "properties": {
+          "requirementId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Requirementid"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "isMandatory": {
+            "type": "boolean",
+            "title": "Ismandatory"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "evidence": {
+            "type": "string",
+            "title": "Evidence"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requirementId",
+          "description",
+          "isMandatory",
+          "status",
+          "evidence",
+          "reason"
+        ],
+        "title": "RequirementEvaluationItem"
+      },
       "ResetPasswordRequest": {
         "properties": {
           "token": {
@@ -2551,6 +3369,585 @@
           "newPassword"
         ],
         "title": "ResetPasswordRequest"
+      },
+      "RoleplayEvaluationResponse": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sessionid"
+          },
+          "scenarioId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenarioid"
+          },
+          "scenarioTitle": {
+            "type": "string",
+            "title": "Scenariotitle"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "overallScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overallscore"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementEvaluationItem"
+            },
+            "type": "array",
+            "title": "Requirements"
+          },
+          "chunksUsedWell": {
+            "items": {
+              "$ref": "#/components/schemas/ChunkUsedWellItem"
+            },
+            "type": "array",
+            "title": "Chunksusedwell"
+          },
+          "chunksToImprove": {
+            "items": {
+              "$ref": "#/components/schemas/ChunkToImproveItem"
+            },
+            "type": "array",
+            "title": "Chunkstoimprove"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strengths"
+          },
+          "improvements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Improvements"
+          },
+          "nextPractice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextpractice"
+          },
+          "evaluatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluatedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessionId",
+          "scenarioId",
+          "scenarioTitle",
+          "status",
+          "passed"
+        ],
+        "title": "RoleplayEvaluationResponse"
+      },
+      "RoleplaySessionResponse": {
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sessionid"
+          },
+          "scenarioId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenarioid"
+          },
+          "scenarioTitle": {
+            "type": "string",
+            "title": "Scenariotitle"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "userRole": {
+            "type": "string",
+            "title": "Userrole"
+          },
+          "aiRole": {
+            "type": "string",
+            "title": "Airole"
+          },
+          "context": {
+            "type": "string",
+            "title": "Context"
+          },
+          "openingMessage": {
+            "type": "string",
+            "title": "Openingmessage"
+          },
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioChunkSchema"
+            },
+            "type": "array",
+            "title": "Chunks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sessionId",
+          "scenarioId",
+          "scenarioTitle",
+          "status",
+          "userRole",
+          "aiRole",
+          "context",
+          "openingMessage"
+        ],
+        "title": "RoleplaySessionResponse"
+      },
+      "ScenarioCategorySummary": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "nameVi": {
+            "type": "string",
+            "title": "Namevi"
+          },
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          },
+          "completedCount": {
+            "type": "integer",
+            "title": "Completedcount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "nameVi",
+          "totalCount",
+          "completedCount"
+        ],
+        "title": "ScenarioCategorySummary"
+      },
+      "ScenarioChunkSchema": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "scenarioId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scenarioid"
+          },
+          "functionTag": {
+            "type": "string",
+            "title": "Functiontag"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "meaningVi": {
+            "type": "string",
+            "title": "Meaningvi"
+          },
+          "audioUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audiourl"
+          },
+          "exampleSentence": {
+            "type": "string",
+            "title": "Examplesentence"
+          },
+          "acceptedVariations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Acceptedvariations"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "title": "Sortorder"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "functionTag",
+          "text",
+          "meaningVi",
+          "exampleSentence",
+          "sortOrder"
+        ],
+        "title": "ScenarioChunkSchema"
+      },
+      "ScenarioChunksResponse": {
+        "properties": {
+          "scenarioId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Scenarioid"
+          },
+          "scenarioTitle": {
+            "type": "string",
+            "title": "Scenariotitle"
+          },
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioChunkSchema"
+            },
+            "type": "array",
+            "title": "Chunks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenarioId",
+          "scenarioTitle",
+          "chunks"
+        ],
+        "title": "ScenarioChunksResponse"
+      },
+      "ScenarioDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "titleVi": {
+            "type": "string",
+            "title": "Titlevi"
+          },
+          "titleEn": {
+            "type": "string",
+            "title": "Titleen"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "estimatedDurationMinutes": {
+            "type": "integer",
+            "title": "Estimateddurationminutes"
+          },
+          "context": {
+            "type": "string",
+            "title": "Context"
+          },
+          "userRole": {
+            "type": "string",
+            "title": "Userrole"
+          },
+          "aiRole": {
+            "type": "string",
+            "title": "Airole"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "title": "Sortorder"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "NOT_STARTED"
+          },
+          "highestScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highestscore"
+          },
+          "xpReward": {
+            "type": "integer",
+            "title": "Xpreward",
+            "default": 100
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioRequirementSchema"
+            },
+            "type": "array",
+            "title": "Requirements"
+          },
+          "chunks": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioChunkSchema"
+            },
+            "type": "array",
+            "title": "Chunks"
+          },
+          "practicedChunks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Practicedchunks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "category",
+          "titleVi",
+          "titleEn",
+          "level",
+          "estimatedDurationMinutes",
+          "context",
+          "userRole",
+          "aiRole",
+          "sortOrder"
+        ],
+        "title": "ScenarioDetailResponse"
+      },
+      "ScenarioLibraryResponse": {
+        "properties": {
+          "scenarios": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioSummarySchema"
+            },
+            "type": "array",
+            "title": "Scenarios"
+          },
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          },
+          "completedCount": {
+            "type": "integer",
+            "title": "Completedcount"
+          },
+          "totalProgressPct": {
+            "type": "integer",
+            "title": "Totalprogresspct"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/ScenarioCategorySummary"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
+          "xpReward": {
+            "type": "integer",
+            "title": "Xpreward",
+            "default": 100
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenarios",
+          "totalCount",
+          "completedCount",
+          "totalProgressPct",
+          "categories"
+        ],
+        "title": "ScenarioLibraryResponse"
+      },
+      "ScenarioRequirementSchema": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "TASK"
+          },
+          "expectedChunkFunction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expectedchunkfunction"
+          },
+          "isMandatory": {
+            "type": "boolean",
+            "title": "Ismandatory",
+            "default": true
+          },
+          "sortOrder": {
+            "type": "integer",
+            "title": "Sortorder"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "description",
+          "sortOrder"
+        ],
+        "title": "ScenarioRequirementSchema"
+      },
+      "ScenarioSummarySchema": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "titleVi": {
+            "type": "string",
+            "title": "Titlevi"
+          },
+          "titleEn": {
+            "type": "string",
+            "title": "Titleen"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "estimatedDurationMinutes": {
+            "type": "integer",
+            "title": "Estimateddurationminutes"
+          },
+          "userRole": {
+            "type": "string",
+            "title": "Userrole"
+          },
+          "aiRole": {
+            "type": "string",
+            "title": "Airole"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "title": "Sortorder"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "NOT_STARTED"
+          },
+          "highestScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highestscore"
+          },
+          "xpReward": {
+            "type": "integer",
+            "title": "Xpreward",
+            "default": 100
+          },
+          "chunksCount": {
+            "type": "integer",
+            "title": "Chunkscount",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "category",
+          "titleVi",
+          "titleEn",
+          "level",
+          "estimatedDurationMinutes",
+          "userRole",
+          "aiRole",
+          "sortOrder"
+        ],
+        "title": "ScenarioSummarySchema"
       },
       "ServiceHealthResponse": {
         "properties": {
