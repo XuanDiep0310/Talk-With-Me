@@ -261,6 +261,21 @@ export class CoachVoiceService {
    * - Tap 1: Start speaking (state -> user_speaking)
    * - Tap 2: Stop speaking & finish sentence (state -> processing -> auto-play)
    */
+  sendUserText(text: string): void {
+    if (!text.trim()) return;
+    const segId = crypto.randomUUID();
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(
+        JSON.stringify({
+          type: 'user.text',
+          segmentId: segId,
+          text: text.trim(),
+          isFinal: true,
+        })
+      );
+    }
+  }
+
   async toggleSpeakingTurn(): Promise<void> {
     if (this.isRecordingTurn()) {
       await this.stopSpeakingTurn();

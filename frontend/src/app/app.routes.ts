@@ -99,6 +99,34 @@ export const routes: Routes = [
           )
       },
       {
+        path: 'scenarios/:id',
+        loadComponent: () =>
+          import('./features/scenarios/scenario-detail.component').then(
+            (m) => m.ScenarioDetailComponent
+          )
+      },
+      {
+        path: 'scenario-detail/:id',
+        loadComponent: () =>
+          import('./features/scenarios/scenario-detail.component').then(
+            (m) => m.ScenarioDetailComponent
+          )
+      },
+      {
+        path: 'scenario-roleplay/:id',
+        loadComponent: () =>
+          import('./features/scenarios/scenario-roleplay.component').then(
+            (m) => m.ScenarioRoleplayComponent
+          )
+      },
+      {
+        path: 'scenario-result/:id',
+        loadComponent: () =>
+          import('./features/scenarios/scenario-result.component').then(
+            (m) => m.ScenarioResultComponent
+          )
+      },
+      {
         path: 'scenario-detail',
         loadComponent: () =>
           import('./features/scenarios/scenario-detail.component').then(

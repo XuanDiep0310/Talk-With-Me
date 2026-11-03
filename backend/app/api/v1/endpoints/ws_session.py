@@ -27,6 +27,7 @@ from app.core.providers.stt_provider import get_stt_provider
 from app.core.redis import get_redis_client
 from app.core.ws_manager import session_ws_manager
 from app.models.session import TranscriptSegment
+from app.repositories.scenario import ScenarioRepository
 from app.repositories.session import SessionRepository, TranscriptRepository
 from app.services.session_state_machine import (
     InvalidSessionStateTransitionError,
@@ -187,6 +188,11 @@ async def session_websocket_endpoint(
                 u_lvl = s_init.level
                 t_title = s_init.topic.title if s_init.topic else "Daily Conversation"
                 t_min = s_init.topic.min_level if s_init.topic else "A1"
+                if s_init.type == "ROLEPLAY" and s_init.scenario_id:
+                    scen_init = await ScenarioRepository(db).get_by_id(s_init.scenario_id)
+                    if scen_init:
+                        t_title = scen_init.title_en
+                        t_min = scen_init.level
                 all_segs = await TranscriptRepository(db).list_by_session(session_id)
                 last_q = "Could you start by telling me a little about yourself or your thoughts on this topic?"
                 for s_item in reversed(all_segs):
@@ -370,15 +376,44 @@ async def session_websocket_endpoint(
                                 for t in all_transcripts[-6:]
                             ]
 
-                        # Call LLM with retry
-                        ai_reply = await _async_retry(
-                            llm_provider.generate_coach_reply,
-                            history,
-                            user_text,
-                            user_level,
-                            topic_title,
-                            topic_min_level,
-                        )
+                            # Distinguish Roleplay vs Coach session
+                            if sess and sess.type == "ROLEPLAY" and sess.scenario_id:
+                                scen_repo = ScenarioRepository(db)
+                                scenario = await scen_repo.get_by_id(sess.scenario_id)
+                                if scenario:
+                                    topic_title = scenario.title_en
+                                    topic_min_level = scenario.level
+                                    target_chunks = [c.text for c in scenario.chunks]
+                                    ai_reply = await _async_retry(
+                                        llm_provider.generate_roleplay_reply,
+                                        history,
+                                        user_text,
+                                        user_level,
+                                        scenario.context,
+                                        scenario.ai_role,
+                                        scenario.user_role,
+                                        scenario.goals or [],
+                                        target_chunks,
+                                    )
+                                else:
+                                    ai_reply = await _async_retry(
+                                        llm_provider.generate_coach_reply,
+                                        history,
+                                        user_text,
+                                        user_level,
+                                        topic_title,
+                                        topic_min_level,
+                                    )
+                            else:
+                                # Call LLM with retry
+                                ai_reply = await _async_retry(
+                                    llm_provider.generate_coach_reply,
+                                    history,
+                                    user_text,
+                                    user_level,
+                                    topic_title,
+                                    topic_min_level,
+                                )
                     except Exception as err:
                         logger.error("LLM reply generation error: %s", err)
                         ai_reply = "I see! Could you tell me a little bit more about that?"

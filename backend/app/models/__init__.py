@@ -10,6 +10,15 @@ from app.models.auth import (
 )
 from app.models.base import Base, TimestampMixin
 from app.models.onboarding import LevelHistory, PlacementAnswer, PlacementTest
+from app.models.scenario import (
+    ChunkBank,
+    DrillAttempt,
+    RoleplayEvaluation,
+    Scenario,
+    ScenarioChunk,
+    ScenarioRequirement,
+    UserScenarioProgress,
+)
 from app.models.scoring import ScoringAudit, SessionFeedback, SessionSkillScore
 from app.models.session import CoachTopic, Session, TranscriptSegment
 
@@ -31,4 +40,11 @@ __all__ = [
     "SessionFeedback",
     "SessionSkillScore",
     "ScoringAudit",
+    "Scenario",
+    "ScenarioRequirement",
+    "ScenarioChunk",
+    "UserScenarioProgress",
+    "DrillAttempt",
+    "ChunkBank",
+    "RoleplayEvaluation",
 ]
