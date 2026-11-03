@@ -409,7 +409,7 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      // Auto-scroll when new transcript arrives & auto-enable translations
+      // Auto-scroll when new transcript arrives
       const list = this.voiceService.liveTranscripts();
       setTimeout(() => {
         if (this.transcriptContainer) {
@@ -418,12 +418,8 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
         }
       }, 80);
 
-      // Eagerly prefetch translations and show them
+      // Eagerly prefetch translations for quick display upon toggle
       for (const item of list) {
-        if (!this.showTranslation()[item.id]) {
-          // Default to showing translation for smooth learning
-          this.showTranslation.update((m) => ({ ...m, [item.id]: true }));
-        }
         if (!this.translationMap()[item.id] && !item.isPartial) {
           if (item.translation) {
             this.translationMap.update((m) => ({ ...m, [item.id]: item.translation! }));

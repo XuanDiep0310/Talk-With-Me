@@ -22,7 +22,16 @@ import {
   WordPronunciationScore,
 } from '../../core/services/scenario.service';
 
-export type CoachStage = 'overview' | 'drill' | 'assemble' | 'complete';
+/**
+ * 4 Spiral learning modes for unconscious mastery:
+ * - 'phonetics': Nạp cụm & Chuẩn hóa phát âm (Vòng tròn điểm, chậm rãi, từng âm tiết IPA)
+ * - 'listen_repeat': Phản xạ thính giác (Nghe AI đọc câu hoàn chỉnh và nói lại)
+ * - 'fill_blank': Truy xuất trí nhớ chủ động (Ẩn cụm từ, chỉ hiện gợi ý nghĩa và câu ngữ cảnh)
+ * - 'reflex_quiz': Phản xạ tình huống tự nhiên (Nhìn tình huống tiếng Việt, bật nói tiếng Anh tức thì không cần nhìn chữ)
+ */
+export type DrillActivity = 'phonetics' | 'listen_repeat' | 'fill_blank' | 'reflex_quiz';
+
+export type CoachStage = 'overview' | 'interactive_drill' | 'summary_ready';
 
 const FUNCTIONAL_TAG_CONFIG: Record<
   string,
@@ -41,7 +50,7 @@ const FUNCTIONAL_TAG_CONFIG: Record<
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-slate-50/60 pb-12">
+    <div class="min-h-screen bg-slate-50/70 pb-16">
       <!-- Loading / Error States -->
       @if (isLoading()) {
         <div class="py-24 text-center text-slate-400">
@@ -58,7 +67,7 @@ const FUNCTIONAL_TAG_CONFIG: Record<
       } @else {
         @if (scenario(); as s) {
           <!-- ============================================================== -->
-          <!-- SCREEN 1: OVERVIEW & "BẠN CẦN NHỚ CỤM SAU" (The Coach Style)   -->
+          <!-- SCREEN 1: TỔNG QUAN BÀI HỌC & CÁC CHUNK CẦN NHỚ               -->
           <!-- ============================================================== -->
           @if (stage() === 'overview') {
             <div class="max-w-2xl mx-auto px-4 pt-6 space-y-6">
@@ -66,8 +75,8 @@ const FUNCTIONAL_TAG_CONFIG: Record<
               <div class="flex items-center justify-between">
                 <button
                   type="button"
-                  aria-label="Quay lại"
-                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Quay lại danh sách"
+                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-xs border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                   (click)="goBack()"
                 >
                   <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -75,8 +84,8 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                   </svg>
                 </button>
                 <div class="flex items-center gap-2">
-                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-[#E2F0F9] text-[#286FB4]">
-                    {{ s.level }}
+                  <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#E2F0F9] text-[#286FB4]">
+                    Level {{ s.level }}
                   </span>
                   <span class="text-xs text-slate-500 font-600">
                     ⏱ {{ s.estimatedDurationMinutes || 10 }} phút
@@ -84,8 +93,8 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                 </div>
               </div>
 
-              <!-- Question & Objective Card -->
-              <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+              <!-- Question & Objective Card (TalkWithMe Design System) -->
+              <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
                 <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-[#286FB4]/20 rounded-full blur-2xl"></div>
                 <div class="text-[11px] font-extrabold uppercase tracking-widest text-sky-300 mb-1">
                   ĐỂ TRẢ LỜI CÂU HỎI
@@ -97,7 +106,7 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                   {{ s.titleVi }}
                 </p>
 
-                <!-- Context hint collapsible -->
+                <!-- Context hint -->
                 <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-300">
                   <span>Vai: <strong class="text-white">{{ s.userRole }}</strong> vs <strong class="text-white">{{ s.aiRole }}</strong></span>
                   <button
@@ -110,7 +119,7 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                 </div>
               </div>
 
-              <!-- Section: BẠN CẦN NHỚ CỤM SAU -->
+              <!-- Chunks Checklist -->
               <div class="space-y-3">
                 <div class="flex items-center justify-between px-1">
                   <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">
@@ -124,19 +133,19 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                 <div class="space-y-3">
                   @for (c of s.chunks; track c.id) {
                     <div
-                      class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md transition-all flex items-start gap-3.5"
+                      class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:shadow-sm transition-all flex items-start gap-3.5"
                     >
                       <!-- Audio Speaker Button -->
                       <button
                         type="button"
-                        class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center bg-[#E2F0F9] text-[#286FB4] hover:bg-sky-100 transition cursor-pointer"
+                        class="w-10 h-10 rounded-full shrink-0 flex items-center justify-center bg-[#E2F0F9] text-[#286FB4] hover:bg-sky-100 transition cursor-pointer"
                         title="Nghe phát âm chuẩn"
                         (click)="playAudio(c.text, c.audioUrl)"
                       >
                         🔊
                       </button>
 
-                      <!-- Chunk details -->
+                      <!-- Chunk Details -->
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 mb-1">
                           <span
@@ -153,16 +162,16 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                         <div class="text-xs text-slate-500 mt-0.5">
                           {{ c.meaningVi }}
                         </div>
-                        <div class="text-[11px] text-slate-600 italic mt-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <div class="text-[11px] text-slate-600 italic mt-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
                           💬 "{{ c.exampleSentence }}"
                         </div>
                       </div>
 
                       <!-- Bookmark & Mastery check -->
-                      <div class="flex flex-col items-center gap-2 flex-shrink-0 pt-0.5">
+                      <div class="flex flex-col items-center gap-2 shrink-0 pt-0.5">
                         <button
                           type="button"
-                          class="text-lg transition cursor-pointer"
+                          class="text-base transition cursor-pointer"
                           [title]="isBookmarked(c.id) ? 'Đã lưu vào Chunk Bank' : 'Lưu vào Chunk Bank'"
                           (click)="toggleBookmark(c.id)"
                         >
@@ -180,14 +189,14 @@ const FUNCTIONAL_TAG_CONFIG: Record<
               </div>
 
               <!-- Coach Alexander Card -->
-              <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex items-center justify-between">
+              <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-[#286FB4] to-sky-400 text-white font-extrabold flex items-center justify-center text-lg shadow-sm">
+                  <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-[#286FB4] to-sky-400 text-white font-extrabold flex items-center justify-center text-base shadow-xs">
                     🤖
                   </div>
                   <div>
-                    <div class="text-sm font-bold text-slate-800">Thực hành cùng Alex (Coach)</div>
-                    <div class="text-xs text-slate-500">Luyện nạp cụm & ghép câu phản xạ</div>
+                    <div class="text-sm font-bold text-slate-800">Luyện ghi nhớ trong tiềm thức</div>
+                    <div class="text-xs text-slate-500">4 vòng lặp đa dạng: Phát âm ➔ Nghe lặp ➔ Điền khuyết ➔ Phản xạ</div>
                   </div>
                 </div>
                 <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#E2F0F9] text-[#286FB4]">
@@ -202,133 +211,241 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                   class="w-full py-4 rounded-2xl text-white font-extrabold text-base bg-[#286FB4] hover:bg-[#1d5a94] shadow-lg shadow-[#286FB4]/25 transition cursor-pointer"
                   (click)="startDrillFlow()"
                 >
-                  Bắt đầu
+                  Bắt đầu luyện phản xạ
                 </button>
               </div>
             </div>
           }
 
           <!-- ============================================================== -->
-          <!-- SCREEN 2 & 3: "NẠP CỤM" (Pronunciation Score Meter + IPA)      -->
+          <!-- SCREEN 2: LUYỆN LẶP ĐA DẠNG (SPIRAL DRILLS CHO CHUNK)          -->
           <!-- ============================================================== -->
-          @if (stage() === 'drill') {
+          @if (stage() === 'interactive_drill') {
             <div class="max-w-xl mx-auto px-4 pt-6 space-y-6">
-              <!-- Top Stepper Bar -->
+              <!-- Top Navigation Bar & Multi-Step Indicators -->
               <div class="flex items-center justify-between">
                 <button
                   type="button"
-                  aria-label="Đóng"
-                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Đóng bài luyện"
+                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-xs border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
                   (click)="stage.set('overview')"
                 >
                   ✕
                 </button>
 
-                <!-- Step dots -->
+                <!-- Current Activity Badge & Dots -->
                 <div class="flex flex-col items-center">
-                  <span class="text-xs font-bold text-slate-700">Nạp cụm</span>
-                  <div class="flex items-center gap-1.5 mt-1">
-                    @for (c of s.chunks; track c.id; let idx = $index) {
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-slate-800">{{ activityTitle() }}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#E2F0F9] text-[#286FB4]">
+                      Vòng {{ currentRound() }}/4
+                    </span>
+                  </div>
+                  <!-- Progress bar for all 4 rounds x chunks -->
+                  <div class="flex items-center gap-1 mt-1.5">
+                    @for (dot of progressDots(); track $index) {
                       <div
                         class="h-1.5 rounded-full transition-all"
-                        [style.width]="idx === drillIdx() ? '18px' : '6px'"
-                        [style.background]="idx === drillIdx() ? '#286FB4' : (idx < drillIdx() ? '#16a34a' : '#cbd5e1')"
+                        [style.width]="dot.active ? '16px' : '5px'"
+                        [style.background]="dot.active ? '#286FB4' : (dot.completed ? '#16a34a' : '#cbd5e1')"
                       ></div>
                     }
                   </div>
                 </div>
 
-                <div class="w-10 text-right text-xs font-bold text-slate-400">
-                  {{ drillIdx() + 1 }}/{{ s.chunks.length }}
+                <div class="text-right text-xs font-bold text-slate-400">
+                  Chunk {{ drillChunkIdx() + 1 }}/{{ s.chunks.length }}
                 </div>
               </div>
 
               @if (currentChunk(); as chunk) {
-                <!-- Subtitle Label -->
-                <div class="text-center pt-2">
-                  <div class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-1">
-                    HÃY NÓI CỤM SAU
+                <!-- Activity Instruction Subtitle -->
+                <div class="text-center pt-1">
+                  <div class="text-xs font-extrabold uppercase tracking-widest text-[#286FB4] mb-1">
+                    {{ activityInstruction() }}
                   </div>
                 </div>
 
-                <!-- Circular Pronunciation Score Meter -->
-                <div class="relative w-32 h-32 mx-auto flex items-center justify-center">
-                  <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      stroke="#e2e8f0"
-                      stroke-width="7"
-                      fill="none"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      [attr.stroke]="scoreColor()"
-                      stroke-width="7"
-                      stroke-linecap="round"
-                      fill="none"
-                      [attr.stroke-dasharray]="circleCircumference"
-                      [attr.stroke-dashoffset]="circleDashOffset()"
-                      class="transition-all duration-700 ease-out"
-                    />
-                  </svg>
-                  <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span class="text-3xl font-900 font-extrabold leading-none" [style.color]="scoreColor()">
-                      {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
-                    </span>
-                    <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
-                      {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Normal + Snail Audio Controls -->
-                <div class="flex items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                    (click)="playAudio(chunk.text, chunk.audioUrl, false)"
-                  >
-                    <span>🔊</span> Nghe chuẩn
-                  </button>
-                  <button
-                    type="button"
-                    class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-amber-700 hover:bg-amber-50 transition cursor-pointer"
-                    title="Nghe phát âm chậm rãi"
-                    (click)="playAudio(chunk.text, chunk.audioUrl, true)"
-                  >
-                    <span>🐌</span> Chậm rãi
-                  </button>
-                </div>
-
-                <!-- Word-by-Word Colored Chunk Display -->
-                <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm text-center space-y-2">
-                  <div class="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center justify-center gap-2">
-                    @for (token of evaluatedWordTokens(); track $index) {
-                      <span
-                        class="transition-colors"
-                        [class.text-emerald-600]="token.status === 'correct'"
-                        [class.text-rose-600]="token.status === 'imperfect'"
-                        [class.text-slate-800]="token.status === 'missing'"
-                      >
-                        {{ token.word }}
+                <!-- ======================================================== -->
+                <!-- DẠNG 1: PHONETICS (NẠP CỤM & VÒNG TRÒN ĐIỂM SVG)        -->
+                <!-- ======================================================== -->
+                @if (currentActivity() === 'phonetics') {
+                  <!-- Circular Pronunciation Score Meter -->
+                  <div class="relative w-32 h-32 mx-auto flex items-center justify-center">
+                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="7" fill="none" />
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        [attr.stroke]="scoreColor()"
+                        stroke-width="7"
+                        stroke-linecap="round"
+                        fill="none"
+                        [attr.stroke-dasharray]="circleCircumference"
+                        [attr.stroke-dashoffset]="circleDashOffset()"
+                        class="transition-all duration-700 ease-out"
+                      />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span class="text-3xl font-extrabold leading-none" [style.color]="scoreColor()">
+                        {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
                       </span>
+                      <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
+                        {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Normal + Snail Audio Controls -->
+                  <div class="flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                      (click)="playAudio(chunk.text, chunk.audioUrl, false)"
+                    >
+                      <span>🔊</span> Nghe chuẩn
+                    </button>
+                    <button
+                      type="button"
+                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-amber-700 hover:bg-amber-50 transition cursor-pointer"
+                      title="Nghe phát âm chậm rãi"
+                      (click)="playAudio(chunk.text, chunk.audioUrl, true)"
+                    >
+                      <span>🐌</span> Chậm rãi
+                    </button>
+                  </div>
+
+                  <!-- Target Chunk Text with Word-by-Word Colors & IPA -->
+                  <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs text-center space-y-2">
+                    <div class="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center justify-center gap-2">
+                      @for (token of evaluatedWordTokens(); track $index) {
+                        <span
+                          class="transition-colors"
+                          [class.text-emerald-600]="token.status === 'correct'"
+                          [class.text-rose-600]="token.status === 'imperfect'"
+                          [class.text-slate-800]="token.status === 'missing'"
+                        >
+                          {{ token.word }}
+                        </span>
+                      }
+                    </div>
+                    <div class="text-xs font-mono font-600 text-slate-400">
+                      {{ ipaTranscript() }}
+                    </div>
+                    <div class="text-sm text-slate-600 font-500 pt-1">
+                      {{ chunk.meaningVi }}
+                    </div>
+                  </div>
+                }
+
+                <!-- ======================================================== -->
+                <!-- DẠNG 2: LISTEN & REPEAT (NGHE NÓI GHÉP CÂU)              -->
+                <!-- ======================================================== -->
+                @if (currentActivity() === 'listen_repeat') {
+                  <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs text-center space-y-3">
+                    <div class="text-lg md:text-xl font-extrabold text-[#286FB4] leading-relaxed">
+                      "{{ chunk.exampleSentence }}"
+                    </div>
+                    <div class="text-xs md:text-sm text-slate-600 font-500">
+                      {{ chunk.meaningVi }}
+                    </div>
+                  </div>
+
+                  <!-- Audio Controls -->
+                  <div class="flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                      (click)="playAudio(chunk.exampleSentence, null, false)"
+                    >
+                      <span>🔊</span> Nghe câu
+                    </button>
+                    <button
+                      type="button"
+                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-amber-700 hover:bg-amber-50 transition cursor-pointer"
+                      (click)="playAudio(chunk.exampleSentence, null, true)"
+                    >
+                      <span>🐌</span> Chậm rãi
+                    </button>
+                  </div>
+                }
+
+                <!-- ======================================================== -->
+                <!-- DẠNG 3: FILL IN THE BLANK (ĐIỀN KHUYẾT TỪ TRÍ NHỚ)       -->
+                <!-- ======================================================== -->
+                @if (currentActivity() === 'fill_blank') {
+                  <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs text-center space-y-3">
+                    <div class="text-lg md:text-xl font-extrabold text-slate-800 leading-relaxed">
+                      <span class="tracking-widest text-[#286FB4] font-mono">_____ _____ _____</span>
+                      <span> {{ getSentenceTail(chunk) }}</span>
+                    </div>
+                    <div class="text-xs md:text-sm text-slate-600 font-500">
+                      💡 Nghĩa tiếng Việt: <strong class="text-slate-800">{{ chunk.meaningVi }}</strong>
+                    </div>
+                    @if (showHint()) {
+                      <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 font-bold animate-fadeIn">
+                        Cụm từ cần nhớ: "{{ chunk.text }}"
+                      </div>
                     }
                   </div>
 
-                  <!-- IPA Transcription -->
-                  <div class="text-xs font-mono font-600 text-slate-400">
-                    {{ ipaTranscript() }}
+                  <div class="flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                      (click)="playAudio(chunk.exampleSentence, null, false)"
+                    >
+                      <span>🔊</span> Nghe câu hoàn chỉnh
+                    </button>
+                    <button
+                      type="button"
+                      class="px-4 py-2 rounded-full border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold hover:bg-amber-100 transition cursor-pointer"
+                      (click)="toggleHint()"
+                    >
+                      💡 {{ showHint() ? 'Ẩn gợi ý' : 'Gợi ý' }}
+                    </button>
+                  </div>
+                }
+
+                <!-- ======================================================== -->
+                <!-- DẠNG 4: REFLEX QUIZ (PHẢN XẠ NHANH KHÔNG NHÌN CHỮ ANH)   -->
+                <!-- ======================================================== -->
+                @if (currentActivity() === 'reflex_quiz') {
+                  <div class="bg-gradient-to-br from-[#E2F0F9] to-sky-50 rounded-3xl p-6 border border-sky-200 shadow-xs text-center space-y-3">
+                    <div class="text-[10px] uppercase font-bold tracking-wider text-[#286FB4]">
+                      Tình huống giao tiếp thực tế
+                    </div>
+                    <div class="text-lg md:text-xl font-extrabold text-slate-900 leading-snug">
+                      Bạn muốn nói: "{{ chunk.meaningVi }}"
+                    </div>
+                    <p class="text-xs text-slate-500">
+                      ⚡ Hãy bật nói ngay bằng tiếng Anh từ phản xạ tiềm thức!
+                    </p>
+                    @if (showHint()) {
+                      <div class="p-2.5 rounded-xl bg-white border border-sky-300 text-xs text-[#286FB4] font-bold animate-fadeIn">
+                        Mẫu câu: "{{ chunk.text }}"
+                      </div>
+                    }
                   </div>
 
-                  <!-- Meaning in Vietnamese -->
-                  <div class="text-sm text-slate-600 font-500 pt-1">
-                    {{ chunk.meaningVi }}
+                  <div class="flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                      (click)="playAudio(chunk.text, chunk.audioUrl, false)"
+                    >
+                      <span>🔊</span> Nghe đáp án
+                    </button>
+                    <button
+                      type="button"
+                      class="px-4 py-2 rounded-full border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold hover:bg-amber-100 transition cursor-pointer"
+                      (click)="toggleHint()"
+                    >
+                      💡 {{ showHint() ? 'Ẩn đáp án' : 'Xem đáp án' }}
+                    </button>
                   </div>
-                </div>
+                }
 
                 <!-- User Spoken Bubble Preview -->
                 @if (recognizedSpeech()) {
@@ -337,8 +454,8 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                   </div>
                 }
 
-                <!-- Central Pulsing Mic + Action Buttons -->
-                <div class="flex flex-col items-center gap-4 pt-2">
+                <!-- Central Pulsing Mic + Bottom Step Navigation -->
+                <div class="flex flex-col items-center gap-4 pt-1">
                   <!-- Mic Button -->
                   <div class="relative">
                     @if (isListening()) {
@@ -346,7 +463,7 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                     }
                     <button
                       type="button"
-                      aria-label="Thu âm phát âm"
+                      aria-label="Thu âm giọng nói"
                       class="relative w-20 h-20 rounded-full flex items-center justify-center text-3xl text-white shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
                       [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
                       (click)="toggleMicrophone()"
@@ -355,33 +472,33 @@ const FUNCTIONAL_TAG_CONFIG: Record<
                     </button>
                   </div>
                   <span class="text-xs text-slate-500 font-600">
-                    {{ isListening() ? 'Đang lắng nghe... đọc to cụm từ' : 'Chạm vào mic để đọc cụm từ' }}
+                    {{ isListening() ? 'Đang lắng nghe... nói to câu của bạn' : 'Chạm vào micro để nói' }}
                   </span>
 
-                  <!-- Bottom Navigation: Repeat, Skip, Next -->
+                  <!-- Bottom Controls: Repeat, Skip, Next Step -->
                   <div class="w-full flex items-center justify-between pt-4 border-t border-slate-200">
                     <button
                       type="button"
-                      class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
-                      (click)="repeatDrill(chunk.id)"
+                      class="px-3.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                      (click)="repeatActivity(chunk.id)"
                     >
                       🔄 Nói lại
                     </button>
 
                     <button
                       type="button"
-                      class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
-                      (click)="skipDrill(chunk.id)"
+                      class="px-3.5 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
+                      (click)="skipActivity(chunk.id)"
                     >
                       ⏭ Bỏ qua
                     </button>
 
                     <button
                       type="button"
-                      class="px-6 py-2.5 rounded-xl bg-[#286FB4] hover:bg-[#1d5a94] text-white text-xs font-extrabold shadow-md cursor-pointer transition"
-                      (click)="nextDrill(chunk.id)"
+                      class="px-5 py-2.5 rounded-xl bg-[#286FB4] hover:bg-[#1d5a94] text-white text-xs font-extrabold shadow-md cursor-pointer transition"
+                      (click)="advanceActivity(chunk.id)"
                     >
-                      Tiếp tục ➔
+                      {{ isLastStep() ? 'Hoàn thành nạp cụm ➔' : 'Tiếp tục ➔' }}
                     </button>
                   </div>
                 </div>
@@ -390,220 +507,53 @@ const FUNCTIONAL_TAG_CONFIG: Record<
           }
 
           <!-- ============================================================== -->
-          <!-- SCREEN 4: "GHÉP CÂU" (Nghe và đọc lại câu hoàn chỉnh)           -->
+          <!-- SCREEN 3: HOÀN THÀNH NẠP CỤM -> SẴN SÀNG ROLEPLAY            -->
           <!-- ============================================================== -->
-          @if (stage() === 'assemble') {
-            <div class="max-w-xl mx-auto px-4 pt-6 space-y-6">
-              <!-- Stepper Header -->
-              <div class="flex items-center justify-between">
-                <button
-                  type="button"
-                  aria-label="Đóng"
-                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-                  (click)="stage.set('overview')"
-                >
-                  ✕
-                </button>
-                <div class="flex flex-col items-center">
-                  <span class="text-xs font-bold text-slate-700">Ghép câu</span>
-                  <div class="text-[10px] text-slate-400 font-500">Luyện phản xạ nguyên câu</div>
-                </div>
-                <div class="w-10"></div>
+          @if (stage() === 'summary_ready') {
+            <div class="max-w-md mx-auto px-4 pt-12 text-center space-y-6">
+              <div class="w-20 h-20 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-4xl shadow-sm animate-bounce">
+                🎯
+              </div>
+              <div>
+                <h2 class="text-2xl font-extrabold text-slate-900">
+                  Tuyệt vời! Bạn đã nạp sâu các cụm từ
+                </h2>
+                <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                  Các mẫu câu đã được củng cố qua 4 tầng phản xạ. Giờ là lúc đưa vào hội thoại thực tế cùng AI Coach trong vai diễn của bạn!
+                </p>
               </div>
 
-              <!-- Subtitle Label -->
-              <div class="text-center pt-2">
-                <div class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-1">
-                  HÃY NGHE MÌNH NÓI VÀ ĐỌC LẠI
+              <!-- Quick Recap List -->
+              <div class="bg-white rounded-3xl p-5 border border-slate-200 text-left space-y-2.5 shadow-xs">
+                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Mẫu câu bạn sẽ dùng trong Roleplay:
                 </div>
-              </div>
-
-              @if (currentChunk(); as chunk) {
-                <!-- Full Assembled Sentence Card -->
-                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm text-center space-y-3">
-                  <div class="text-xl md:text-2xl font-extrabold text-[#286FB4] leading-relaxed">
-                    "{{ chunk.exampleSentence }}"
-                  </div>
-                  <div class="text-xs md:text-sm text-slate-600 font-500">
-                    {{ chunk.meaningVi }}
-                  </div>
-                </div>
-
-                <!-- Normal + Snail Audio Controls -->
-                <div class="flex items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                    (click)="playAudio(chunk.exampleSentence, null, false)"
-                  >
-                    <span>🔊</span> Nghe câu
-                  </button>
-                  <button
-                    type="button"
-                    class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-amber-700 hover:bg-amber-50 transition cursor-pointer"
-                    (click)="playAudio(chunk.exampleSentence, null, true)"
-                  >
-                    <span>🐌</span> Chậm rãi
-                  </button>
-                </div>
-
-                <!-- Spoken Transcript Speech Bubble -->
-                @if (recognizedSpeech()) {
-                  <div class="p-3.5 rounded-2xl bg-sky-50 border border-sky-100 text-xs text-sky-900 text-center">
-                    <span class="font-bold">Bạn đã nói:</span> "{{ recognizedSpeech() }}"
+                @for (c of s.chunks; track c.id) {
+                  <div class="flex items-center gap-2.5 text-xs text-slate-800">
+                    <span class="text-emerald-500 font-bold">✓</span>
+                    <span class="font-bold text-[#286FB4]">"{{ c.text }}"</span>
+                    <span class="text-slate-400 italic text-[11px] truncate">— {{ c.meaningVi }}</span>
                   </div>
                 }
+              </div>
 
-                <!-- Central Mic Button -->
-                <div class="flex flex-col items-center gap-4 pt-2">
-                  <div class="relative">
-                    @if (isListening()) {
-                      <div class="absolute inset-0 rounded-full bg-rose-400 animate-ping opacity-60"></div>
-                    }
-                    <button
-                      type="button"
-                      aria-label="Thu âm đọc lại"
-                      class="relative w-20 h-20 rounded-full flex items-center justify-center text-3xl text-white shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-                      [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
-                      (click)="toggleMicrophone()"
-                    >
-                      {{ isListening() ? '⏹' : '🎙️' }}
-                    </button>
-                  </div>
-                  <span class="text-xs text-slate-500 font-600">
-                    {{ isListening() ? 'Đang nghe... hãy đọc lại nguyên câu' : 'Chạm mic và đọc lại câu trên' }}
-                  </span>
-
-                  <!-- Next button -->
-                  <div class="w-full flex justify-end pt-4 border-t border-slate-200">
-                    <button
-                      type="button"
-                      class="w-full py-3.5 rounded-2xl bg-[#286FB4] hover:bg-[#1d5a94] text-white text-sm font-extrabold shadow-md cursor-pointer transition"
-                      (click)="stage.set('complete')"
-                    >
-                      Tiếp tục: Điền khuyết phản xạ ➔
-                    </button>
-                  </div>
-                </div>
-              }
-            </div>
-          }
-
-          <!-- ============================================================== -->
-          <!-- SCREEN 5: "GHÉP CÂU - HOÀN THIỆN CÂU" (Fill-in-the-blank)       -->
-          <!-- ============================================================== -->
-          @if (stage() === 'complete') {
-            <div class="max-w-xl mx-auto px-4 pt-6 space-y-6">
-              <!-- Stepper Header -->
-              <div class="flex items-center justify-between">
+              <div class="space-y-3 pt-2">
                 <button
                   type="button"
-                  aria-label="Đóng"
-                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  class="w-full py-4 rounded-2xl bg-[#286FB4] hover:bg-[#1d5a94] text-white font-extrabold text-sm shadow-xl shadow-[#286FB4]/25 transition cursor-pointer"
+                  [disabled]="isStartingRoleplay()"
+                  (click)="startRoleplay()"
+                >
+                  {{ isStartingRoleplay() ? 'Đang tạo phòng roleplay...' : '🎭 Bắt đầu Roleplay ngay' }}
+                </button>
+                <button
+                  type="button"
+                  class="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold cursor-pointer"
                   (click)="stage.set('overview')"
                 >
-                  ✕
+                  Quay lại xem bài học
                 </button>
-                <div class="flex flex-col items-center">
-                  <span class="text-xs font-bold text-slate-700">Ghép câu</span>
-                  <div class="text-[10px] text-slate-400 font-500">Hoàn thiện câu từ trí nhớ</div>
-                </div>
-                <div class="w-10"></div>
               </div>
-
-              <!-- Subtitle Label -->
-              <div class="text-center pt-2">
-                <div class="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-1">
-                  NÓI HOÀN THIỆN CÂU SAU
-                </div>
-              </div>
-
-              @if (currentChunk(); as chunk) {
-                <!-- Masked Prompt Card -->
-                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm text-center space-y-3">
-                  <div class="text-xl md:text-2xl font-extrabold text-slate-800 leading-relaxed">
-                    <span class="tracking-widest text-[#286FB4] font-mono">_____ _____ _____</span>
-                    <span> {{ getSentenceTail(chunk) }}</span>
-                  </div>
-                  <div class="text-xs md:text-sm text-slate-600 font-500">
-                    💡 Gợi ý nghĩa: {{ chunk.meaningVi }}
-                  </div>
-                  @if (showHint()) {
-                    <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 font-bold animate-fadeIn">
-                      Cụm từ cần nói: "{{ chunk.text }}"
-                    </div>
-                  }
-                </div>
-
-                <!-- Normal + Snail Audio Controls -->
-                <div class="flex items-center justify-center gap-3">
-                  <button
-                    type="button"
-                    class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                    (click)="playAudio(chunk.exampleSentence, null, false)"
-                  >
-                    <span>🔊</span> Nghe mẫu
-                  </button>
-                  <button
-                    type="button"
-                    class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-amber-700 hover:bg-amber-50 transition cursor-pointer"
-                    (click)="playAudio(chunk.exampleSentence, null, true)"
-                  >
-                    <span>🐌</span> Chậm rãi
-                  </button>
-                </div>
-
-                <!-- Spoken Transcript Preview -->
-                @if (recognizedSpeech()) {
-                  <div class="p-3.5 rounded-2xl bg-sky-50 border border-sky-100 text-xs text-sky-900 text-center">
-                    <span class="font-bold">Bạn đã nói:</span> "{{ recognizedSpeech() }}"
-                  </div>
-                }
-
-                <!-- Central Mic with "Bấm vào đây để nói" Tooltip -->
-                <div class="flex flex-col items-center gap-3 pt-2">
-                  <!-- Floating Tooltip -->
-                  <div class="relative bg-slate-800 text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-md animate-bounce">
-                    Bấm vào đây để nói
-                    <div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
-                  </div>
-
-                  <div class="relative">
-                    @if (isListening()) {
-                      <div class="absolute inset-0 rounded-full bg-rose-400 animate-ping opacity-60"></div>
-                    }
-                    <button
-                      type="button"
-                      aria-label="Thu âm hoàn thiện câu"
-                      class="relative w-20 h-20 rounded-full flex items-center justify-center text-3xl text-white shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-                      [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
-                      (click)="toggleMicrophone()"
-                    >
-                      {{ isListening() ? '⏹' : '🎙️' }}
-                    </button>
-                  </div>
-
-                  <!-- Actions: Hint button + Roleplay button -->
-                  <div class="w-full flex items-center justify-between pt-6 border-t border-slate-200">
-                    <button
-                      type="button"
-                      class="px-4 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold hover:bg-amber-100 transition cursor-pointer"
-                      (click)="toggleHint()"
-                    >
-                      💡 {{ showHint() ? 'Ẩn gợi ý' : 'Gợi ý' }}
-                    </button>
-
-                    <button
-                      type="button"
-                      class="px-6 py-3 rounded-2xl bg-[#286FB4] hover:bg-[#1d5a94] text-white text-sm font-extrabold shadow-lg shadow-[#286FB4]/25 transition cursor-pointer"
-                      [disabled]="isStartingRoleplay()"
-                      (click)="startRoleplay()"
-                    >
-                      {{ isStartingRoleplay() ? 'Đang tạo phòng...' : '🎭 Bắt đầu Roleplay ngay' }}
-                    </button>
-                  </div>
-                </div>
-              }
             </div>
           }
 
@@ -688,7 +638,9 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   readonly speechService = inject(SpeechRecognitionService);
 
   readonly stage = signal<CoachStage>('overview');
-  readonly drillIdx = signal(0);
+  readonly drillChunkIdx = signal(0);
+  readonly currentActivity = signal<DrillActivity>('phonetics');
+
   readonly isListening = signal(false);
   readonly recognizedSpeech = signal('');
   readonly drillMessage = signal<string | null>(null);
@@ -713,7 +665,7 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   readonly currentChunk = computed<ScenarioChunk | null>(() => {
     const s = this.scenario();
     if (!s || !s.chunks || s.chunks.length === 0) return null;
-    const idx = this.drillIdx();
+    const idx = this.drillChunkIdx();
     return s.chunks[idx] || s.chunks[0];
   });
 
@@ -734,6 +686,70 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     const score = this.pronunciationScore();
     if (score === null) return this.circleCircumference;
     return this.circleCircumference * (1 - score / 100);
+  });
+
+  readonly currentRound = computed(() => {
+    switch (this.currentActivity()) {
+      case 'phonetics':
+        return 1;
+      case 'listen_repeat':
+        return 2;
+      case 'fill_blank':
+        return 3;
+      case 'reflex_quiz':
+        return 4;
+    }
+  });
+
+  readonly activityTitle = computed(() => {
+    switch (this.currentActivity()) {
+      case 'phonetics':
+        return 'Nạp âm & Phát âm';
+      case 'listen_repeat':
+        return 'Nghe & Đọc lại';
+      case 'fill_blank':
+        return 'Điền khuyết trí nhớ';
+      case 'reflex_quiz':
+        return 'Phản xạ tiềm thức';
+    }
+  });
+
+  readonly activityInstruction = computed(() => {
+    switch (this.currentActivity()) {
+      case 'phonetics':
+        return 'HÃY PHÁT ÂM CHUẨN CỤM TỪ NÀY';
+      case 'listen_repeat':
+        return 'HÃY NGHE MÌNH NÓI VÀ ĐỌC LẠI';
+      case 'fill_blank':
+        return 'NÓI HOÀN THIỆN CÂU SAU TỪ TRÍ NHỚ';
+      case 'reflex_quiz':
+        return 'BẬT NÓI TIẾNG ANH NGAY TỨC THÌ';
+    }
+  });
+
+  readonly progressDots = computed(() => {
+    const s = this.scenario();
+    if (!s || !s.chunks.length) return [];
+    const totalChunks = s.chunks.length;
+    const activities: DrillActivity[] = ['phonetics', 'listen_repeat', 'fill_blank', 'reflex_quiz'];
+    const currentActIdx = activities.indexOf(this.currentActivity());
+    const currentGlobalStep = currentActIdx * totalChunks + this.drillChunkIdx();
+    const totalSteps = 4 * totalChunks;
+
+    const dots = [];
+    for (let i = 0; i < totalSteps; i++) {
+      dots.push({
+        active: i === currentGlobalStep,
+        completed: i < currentGlobalStep,
+      });
+    }
+    return dots;
+  });
+
+  readonly isLastStep = computed(() => {
+    const s = this.scenario();
+    if (!s || !s.chunks.length) return false;
+    return this.currentActivity() === 'reflex_quiz' && this.drillChunkIdx() === s.chunks.length - 1;
   });
 
   ngOnInit(): void {
@@ -770,9 +786,10 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   }
 
   startDrillFlow(): void {
-    this.drillIdx.set(0);
+    this.drillChunkIdx.set(0);
+    this.currentActivity.set('phonetics');
     this.resetChunkEvaluation();
-    this.stage.set('drill');
+    this.stage.set('interactive_drill');
   }
 
   resetChunkEvaluation(): void {
@@ -795,11 +812,11 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     const chunk = this.currentChunk();
     if (!chunk) return;
 
-    if (this.stage() === 'drill') {
+    if (this.currentActivity() === 'phonetics' || this.currentActivity() === 'reflex_quiz') {
       const evaluation = evaluatePronunciation(chunk.text, spokenText);
       this.pronunciationScore.set(evaluation.score);
       this.evaluatedWordTokens.set(evaluation.words);
-    } else if (this.stage() === 'assemble' || this.stage() === 'complete') {
+    } else {
       const evaluation = evaluatePronunciation(chunk.exampleSentence, spokenText);
       this.pronunciationScore.set(evaluation.score);
     }
@@ -833,7 +850,7 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  repeatDrill(chunkId: string): void {
+  repeatActivity(chunkId: string): void {
     const s = this.scenario();
     if (!s) return;
     this.scenarioService
@@ -845,41 +862,56 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     this.resetChunkEvaluation();
   }
 
-  skipDrill(chunkId: string): void {
-    const s = this.scenario();
-    if (!s) return;
-    this.scenarioService
-      .recordDrill(s.id, {
-        chunkId,
-        isSkipped: true,
-      })
-      .subscribe();
-
-    if (this.drillIdx() < s.chunks.length - 1) {
-      this.drillIdx.update((i) => i + 1);
-      this.resetChunkEvaluation();
-    } else {
-      this.stage.set('assemble');
-    }
+  skipActivity(chunkId: string): void {
+    this.advanceStep(chunkId, true);
   }
 
-  nextDrill(chunkId: string): void {
+  advanceActivity(chunkId: string): void {
+    this.advanceStep(chunkId, false);
+  }
+
+  private advanceStep(chunkId: string, isSkipped: boolean): void {
     const s = this.scenario();
     if (!s) return;
+
     this.scenarioService
       .recordDrill(s.id, {
         chunkId,
-        isSkipped: false,
+        isSkipped,
       })
       .subscribe();
 
-    this.practicedChunkIds.update((set) => new Set([...set, chunkId]));
+    if (!isSkipped) {
+      this.practicedChunkIds.update((set) => new Set([...set, chunkId]));
+    }
 
-    if (this.drillIdx() < s.chunks.length - 1) {
-      this.drillIdx.update((i) => i + 1);
+    const totalChunks = s.chunks.length;
+    const currentIdx = this.drillChunkIdx();
+    const act = this.currentActivity();
+
+    // Spaced Spiral Transition logic
+    if (currentIdx < totalChunks - 1) {
+      // Advance to next chunk within current activity
+      this.drillChunkIdx.update((i) => i + 1);
       this.resetChunkEvaluation();
     } else {
-      this.stage.set('assemble');
+      // Reached end of chunks for current activity; escalate to next round
+      if (act === 'phonetics') {
+        this.currentActivity.set('listen_repeat');
+        this.drillChunkIdx.set(0);
+        this.resetChunkEvaluation();
+      } else if (act === 'listen_repeat') {
+        this.currentActivity.set('fill_blank');
+        this.drillChunkIdx.set(0);
+        this.resetChunkEvaluation();
+      } else if (act === 'fill_blank') {
+        this.currentActivity.set('reflex_quiz');
+        this.drillChunkIdx.set(0);
+        this.resetChunkEvaluation();
+      } else {
+        // All 4 rounds complete!
+        this.stage.set('summary_ready');
+      }
     }
   }
 
