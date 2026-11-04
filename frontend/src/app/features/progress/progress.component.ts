@@ -299,11 +299,15 @@ export class ProgressComponent implements OnInit {
     return this.gamificationSummary()?.advancement ?? null;
   });
 
-  readonly metrics = computed(() => [
-    { val: `${(this.summaryData()?.totalXp ?? this.appState.totalXp()).toLocaleString()} XP`, label: "Tổng XP" },
-    { val: `${this.summaryData()?.currentStreak ?? this.appState.currentStreak()} ngày`, label: "Streak hiện tại" },
-    { val: `Level ${this.currentLevel()}`, label: "Trình độ CEFR" }
-  ]);
+  readonly metrics = computed(() => {
+    const totalXpVal = this.summaryData()?.totalXp ?? this.appState.totalXp() ?? 0;
+    const streakVal = this.summaryData()?.currentStreak ?? this.appState.currentStreak() ?? 0;
+    return [
+      { val: `${Number(totalXpVal).toLocaleString()} XP`, label: "Tổng XP" },
+      { val: `${streakVal} ngày`, label: "Streak hiện tại" },
+      { val: `Level ${this.currentLevel()}`, label: "Trình độ CEFR" }
+    ];
+  });
 
   ngOnInit(): void {
     this.loadData();

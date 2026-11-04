@@ -238,7 +238,7 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly currentStreak = computed(() => {
-    return this.dashboardData()?.currentStreak ?? this.appState.currentStreak();
+    return this.dashboardData()?.currentStreak ?? this.appState.currentStreak() ?? 0;
   });
 
   readonly missions = computed(() => {
@@ -283,8 +283,9 @@ export class DashboardComponent implements OnInit {
   readonly statsList = computed(() => {
     const data = this.dashboardData();
     const overall = data?.overallScore !== null && data?.overallScore !== undefined ? String(data.overallScore) : "N/A";
-    const totalXp = data?.totalXp !== undefined ? data.totalXp.toLocaleString() : this.appState.totalXp().toLocaleString();
-    const streak = data?.currentStreak !== undefined ? String(data.currentStreak) : String(this.appState.currentStreak());
+    const xpVal = data?.totalXp ?? this.appState.totalXp() ?? 0;
+    const totalXp = Number(xpVal).toLocaleString();
+    const streak = data?.currentStreak !== undefined ? String(data.currentStreak) : String(this.appState.currentStreak() ?? 0);
     const level = data?.level || this.appState.appUser().level || "A1";
 
     return [

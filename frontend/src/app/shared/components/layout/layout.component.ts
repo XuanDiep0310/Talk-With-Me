@@ -307,11 +307,12 @@ export class LayoutComponent implements OnInit {
   });
 
   readonly totalXp = computed(() => {
-    return this.gamificationSummary()?.totalXp ?? this.appState.totalXp();
+    const val = this.gamificationSummary()?.totalXp ?? this.appState.totalXp() ?? 0;
+    return Number(val).toLocaleString();
   });
 
   readonly currentStreak = computed(() => {
-    return this.gamificationSummary()?.currentStreak ?? this.appState.currentStreak();
+    return this.gamificationSummary()?.currentStreak ?? this.appState.currentStreak() ?? 0;
   });
 
   readonly unreadCount = computed(() => {

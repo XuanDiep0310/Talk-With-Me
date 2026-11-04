@@ -155,8 +155,8 @@ export class AppStateService {
 
   readonly currentPage = signal<AppPage>(getInitialPage());
   readonly user = signal<User | null>(getStoredUser());
-  readonly totalXp = signal(this.user()?.xp ?? MOCK_USER.xp);
-  readonly currentStreak = signal(this.user()?.streak ?? MOCK_USER.streak);
+  readonly totalXp = signal<number>(Number(this.user()?.xp ?? MOCK_USER.xp ?? 0));
+  readonly currentStreak = signal<number>(Number(this.user()?.streak ?? MOCK_USER.streak ?? 0));
   readonly lastLearningDate = signal(readStored(STREAK_DATE_STORAGE_KEY, localDateKey()));
   readonly learningActivities = signal<LearningActivity[]>(readStored(ACTIVITIES_STORAGE_KEY, MOCK_PROGRESS_SESSION_HISTORY.map((session, index) => ({
     id: `seed-${index}`,
@@ -210,7 +210,7 @@ export class AppStateService {
       .slice(0, 2);
   });
   readonly userXpLevelProgress = computed(() => {
-    const xp = this.totalXp();
+    const xp = this.totalXp() ?? 0;
     const currentLevelXp = xp % 1000;
     return Math.round((currentLevelXp / 1000) * 100);
   });
@@ -250,16 +250,16 @@ export class AppStateService {
   login(user?: User): void {
     const authenticatedUser = user || MOCK_USER;
     this.user.set(authenticatedUser);
-    this.totalXp.set(authenticatedUser.xp);
-    this.currentStreak.set(authenticatedUser.streak);
+    this.totalXp.set(Number(authenticatedUser.xp ?? 0));
+    this.currentStreak.set(Number(authenticatedUser.streak ?? 0));
     this.persistUser(authenticatedUser);
     this.go("dashboard");
   }
 
   register(user: User): void {
     this.user.set(user);
-    this.totalXp.set(user.xp);
-    this.currentStreak.set(user.streak);
+    this.totalXp.set(Number(user.xp ?? 0));
+    this.currentStreak.set(Number(user.streak ?? 0));
     this.persistUser(user);
     this.go("onboarding");
   }
@@ -273,18 +273,18 @@ export class AppStateService {
 
   setUser(user: User): void {
     this.user.set(user);
-    this.totalXp.set(user.xp);
-    this.currentStreak.set(user.streak);
+    this.totalXp.set(Number(user.xp ?? 0));
+    this.currentStreak.set(Number(user.streak ?? 0));
     this.persistUser(user);
   }
 
   updateGamification(xp: number, streak: number, level?: string): void {
-    this.totalXp.set(xp);
-    this.currentStreak.set(streak);
+    this.totalXp.set(Number(xp ?? 0));
+    this.currentStreak.set(Number(streak ?? 0));
     if (level) {
       this.user.update(u => {
         const base = u ?? MOCK_USER;
-        return { ...base, xp, streak, level };
+        return { ...base, xp: Number(xp ?? 0), streak: Number(streak ?? 0), level };
       });
     }
   }

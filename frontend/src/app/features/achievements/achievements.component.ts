@@ -246,12 +246,16 @@ export class AchievementsComponent implements OnInit {
     return `Đạt ${this.conditionsMetCount()}/${this.conditionsTotalCount()} điều kiện cho Level ${this.targetLevel()}`;
   });
 
-  readonly statsList = computed(() => [
-    { label: "Tổng XP", value: (this.gamificationSummary()?.totalXp ?? this.appState.totalXp()).toLocaleString(), icon: "⭐", color: "#f59e0b", bg: "#FFF5E5" },
-    { label: "Level", value: this.currentLevel(), icon: "🎓", color: "#286FB4", bg: "#E2F0F9" },
-    { label: "Streak", value: `${this.gamificationSummary()?.currentStreak ?? this.appState.currentStreak()} ngày`, icon: "🔥", color: "#ea580c", bg: "#FFF0E8" },
-    { label: "Huy hiệu", value: `${this.earnedBadgesCount()}/${this.badges().length || 6}`, icon: "🏆", color: "#7c3aed", bg: "#F5F3FF" }
-  ]);
+  readonly statsList = computed(() => {
+    const totalXpVal = this.gamificationSummary()?.totalXp ?? this.appState.totalXp() ?? 0;
+    const streakVal = this.gamificationSummary()?.currentStreak ?? this.appState.currentStreak() ?? 0;
+    return [
+      { label: "Tổng XP", value: Number(totalXpVal).toLocaleString(), icon: "⭐", color: "#f59e0b", bg: "#FFF5E5" },
+      { label: "Level", value: this.currentLevel(), icon: "🎓", color: "#286FB4", bg: "#E2F0F9" },
+      { label: "Streak", value: `${streakVal} ngày`, icon: "🔥", color: "#ea580c", bg: "#FFF0E8" },
+      { label: "Huy hiệu", value: `${this.earnedBadgesCount()}/${this.badges().length || 6}`, icon: "🏆", color: "#7c3aed", bg: "#F5F3FF" }
+    ];
+  });
 
   ngOnInit(): void {
     this.loadData();

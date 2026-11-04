@@ -335,8 +335,8 @@ export class ProfileComponent {
 
   readonly userStats = computed(() => [
     { label: 'Level hiện tại', value: this.authService.currentUser()?.cefrLevel || this.appState.appUser().level || 'A1', emoji: '🎓', color: '#286FB4' },
-    { label: 'Tổng XP', value: `${this.appState.totalXp().toLocaleString()} XP`, emoji: '⭐', color: '#f59e0b' },
-    { label: 'Streak', value: `${this.appState.currentStreak()} ngày`, emoji: '🔥', color: '#ea580c' }
+    { label: 'Tổng XP', value: `${(this.appState.totalXp() ?? 0).toLocaleString()} XP`, emoji: '⭐', color: '#f59e0b' },
+    { label: 'Streak', value: `${this.appState.currentStreak() ?? 0} ngày`, emoji: '🔥', color: '#ea580c' }
   ]);
 
   readonly userInterests = computed(() => {
