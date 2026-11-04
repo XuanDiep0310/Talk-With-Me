@@ -3,8 +3,6 @@ User profile and settings endpoints: /me, /me/avatar, /me/settings, /me/change-p
 All routes require authentication via get_current_user.
 """
 
-import json
-
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from app.api.deps import get_current_user, get_user_service
@@ -32,6 +30,8 @@ async def get_me(
     current_user: User = Depends(get_current_user),
 ) -> MeResponse:
     p = current_user.profile
+    import json
+
     return MeResponse(
         id=current_user.id,
         email=current_user.email,
@@ -64,12 +64,22 @@ async def update_me(
         full_name=body.full_name,
         avatar_url=body.avatar_url,
     )
+    p = updated.profile
+    import json
+
     return MeResponse(
         id=updated.id,
         email=updated.email,
         full_name=updated.full_name,
         avatar_url=updated.avatar_url,
         created_at=updated.created_at,
+        cefr_level=p.cefr_level if p else None,
+        level_source=p.level_source if p else None,
+        needs_reassessment=p.needs_reassessment if p else False,
+        interests=json.loads(p.interests or "[]") if p else [],
+        goals=json.loads(p.goals or "[]") if p else [],
+        weak_points=json.loads(p.weak_points or "[]") if p else [],
+        onboarding_completed_at=p.onboarding_completed_at if p else None,
     )
 
 
@@ -132,13 +142,15 @@ async def get_settings(
     user_service: UserService = Depends(get_user_service),
 ) -> SettingsResponse:
     settings = await user_service.get_settings(current_user.id)
+    user = await user_service.get_me(current_user.id)
+    tz = user.profile.timezone if user and user.profile and user.profile.timezone else "Asia/Ho_Chi_Minh"
     return SettingsResponse(
         notifications_enabled=settings.notifications_enabled,
         daily_reminder_enabled=settings.daily_reminder_enabled,
         ai_voice=settings.ai_voice,
         speech_speed=settings.speech_speed,
         theme=settings.theme,
-        timezone="Asia/Ho_Chi_Minh",
+        timezone=tz,
     )
 
 
@@ -158,11 +170,13 @@ async def update_settings(
         user_id=current_user.id,
         patch=patch,
     )
+    user = await user_service.get_me(current_user.id)
+    tz = user.profile.timezone if user and user.profile and user.profile.timezone else "Asia/Ho_Chi_Minh"
     return SettingsResponse(
         notifications_enabled=updated.notifications_enabled,
         daily_reminder_enabled=updated.daily_reminder_enabled,
         ai_voice=updated.ai_voice,
         speech_speed=updated.speech_speed,
         theme=updated.theme,
-        timezone="Asia/Ho_Chi_Minh",
+        timezone=tz,
     )

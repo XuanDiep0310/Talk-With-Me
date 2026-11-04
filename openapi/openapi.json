@@ -2053,6 +2053,501 @@
         ]
       }
     },
+    "/api/v1/dashboard": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Get user dashboard data",
+        "operationId": "get_dashboard_api_v1_dashboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/progress/summary": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Get 30-day progress summary and learning stats",
+        "operationId": "get_progress_summary_api_v1_progress_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/progress/skills": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Get communication skill scores with previous comparison",
+        "operationId": "get_progress_skills_api_v1_progress_skills_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressSkillsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/progress/history": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Get paginated session practice history (cursor-based)",
+        "operationId": "get_progress_history_api_v1_progress_history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by session type (COACH, ROLEPLAY, ROOM)",
+              "title": "Type"
+            },
+            "description": "Filter by session type (COACH, ROLEPLAY, ROOM)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "Items per page",
+              "default": 15,
+              "title": "Limit"
+            },
+            "description": "Items per page"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cursor for pagination",
+              "title": "Cursor"
+            },
+            "description": "Cursor for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/gamification/summary": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get user gamification summary, XP, streak, and level conditions (D-02)",
+        "operationId": "get_gamification_summary_api_v1_gamification_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GamificationSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/missions/today": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get today's 4 daily missions",
+        "operationId": "get_today_missions_api_v1_missions_today_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyMissionsTodayResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/missions/{mission_id}/claim": {
+      "post": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Claim completed daily mission reward (+50 XP)",
+        "operationId": "claim_mission_api_v1_missions__mission_id__claim_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "mission_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Mission Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimMissionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/badges": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get all achievement badges and user progress",
+        "operationId": "get_badges_api_v1_badges_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadgesListResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/xp-history": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get XP transactions ledger history",
+        "operationId": "get_xp_history_api_v1_xp_history_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/XpHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Get user notifications",
+        "operationId": "get_notifications_api_v1_notifications_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "unread_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Unread Only"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/{notification_id}/read": {
+      "patch": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Mark a notification as read",
+        "operationId": "mark_notification_read_api_v1_notifications__notification_id__read_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Mark Notification Read Api V1 Notifications  Notification Id  Read Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "patch": {
+        "tags": [
+          "Gamification"
+        ],
+        "summary": "Mark all notifications as read",
+        "operationId": "mark_all_notifications_read_api_v1_notifications_read_all_patch",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object",
+                  "title": "Response Mark All Notifications Read Api V1 Notifications Read All Patch"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/ws-tickets": {
       "post": {
         "tags": [
@@ -2323,6 +2818,107 @@
         ],
         "title": "AvatarUploadResponse"
       },
+      "BadgeItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "iconEmoji": {
+            "type": "string",
+            "title": "Iconemoji"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "criteriaType": {
+            "type": "string",
+            "title": "Criteriatype"
+          },
+          "targetValue": {
+            "type": "integer",
+            "title": "Targetvalue"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "title": "Sortorder"
+          },
+          "earned": {
+            "type": "boolean",
+            "title": "Earned",
+            "default": false
+          },
+          "earnedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Earnedat"
+          },
+          "progress": {
+            "type": "integer",
+            "title": "Progress",
+            "default": 0
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "description",
+          "iconEmoji",
+          "category",
+          "criteriaType",
+          "targetValue",
+          "sortOrder"
+        ],
+        "title": "BadgeItem"
+      },
+      "BadgesListResponse": {
+        "properties": {
+          "badges": {
+            "items": {
+              "$ref": "#/components/schemas/BadgeItem"
+            },
+            "type": "array",
+            "title": "Badges"
+          },
+          "earnedCount": {
+            "type": "integer",
+            "title": "Earnedcount"
+          },
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "badges",
+          "earnedCount",
+          "totalCount"
+        ],
+        "title": "BadgesListResponse"
+      },
       "Body_upload_avatar_api_v1_me_avatar_post": {
         "properties": {
           "file": {
@@ -2544,6 +3140,35 @@
         ],
         "title": "ChunkUsedWellItem"
       },
+      "ClaimMissionResponse": {
+        "properties": {
+          "missionId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Missionid"
+          },
+          "claimed": {
+            "type": "boolean",
+            "title": "Claimed"
+          },
+          "xpAwarded": {
+            "type": "integer",
+            "title": "Xpawarded"
+          },
+          "newTotalXp": {
+            "type": "integer",
+            "title": "Newtotalxp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "missionId",
+          "claimed",
+          "xpAwarded",
+          "newTotalXp"
+        ],
+        "title": "ClaimMissionResponse"
+      },
       "CoachTopicGroupSchema": {
         "properties": {
           "category": {
@@ -2675,6 +3300,297 @@
         "type": "object",
         "title": "CreateRoleplayRequest"
       },
+      "DailyMissionItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "missionKey": {
+            "type": "string",
+            "title": "Missionkey"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "xpReward": {
+            "type": "integer",
+            "title": "Xpreward"
+          },
+          "conditionType": {
+            "type": "string",
+            "title": "Conditiontype"
+          },
+          "progress": {
+            "type": "integer",
+            "title": "Progress"
+          },
+          "target": {
+            "type": "integer",
+            "title": "Target"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done",
+            "default": false
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completedat"
+          },
+          "claimedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claimedat"
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon",
+            "default": "🎯"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "missionKey",
+          "title",
+          "xpReward",
+          "conditionType",
+          "progress",
+          "target",
+          "status"
+        ],
+        "title": "DailyMissionItem"
+      },
+      "DailyMissionsTodayResponse": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "missions": {
+            "items": {
+              "$ref": "#/components/schemas/DailyMissionItem"
+            },
+            "type": "array",
+            "title": "Missions"
+          },
+          "completedCount": {
+            "type": "integer",
+            "title": "Completedcount"
+          },
+          "totalCount": {
+            "type": "integer",
+            "title": "Totalcount"
+          },
+          "progressPct": {
+            "type": "integer",
+            "title": "Progresspct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "missions",
+          "completedCount",
+          "totalCount",
+          "progressPct"
+        ],
+        "title": "DailyMissionsTodayResponse"
+      },
+      "DashboardRecentSession": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "duration": {
+            "type": "string",
+            "title": "Duration"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "topic",
+          "date",
+          "duration",
+          "score"
+        ],
+        "title": "DashboardRecentSession"
+      },
+      "DashboardResponse": {
+        "properties": {
+          "greeting": {
+            "type": "string",
+            "title": "Greeting"
+          },
+          "displayName": {
+            "type": "string",
+            "title": "Displayname"
+          },
+          "overallScore": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Overallscore"
+          },
+          "xp": {
+            "type": "integer",
+            "title": "Xp"
+          },
+          "streak": {
+            "type": "integer",
+            "title": "Streak"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "nextLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextlevel"
+          },
+          "todayMissions": {
+            "items": {
+              "$ref": "#/components/schemas/DailyMissionItem"
+            },
+            "type": "array",
+            "title": "Todaymissions"
+          },
+          "missionsProgressPct": {
+            "type": "integer",
+            "title": "Missionsprogresspct"
+          },
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardSkillOverview"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "recentSessions": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardRecentSession"
+            },
+            "type": "array",
+            "title": "Recentsessions"
+          },
+          "motivationalCard": {
+            "$ref": "#/components/schemas/MotivationalCard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "greeting",
+          "displayName",
+          "overallScore",
+          "xp",
+          "streak",
+          "level",
+          "nextLevel",
+          "todayMissions",
+          "missionsProgressPct",
+          "skills",
+          "recentSessions",
+          "motivationalCard"
+        ],
+        "title": "DashboardResponse"
+      },
+      "DashboardSkillOverview": {
+        "properties": {
+          "skill": {
+            "type": "string",
+            "title": "Skill"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Value"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill",
+          "label",
+          "value",
+          "color"
+        ],
+        "title": "DashboardSkillOverview"
+      },
       "EndSessionRequest": {
         "properties": {
           "reason": {
@@ -2759,6 +3675,74 @@
         ],
         "title": "ForgotPasswordRequest"
       },
+      "GamificationSummaryResponse": {
+        "properties": {
+          "xp": {
+            "type": "integer",
+            "title": "Xp"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "nextLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextlevel"
+          },
+          "currentStreak": {
+            "type": "integer",
+            "title": "Currentstreak"
+          },
+          "bestStreak": {
+            "type": "integer",
+            "title": "Beststreak"
+          },
+          "badgesEarned": {
+            "type": "integer",
+            "title": "Badgesearned"
+          },
+          "badgesTotal": {
+            "type": "integer",
+            "title": "Badgestotal"
+          },
+          "levelConditions": {
+            "items": {
+              "$ref": "#/components/schemas/LevelConditionProgress"
+            },
+            "type": "array",
+            "title": "Levelconditions"
+          },
+          "levelProgressPct": {
+            "type": "integer",
+            "title": "Levelprogresspct"
+          },
+          "isReadyForPromotion": {
+            "type": "boolean",
+            "title": "Isreadyforpromotion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "xp",
+          "level",
+          "nextLevel",
+          "currentStreak",
+          "bestStreak",
+          "badgesEarned",
+          "badgesTotal",
+          "levelConditions",
+          "levelProgressPct",
+          "isReadyForPromotion"
+        ],
+        "title": "GamificationSummaryResponse"
+      },
       "GoogleLoginRequest": {
         "properties": {
           "idToken": {
@@ -2784,6 +3768,58 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LevelConditionProgress": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "currentValue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "title": "Currentvalue"
+          },
+          "requiredValue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "title": "Requiredvalue"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "isMet": {
+            "type": "boolean",
+            "title": "Ismet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "currentValue",
+          "requiredValue",
+          "unit",
+          "isMet"
+        ],
+        "title": "LevelConditionProgress"
       },
       "LevelResponse": {
         "properties": {
@@ -2945,6 +3981,118 @@
           "createdAt"
         ],
         "title": "MeResponse"
+      },
+      "MotivationalCard": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "targetLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetlevel"
+          },
+          "remainingSessions": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remainingsessions"
+          },
+          "scoreGap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scoregap"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "message"
+        ],
+        "title": "MotivationalCard"
+      },
+      "NotificationItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "isRead": {
+            "type": "boolean",
+            "title": "Isread"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "title",
+          "content",
+          "isRead",
+          "createdAt"
+        ],
+        "title": "NotificationItem"
+      },
+      "NotificationsListResponse": {
+        "properties": {
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationItem"
+            },
+            "type": "array",
+            "title": "Notifications"
+          },
+          "unreadCount": {
+            "type": "integer",
+            "title": "Unreadcount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "notifications",
+          "unreadCount"
+        ],
+        "title": "NotificationsListResponse"
       },
       "OnboardingCompleteResponse": {
         "properties": {
@@ -3196,6 +4344,111 @@
           "weakPoints"
         ],
         "title": "PreferencesResponse"
+      },
+      "ProgressHistoryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SessionHistoryItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          },
+          "hasMore": {
+            "type": "boolean",
+            "title": "Hasmore",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ProgressHistoryResponse"
+      },
+      "ProgressSkillsResponse": {
+        "properties": {
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/SkillDetailItem"
+            },
+            "type": "array",
+            "title": "Skills"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skills"
+        ],
+        "title": "ProgressSkillsResponse"
+      },
+      "ProgressSummaryResponse": {
+        "properties": {
+          "overallScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overallscore"
+          },
+          "change30Days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change30Days"
+          },
+          "totalXp": {
+            "type": "integer",
+            "title": "Totalxp"
+          },
+          "currentStreak": {
+            "type": "integer",
+            "title": "Currentstreak"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "completedSessions": {
+            "type": "integer",
+            "title": "Completedsessions"
+          },
+          "completedScenarios": {
+            "type": "integer",
+            "title": "Completedscenarios"
+          }
+        },
+        "type": "object",
+        "required": [
+          "overallScore",
+          "change30Days",
+          "totalXp",
+          "currentStreak",
+          "level",
+          "completedSessions",
+          "completedScenarios"
+        ],
+        "title": "ProgressSummaryResponse"
       },
       "RecordDrillRequest": {
         "properties": {
@@ -4100,6 +5353,57 @@
         "title": "SessionFeedbackResponse",
         "description": "Post-session feedback report response schema."
       },
+      "SessionHistoryItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "duration": {
+            "type": "string",
+            "title": "Duration"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "emoji": {
+            "type": "string",
+            "title": "Emoji"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "topic",
+          "date",
+          "duration",
+          "score",
+          "emoji"
+        ],
+        "title": "SessionHistoryItem"
+      },
       "SessionResponse": {
         "properties": {
           "id": {
@@ -4305,6 +5609,72 @@
           "timezone"
         ],
         "title": "SettingsResponse"
+      },
+      "SkillDetailItem": {
+        "properties": {
+          "skill": {
+            "type": "string",
+            "title": "Skill"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current"
+          },
+          "prev": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prev"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
+          "statusLabel": {
+            "type": "string",
+            "title": "Statuslabel"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill",
+          "label",
+          "statusLabel",
+          "color",
+          "description"
+        ],
+        "title": "SkillDetailItem"
       },
       "SkillScoreResponse": {
         "properties": {
@@ -4879,6 +6249,83 @@
           "ticket"
         ],
         "title": "WsTicketResponse"
+      },
+      "XpHistoryResponse": {
+        "properties": {
+          "transactions": {
+            "items": {
+              "$ref": "#/components/schemas/XpTransactionResponse"
+            },
+            "type": "array",
+            "title": "Transactions"
+          },
+          "totalXp": {
+            "type": "integer",
+            "title": "Totalxp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transactions",
+          "totalXp"
+        ],
+        "title": "XpHistoryResponse"
+      },
+      "XpTransactionResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "amount": {
+            "type": "integer",
+            "title": "Amount"
+          },
+          "ruleKey": {
+            "type": "string",
+            "title": "Rulekey"
+          },
+          "sourceType": {
+            "type": "string",
+            "title": "Sourcetype"
+          },
+          "sourceId": {
+            "type": "string",
+            "title": "Sourceid"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "title": "Idempotencykey"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "amount",
+          "ruleKey",
+          "sourceType",
+          "sourceId",
+          "idempotencyKey",
+          "createdAt"
+        ],
+        "title": "XpTransactionResponse"
       }
     },
     "securitySchemes": {
