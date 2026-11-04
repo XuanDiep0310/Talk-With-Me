@@ -9,6 +9,16 @@ from app.models.auth import (
     UserSettings,
 )
 from app.models.base import Base, TimestampMixin
+from app.models.gamification import (
+    BadgeDefinition,
+    GamificationProfile,
+    MissionDefinition,
+    Notification,
+    UserBadge,
+    UserDailyMission,
+    XpRule,
+    XpTransaction,
+)
 from app.models.onboarding import LevelHistory, PlacementAnswer, PlacementTest
 from app.models.scenario import (
     ChunkBank,
@@ -47,4 +57,12 @@ __all__ = [
     "DrillAttempt",
     "ChunkBank",
     "RoleplayEvaluation",
+    "XpRule",
+    "XpTransaction",
+    "GamificationProfile",
+    "MissionDefinition",
+    "UserDailyMission",
+    "BadgeDefinition",
+    "UserBadge",
+    "Notification",
 ]
