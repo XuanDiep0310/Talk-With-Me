@@ -261,23 +261,19 @@ export class AchievementsComponent implements OnInit {
     if (!this.authService.isAuthenticated()) return;
 
     this.gamificationService.getGamificationSummary().subscribe({
-      next: (summary) => this.gamificationSummary.set(summary),
-      error: () => {}
+      next: (summary) => this.gamificationSummary.set(summary)
     });
 
     this.gamificationService.getBadges().subscribe({
-      next: (res) => this.badges.set(res.badges),
-      error: () => {}
+      next: (res) => this.badges.set(res.badges)
     });
 
     this.gamificationService.getTodayMissions().subscribe({
-      next: (res) => this.missions.set(res.missions),
-      error: () => {}
+      next: (res) => this.missions.set(res.missions)
     });
 
     this.gamificationService.getXpHistory(50).subscribe({
-      next: (res) => this.xpHistory.set(res.transactions),
-      error: () => {}
+      next: (res) => this.xpHistory.set(res.transactions)
     });
   }
 

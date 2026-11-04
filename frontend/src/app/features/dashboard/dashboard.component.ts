@@ -305,8 +305,7 @@ export class DashboardComponent implements OnInit {
       next: (data) => {
         this.dashboardData.set(data);
         this.appState.updateGamification(data.totalXp, data.currentStreak, data.level);
-      },
-      error: () => {}
+      }
     });
   }
 

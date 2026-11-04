@@ -73,17 +73,29 @@ async def claim_mission(
         if code == "MISSION_NOT_FOUND":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail={"code": "MISSION_NOT_FOUND", "message": "Nhiệm vụ không tồn tại.", "details": {}},
+                detail={
+                    "code": "MISSION_NOT_FOUND",
+                    "message": "Nhiệm vụ không tồn tại.",
+                    "details": {},
+                },
             ) from err
         if code == "MISSION_ALREADY_CLAIMED":
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail={"code": "MISSION_ALREADY_CLAIMED", "message": "Nhiệm vụ này đã được nhận thưởng trước đó.", "details": {}},
+                detail={
+                    "code": "MISSION_ALREADY_CLAIMED",
+                    "message": "Nhiệm vụ này đã được nhận thưởng trước đó.",
+                    "details": {},
+                },
             ) from err
         if code == "MISSION_NOT_COMPLETED":
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail={"code": "MISSION_NOT_COMPLETED", "message": "Nhiệm vụ chưa hoàn thành mục tiêu.", "details": {}},
+                detail={
+                    "code": "MISSION_NOT_COMPLETED",
+                    "message": "Nhiệm vụ chưa hoàn thành mục tiêu.",
+                    "details": {},
+                },
             ) from err
         raise
 
@@ -147,7 +159,11 @@ async def mark_notification_read(
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "NOTIFICATION_NOT_FOUND", "message": "Thông báo không tồn tại.", "details": {}},
+            detail={
+                "code": "NOTIFICATION_NOT_FOUND",
+                "message": "Thông báo không tồn tại.",
+                "details": {},
+            },
         )
     return {"success": True}
 

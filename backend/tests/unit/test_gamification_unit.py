@@ -228,9 +228,16 @@ async def test_level_advancement_a1_to_a2_success_and_failure() -> None:
     service = GamificationService(mock_db)
 
     # 1. Failure: Score 39.0 (below 40)
-    service._repo.get_user_profile = AsyncMock(return_value=UserProfile(user_id=user_id, cefr_level="A1"))
+    service._repo.get_user_profile = AsyncMock(
+        return_value=UserProfile(user_id=user_id, cefr_level="A1")
+    )
     service.get_level_advancement_stats = AsyncMock(
-        return_value={"total_sessions": 6, "total_scenarios": 4, "avg_overall": 39.0, "avg_skills": {}}
+        return_value={
+            "total_sessions": 6,
+            "total_scenarios": 4,
+            "avg_overall": 39.0,
+            "avg_skills": {},
+        }
     )
     new_lvl, promoted = await service.evaluate_level_advancement(user_id)
     assert new_lvl == "A1"
@@ -238,7 +245,12 @@ async def test_level_advancement_a1_to_a2_success_and_failure() -> None:
 
     # 2. Failure: Sessions 4 (below 5)
     service.get_level_advancement_stats = AsyncMock(
-        return_value={"total_sessions": 4, "total_scenarios": 5, "avg_overall": 50.0, "avg_skills": {}}
+        return_value={
+            "total_sessions": 4,
+            "total_scenarios": 5,
+            "avg_overall": 50.0,
+            "avg_skills": {},
+        }
     )
     new_lvl, promoted = await service.evaluate_level_advancement(user_id)
     assert new_lvl == "A1"
@@ -246,7 +258,12 @@ async def test_level_advancement_a1_to_a2_success_and_failure() -> None:
 
     # 3. Failure: Scenarios 2 (below 3)
     service.get_level_advancement_stats = AsyncMock(
-        return_value={"total_sessions": 10, "total_scenarios": 2, "avg_overall": 60.0, "avg_skills": {}}
+        return_value={
+            "total_sessions": 10,
+            "total_scenarios": 2,
+            "avg_overall": 60.0,
+            "avg_skills": {},
+        }
     )
     new_lvl, promoted = await service.evaluate_level_advancement(user_id)
     assert new_lvl == "A1"
@@ -254,7 +271,12 @@ async def test_level_advancement_a1_to_a2_success_and_failure() -> None:
 
     # 4. Success: All met!
     service.get_level_advancement_stats = AsyncMock(
-        return_value={"total_sessions": 5, "total_scenarios": 3, "avg_overall": 42.0, "avg_skills": {}}
+        return_value={
+            "total_sessions": 5,
+            "total_scenarios": 3,
+            "avg_overall": 42.0,
+            "avg_skills": {},
+        }
     )
     service._repo.record_level_advancement = AsyncMock()
     service._repo.create_notification = AsyncMock()
@@ -275,7 +297,9 @@ async def test_level_advancement_b1_to_b2_requires_min_skills() -> None:
     user_id = uuid.uuid4()
     mock_db = AsyncMock()
     service = GamificationService(mock_db)
-    service._repo.get_user_profile = AsyncMock(return_value=UserProfile(user_id=user_id, cefr_level="B1"))
+    service._repo.get_user_profile = AsyncMock(
+        return_value=UserProfile(user_id=user_id, cefr_level="B1")
+    )
 
     # Failure: overall is 75, but fluency is 58 (< 60)
     service.get_level_advancement_stats = AsyncMock(
@@ -329,11 +353,18 @@ async def test_level_never_degrades_rule_4() -> None:
     mock_db = AsyncMock()
     service = GamificationService(mock_db)
     # User is currently B1
-    service._repo.get_user_profile = AsyncMock(return_value=UserProfile(user_id=user_id, cefr_level="B1"))
+    service._repo.get_user_profile = AsyncMock(
+        return_value=UserProfile(user_id=user_id, cefr_level="B1")
+    )
 
     # Low score of 20.0
     service.get_level_advancement_stats = AsyncMock(
-        return_value={"total_sessions": 12, "total_scenarios": 6, "avg_overall": 20.0, "avg_skills": {}}
+        return_value={
+            "total_sessions": 12,
+            "total_scenarios": 6,
+            "avg_overall": 20.0,
+            "avg_skills": {},
+        }
     )
     new_lvl, promoted = await service.evaluate_level_advancement(user_id)
     assert new_lvl == "B1"
@@ -350,22 +381,39 @@ async def test_badge_evaluations() -> None:
     mock_db = AsyncMock()
     service = GamificationService(mock_db)
 
-    badge_first = BadgeDefinition(key="first_speaker", name="Người nói đầu tiên", target_value=1, sort_order=1)
-    badge_streak = BadgeDefinition(key="streak_7", name="Streak 7 ngày", target_value=7, sort_order=2)
+    badge_first = BadgeDefinition(
+        key="first_speaker", name="Người nói đầu tiên", target_value=1, sort_order=1
+    )
+    badge_streak = BadgeDefinition(
+        key="streak_7", name="Streak 7 ngày", target_value=7, sort_order=2
+    )
     badge_b1 = BadgeDefinition(key="b1_achiever", name="B1 Achiever", target_value=1, sort_order=3)
-    badge_fluency = BadgeDefinition(key="fluency_master", name="Fluency Master", target_value=85, sort_order=4)
-    badge_actor = BadgeDefinition(key="master_actor", name="Diễn viên xuất sắc", target_value=20, sort_order=5)
-    badge_room = BadgeDefinition(key="community_star", name="Ngôi sao cộng đồng", target_value=10, sort_order=6)
+    badge_fluency = BadgeDefinition(
+        key="fluency_master", name="Fluency Master", target_value=85, sort_order=4
+    )
+    badge_actor = BadgeDefinition(
+        key="master_actor", name="Diễn viên xuất sắc", target_value=20, sort_order=5
+    )
+    badge_room = BadgeDefinition(
+        key="community_star", name="Ngôi sao cộng đồng", target_value=10, sort_order=6
+    )
 
     service._repo.list_badge_definitions = AsyncMock(
         return_value=[badge_first, badge_streak, badge_b1, badge_fluency, badge_actor, badge_room]
     )
-    service._repo.get_user_profile = AsyncMock(return_value=UserProfile(user_id=user_id, cefr_level="B1"))
+    service._repo.get_user_profile = AsyncMock(
+        return_value=UserProfile(user_id=user_id, cefr_level="B1")
+    )
     service._repo.get_or_create_profile = AsyncMock(
         return_value=GamificationProfile(user_id=user_id, current_streak=7, best_streak=7)
     )
     service.get_level_advancement_stats = AsyncMock(
-        return_value={"total_sessions": 5, "total_scenarios": 20, "avg_overall": 75.0, "avg_skills": {}}
+        return_value={
+            "total_sessions": 5,
+            "total_scenarios": 20,
+            "avg_overall": 75.0,
+            "avg_skills": {},
+        }
     )
 
     # Max fluency mock

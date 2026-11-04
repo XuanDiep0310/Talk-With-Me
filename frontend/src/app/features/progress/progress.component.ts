@@ -313,13 +313,11 @@ export class ProgressComponent implements OnInit {
     if (!this.authService.isAuthenticated()) return;
 
     this.gamificationService.getProgressSummary().subscribe({
-      next: (summary) => this.summaryData.set(summary),
-      error: () => {}
+      next: (summary) => this.summaryData.set(summary)
     });
 
     this.gamificationService.getProgressSkills().subscribe({
-      next: (res) => this.skills.set(res.skills),
-      error: () => {}
+      next: (res) => this.skills.set(res.skills)
     });
 
     this.gamificationService.getProgressHistory(null, 15).subscribe({
@@ -327,13 +325,11 @@ export class ProgressComponent implements OnInit {
         this.historyItems.set(res.items);
         this.historyNextCursor.set(res.nextCursor);
         this.historyHasMore.set(res.hasMore);
-      },
-      error: () => {}
+      }
     });
 
     this.gamificationService.getGamificationSummary().subscribe({
-      next: (sum) => this.gamificationSummary.set(sum),
-      error: () => {}
+      next: (sum) => this.gamificationSummary.set(sum)
     });
   }
 

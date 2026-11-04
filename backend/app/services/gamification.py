@@ -256,7 +256,9 @@ class GamificationService:
             progress_pct=progress_pct,
         )
 
-    async def claim_mission(self, user_id: uuid.UUID, mission_id: uuid.UUID) -> ClaimMissionResponse:
+    async def claim_mission(
+        self, user_id: uuid.UUID, mission_id: uuid.UUID
+    ) -> ClaimMissionResponse:
         """Claim XP reward for a completed daily mission."""
         um = await self._repo.get_user_mission(mission_id, user_id)
         if not um:
@@ -289,9 +291,7 @@ class GamificationService:
 
     # --- Level Advancement Logic (SRS 3.4 & D-02) ---
 
-    async def get_level_advancement_stats(
-        self, user_id: uuid.UUID
-    ) -> dict[str, Any]:
+    async def get_level_advancement_stats(self, user_id: uuid.UUID) -> dict[str, Any]:
         """
         Calculate user's metrics for level evaluation:
         1. Completed valid sessions count
@@ -327,11 +327,7 @@ class GamificationService:
             for s in recent_sessions
             if s.feedback and s.feedback.overall_score is not None
         ]
-        avg_overall = (
-            round(sum(overall_scores) / len(overall_scores), 1)
-            if overall_scores
-            else 0.0
-        )
+        avg_overall = round(sum(overall_scores) / len(overall_scores), 1) if overall_scores else 0.0
 
         # 4. Average score for each of the 5 core skills over recent sessions
         recent_session_ids = [s.id for s in recent_sessions]
@@ -460,7 +456,20 @@ class GamificationService:
         badge_defs = await self._repo.list_badge_definitions()
         for b in badge_defs:
             should_award = False
-            if b.key == "first_speaker" and stats["total_sessions"] >= 1 or b.key == "streak_7" and (profile.current_streak >= 7 or profile.best_streak >= 7) or b.key == "b1_achiever" and level in ("B1", "B2", "C1") or b.key == "fluency_master" and max_fluency >= 85 or b.key == "master_actor" and stats["total_scenarios"] >= 20 or b.key == "community_star" and rooms_count >= 10:
+            if (
+                b.key == "first_speaker"
+                and stats["total_sessions"] >= 1
+                or b.key == "streak_7"
+                and (profile.current_streak >= 7 or profile.best_streak >= 7)
+                or b.key == "b1_achiever"
+                and level in ("B1", "B2", "C1")
+                or b.key == "fluency_master"
+                and max_fluency >= 85
+                or b.key == "master_actor"
+                and stats["total_scenarios"] >= 20
+                or b.key == "community_star"
+                and rooms_count >= 10
+            ):
                 should_award = True
 
             if should_award:
@@ -476,7 +485,7 @@ class GamificationService:
                         user_id=user_id,
                         type_="BADGE_UNLOCKED",
                         title=f"Huy hiệu mới: {b.name} {b.icon_emoji}",
-                        content=f"Bạn đã mở khóa thành công huy hiệu \"{b.name}\": {b.description}",
+                        content=f'Bạn đã mở khóa thành công huy hiệu "{b.name}": {b.description}',
                         created_at=self._clock.now(),
                     )
 
@@ -550,9 +559,7 @@ class GamificationService:
             # Min skills score (for B2, C1)
             skills_met = True
             if reqs["min_skills_score"] is not None:
-                min_skill_val = (
-                    min(stats["avg_skills"].values()) if stats["avg_skills"] else 0.0
-                )
+                min_skill_val = min(stats["avg_skills"].values()) if stats["avg_skills"] else 0.0
                 skills_met = min_skill_val >= reqs["min_skills_score"]
                 conditions.append(
                     LevelConditionProgress(
@@ -601,7 +608,9 @@ class GamificationService:
             if b.key == "first_speaker":
                 curr_progress = min(b.target_value, stats["total_sessions"])
             elif b.key == "streak_7":
-                curr_progress = min(b.target_value, max(profile.current_streak, profile.best_streak))
+                curr_progress = min(
+                    b.target_value, max(profile.current_streak, profile.best_streak)
+                )
             elif b.key == "b1_achiever" or b.key == "fluency_master":
                 curr_progress = 1 if is_earned else 0
             elif b.key == "master_actor":
@@ -676,9 +685,7 @@ class GamificationService:
             unread_count=unread_count,
         )
 
-    async def mark_notification_read(
-        self, notification_id: uuid.UUID, user_id: uuid.UUID
-    ) -> bool:
+    async def mark_notification_read(self, notification_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         """Mark single notification as read."""
         return await self._repo.mark_notification_read(notification_id, user_id)
 
@@ -694,7 +701,9 @@ class GamificationService:
         Rule: "Chỉ cộng XP khi session đạt dữ liệu tối thiểu (không phải INSUFFICIENT_DATA)."
         """
         if event.status == "INSUFFICIENT_DATA" or event.overall_score is None:
-            logger.info("Session %s has INSUFFICIENT_DATA. Skipping XP and streak.", event.session_id)
+            logger.info(
+                "Session %s has INSUFFICIENT_DATA. Skipping XP and streak.", event.session_id
+            )
             return
 
         # 1. Award COACH_SESSION XP (+100 XP)
@@ -793,7 +802,6 @@ class GamificationService:
         # 4. Check level progression & badges
         await self.evaluate_level_advancement(event.user_id, triggering_session_id=event.session_id)
         await self.evaluate_badges(event.user_id)
-
 
 
 def register_gamification_event_listeners() -> None:

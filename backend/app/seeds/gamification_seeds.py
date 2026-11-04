@@ -159,7 +159,9 @@ async def seed_gamification(session: AsyncSession) -> None:
         else:
             existing.xp_amount = int(rule_data["xp_amount"])
             existing.is_active = bool(rule_data["is_active"])
-            existing.description = str(rule_data["description"]) if rule_data.get("description") else None
+            existing.description = (
+                str(rule_data["description"]) if rule_data.get("description") else None
+            )
 
     for mission_data in MISSION_DEFINITIONS:
         existing_m = await session.get(MissionDefinition, mission_data["key"])

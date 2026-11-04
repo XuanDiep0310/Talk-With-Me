@@ -143,7 +143,11 @@ async def get_settings(
 ) -> SettingsResponse:
     settings = await user_service.get_settings(current_user.id)
     user = await user_service.get_me(current_user.id)
-    tz = user.profile.timezone if user and user.profile and user.profile.timezone else "Asia/Ho_Chi_Minh"
+    tz = (
+        user.profile.timezone
+        if user and user.profile and user.profile.timezone
+        else "Asia/Ho_Chi_Minh"
+    )
     return SettingsResponse(
         notifications_enabled=settings.notifications_enabled,
         daily_reminder_enabled=settings.daily_reminder_enabled,
@@ -171,7 +175,11 @@ async def update_settings(
         patch=patch,
     )
     user = await user_service.get_me(current_user.id)
-    tz = user.profile.timezone if user and user.profile and user.profile.timezone else "Asia/Ho_Chi_Minh"
+    tz = (
+        user.profile.timezone
+        if user and user.profile and user.profile.timezone
+        else "Asia/Ho_Chi_Minh"
+    )
     return SettingsResponse(
         notifications_enabled=updated.notifications_enabled,
         daily_reminder_enabled=updated.daily_reminder_enabled,

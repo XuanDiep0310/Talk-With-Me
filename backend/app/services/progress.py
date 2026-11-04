@@ -204,7 +204,9 @@ class ProgressService:
         first_3_ids = (await self._session.execute(first_3_sessions_stmt)).scalars().all()
 
         # Helper to compute average score for a skill across given session IDs
-        async def get_avg_for_sessions(session_ids: Sequence[uuid.UUID], skill: str) -> float | None:
+        async def get_avg_for_sessions(
+            session_ids: Sequence[uuid.UUID], skill: str
+        ) -> float | None:
             if not session_ids:
                 return None
             stmt = select(func.avg(SessionSkillScore.score)).where(
@@ -308,9 +310,9 @@ class ProgressService:
         next_cursor = None
         if has_more and items_to_return:
             last_item = items_to_return[-1]
-            next_cursor = base64.b64encode(
-                last_item.created_at.isoformat().encode("utf-8")
-            ).decode("utf-8")
+            next_cursor = base64.b64encode(last_item.created_at.isoformat().encode("utf-8")).decode(
+                "utf-8"
+            )
 
         formatted_items: list[SessionHistoryItem] = []
         for s in items_to_return:
@@ -390,7 +392,11 @@ class ProgressService:
         recent_sessions = [
             DashboardRecentSession(
                 id=h.id,
-                type="ai-coach" if "Coach" in h.type else "scenario" if "Tình" in h.type else "community",
+                type="ai-coach"
+                if "Coach" in h.type
+                else "scenario"
+                if "Tình" in h.type
+                else "community",
                 topic=h.topic,
                 date=h.date,
                 duration=h.duration,

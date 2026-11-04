@@ -178,6 +178,16 @@ interface NavItem {
               }
             </button>
 
+            <!-- Backdrop for dropdown -->
+            @if (notificationsOpen()) {
+              <button
+                type="button"
+                class="fixed inset-0 z-40 w-full h-full border-0 bg-transparent cursor-default"
+                (click)="notificationsOpen.set(false)"
+                aria-label="Đóng thông báo"
+              ></button>
+            }
+
             <!-- Notifications Dropdown -->
             @if (notificationsOpen()) {
               <div
@@ -207,8 +217,9 @@ interface NavItem {
                     </div>
                   } @else {
                     @for (item of notifications(); track item.id) {
-                      <div
-                        class="p-3 hover:bg-slate-50 transition cursor-pointer flex gap-3 items-start"
+                      <button
+                        type="button"
+                        class="w-full text-left p-3 hover:bg-slate-50 transition cursor-pointer flex gap-3 items-start border-0 bg-transparent"
                         [class.bg-blue-50]="!item.read"
                         (click)="markNotificationRead(item)"
                       >
@@ -218,7 +229,7 @@ interface NavItem {
                           <div class="text-xs mt-0.5 text-slate-600 leading-snug line-clamp-2">{{ item.message }}</div>
                           <div class="text-[10px] mt-1 text-slate-400">{{ formatNotificationTime(item.createdAt) }}</div>
                         </div>
-                      </div>
+                      </button>
                     }
                   }
                 </div>
@@ -252,7 +263,7 @@ interface NavItem {
         </header>
 
         <!-- Dynamic Content Slot -->
-        <main class="flex-1 overflow-y-auto" (click)="onMainClick()">
+        <main class="flex-1 overflow-y-auto">
           <router-outlet></router-outlet>
           <ng-content></ng-content>
         </main>
@@ -390,17 +401,13 @@ export class LayoutComponent implements OnInit {
       next: (summary) => {
         this.gamificationSummary.set(summary);
         this.appState.updateGamification(summary.totalXp, summary.currentStreak, summary.currentLevel);
-      },
-      error: () => {
-        // Fallback gracefully to appState
       }
     });
 
     this.gamificationService.getNotifications().subscribe({
       next: (res) => {
         this.notifications.set(res.notifications);
-      },
-      error: () => {}
+      }
     });
   }
 
@@ -410,12 +417,6 @@ export class LayoutComponent implements OnInit {
 
   toggleNotifications(): void {
     this.notificationsOpen.update(v => !v);
-  }
-
-  onMainClick(): void {
-    if (this.notificationsOpen()) {
-      this.notificationsOpen.set(false);
-    }
   }
 
   markNotificationRead(item: NotificationItem): void {

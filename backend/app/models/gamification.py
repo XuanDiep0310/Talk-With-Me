@@ -57,7 +57,9 @@ class XpTransaction(Base):
     source_type: Mapped[str] = mapped_column(String(50), nullable=False)
     source_id: Mapped[str] = mapped_column(String(100), nullable=False)
     # Unique idempotency key formatted as <rule>:<source_id>
-    idempotency_key: Mapped[str] = mapped_column(String(150), unique=True, nullable=False, index=True)
+    idempotency_key: Mapped[str] = mapped_column(
+        String(150), unique=True, nullable=False, index=True
+    )
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -151,9 +153,7 @@ class UserBadge(Base):
     """Badges awarded to users."""
 
     __tablename__ = "user_badges"
-    __table_args__ = (
-        UniqueConstraint("user_id", "badge_key", name="uq_user_badge"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "badge_key", name="uq_user_badge"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(

@@ -191,9 +191,7 @@ class GamificationRepository:
                         progress=0,
                         target=d.target_count,
                     )
-                    .on_conflict_do_nothing(
-                        constraint="uq_user_daily_mission"
-                    )
+                    .on_conflict_do_nothing(constraint="uq_user_daily_mission")
                 )
                 await self._session.execute(stmt_pg)
 
@@ -320,14 +318,13 @@ class GamificationRepository:
     async def get_unread_notification_count(self, user_id: uuid.UUID) -> int:
         """Count unread notifications."""
         stmt = select(func.count(Notification.id)).where(
-            Notification.user_id == user_id, Notification.is_read == False  # noqa: E712
+            Notification.user_id == user_id,
+            Notification.is_read == False,  # noqa: E712
         )
         result = await self._session.execute(stmt)
         return int(result.scalar_one())
 
-    async def mark_notification_read(
-        self, notification_id: uuid.UUID, user_id: uuid.UUID
-    ) -> bool:
+    async def mark_notification_read(self, notification_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         """Mark single notification as read."""
         stmt = (
             update(Notification)

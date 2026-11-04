@@ -38,36 +38,73 @@ def upgrade() -> None:
         sa.Column("xp_amount", sa.Integer(), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("description", sa.String(255), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
 
     # 2. xp_transactions
     op.create_table(
         "xp_transactions",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("amount", sa.Integer(), nullable=False),
         sa.Column("rule_key", sa.String(50), nullable=False),
         sa.Column("source_type", sa.String(50), nullable=False),
         sa.Column("source_id", sa.String(100), nullable=False),
         sa.Column("idempotency_key", sa.String(150), nullable=False),
         sa.Column("description", sa.String(255), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_xp_transactions_user_id", "xp_transactions", ["user_id"])
-    op.create_index("ix_xp_transactions_idempotency_key", "xp_transactions", ["idempotency_key"], unique=True)
+    op.create_index(
+        "ix_xp_transactions_idempotency_key", "xp_transactions", ["idempotency_key"], unique=True
+    )
 
     # 3. gamification_profiles
     op.create_table(
         "gamification_profiles",
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
         sa.Column("total_xp", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("current_streak", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("best_streak", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("last_active_date", sa.Date(), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
 
     # 4. mission_definitions
@@ -78,26 +115,61 @@ def upgrade() -> None:
         sa.Column("xp_reward", sa.Integer(), nullable=False, server_default=sa.text("50")),
         sa.Column("condition_type", sa.String(50), nullable=False),
         sa.Column("target_count", sa.Integer(), nullable=False, server_default=sa.text("1")),
-        sa.Column("params", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "params",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("true")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
 
     # 5. user_daily_missions
     op.create_table(
         "user_daily_missions",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("mission_date", sa.Date(), nullable=False),
-        sa.Column("mission_key", sa.String(50), sa.ForeignKey("mission_definitions.key", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "mission_key",
+            sa.String(50),
+            sa.ForeignKey("mission_definitions.key", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("status", sa.String(30), nullable=False, server_default=sa.text("'IN_PROGRESS'")),
         sa.Column("progress", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("target", sa.Integer(), nullable=False, server_default=sa.text("1")),
         sa.Column("completed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("claimed_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.UniqueConstraint("user_id", "mission_date", "mission_key", name="uq_user_daily_mission"),
     )
     op.create_index("ix_user_daily_missions_user_id", "user_daily_missions", ["user_id"])
@@ -113,20 +185,55 @@ def upgrade() -> None:
         sa.Column("category", sa.String(50), nullable=False, server_default=sa.text("'GENERAL'")),
         sa.Column("criteria_type", sa.String(50), nullable=False),
         sa.Column("target_value", sa.Integer(), nullable=False, server_default=sa.text("1")),
-        sa.Column("params", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "params",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.Column("sort_order", sa.Integer(), nullable=False, server_default=sa.text("0")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
 
     # 7. user_badges
     op.create_table(
         "user_badges",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("badge_key", sa.String(50), sa.ForeignKey("badge_definitions.key", ondelete="CASCADE"), nullable=False),
-        sa.Column("awarded_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "badge_key",
+            sa.String(50),
+            sa.ForeignKey("badge_definitions.key", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "awarded_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "metadata",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
         sa.UniqueConstraint("user_id", "badge_key", name="uq_user_badge"),
     )
     op.create_index("ix_user_badges_user_id", "user_badges", ["user_id"])
@@ -135,12 +242,22 @@ def upgrade() -> None:
     op.create_table(
         "notifications",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("user_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
         sa.Column("type", sa.String(50), nullable=False),
         sa.Column("title", sa.String(255), nullable=False),
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column("is_read", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
     op.create_index("ix_notifications_user_id", "notifications", ["user_id"])
     op.create_index("ix_notifications_type", "notifications", ["type"])
