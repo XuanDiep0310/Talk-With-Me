@@ -278,6 +278,17 @@ export class AppStateService {
     this.persistUser(user);
   }
 
+  updateGamification(xp: number, streak: number, level?: string): void {
+    this.totalXp.set(xp);
+    this.currentStreak.set(streak);
+    if (level) {
+      this.user.update(u => {
+        const base = u ?? MOCK_USER;
+        return { ...base, xp, streak, level };
+      });
+    }
+  }
+
   updateUserProfile(
     profile: Pick<User, "name" | "interests" | "goals" | "avatar">,
   ): void {

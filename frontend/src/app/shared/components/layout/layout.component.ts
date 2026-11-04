@@ -1,8 +1,10 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject, HostListener } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { AppStateService } from '../../../core/services/app-state.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { GamificationService } from '../../../core/services/gamification.service';
+import { GamificationSummaryResponse, NotificationItem } from '../../../core/models/gamification.models';
 import { AppPage } from '../../../core/models/app.models';
 
 interface NavItem {
@@ -70,20 +72,25 @@ interface NavItem {
           }
         </nav>
 
-        <!-- XP bar -->
+        <!-- Level & XP bar (D-02 Level Advancement) -->
         <div class="px-4 py-3 mx-3 mb-3 rounded-xl" style="background: #E2F0F9">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-600" style="color: #286FB4; font-weight: 600">
-              {{ appState.appUser().level }}
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-700" style="color: #286FB4; font-weight: 700">
+              Level {{ currentLevel() }}
             </span>
-            <span class="text-xs" style="color: #64748b">{{ appState.totalXp() }} XP</span>
+            <span class="text-xs font-600" style="color: #64748b">{{ totalXp() }} XP</span>
           </div>
-          <div class="progress-bar h-2 bg-slate-200 rounded-full overflow-hidden">
+          <!-- D-02 condition progress -->
+          <div class="progress-bar h-2 bg-slate-200 rounded-full overflow-hidden mt-1.5">
             <div
               class="progress-bar-fill h-2 rounded-full transition-all duration-500"
-              [style.width.%]="appState.userXpLevelProgress()"
+              [style.width.%]="levelProgressPct()"
               style="background: #286FB4"
             ></div>
+          </div>
+          <div class="flex justify-between items-center mt-1.5 text-[11px]" style="color: #64748b">
+            <span>{{ nextLevelText() }}</span>
+            <span class="font-600">{{ advancementConditionsMet() }}/{{ advancementConditionsTotal() }} đạt</span>
           </div>
         </div>
 
@@ -127,7 +134,7 @@ interface NavItem {
       <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <!-- Top header bar -->
         <header
-          class="flex items-center gap-4 px-5 py-4 shrink-0"
+          class="flex items-center gap-4 px-5 py-4 shrink-0 relative z-20"
           style="background: #fff; border-bottom: 1px solid #E2F0F9"
         >
           <button
@@ -147,18 +154,77 @@ interface NavItem {
           <div class="flex-1"></div>
 
           <!-- Streak badge -->
-          <div class="flex items-center gap-2 px-3 py-2 rounded-xl" style="background: #FFF5E5">
+          <div class="flex items-center gap-2 px-3 py-2 rounded-xl select-none" style="background: #FFF5E5">
             <span class="text-base">🔥</span>
-            <span class="text-sm font-700" style="color: #ea580c; font-weight: 700">{{ appState.currentStreak() }} ngày</span>
+            <span class="text-sm font-700" style="color: #ea580c; font-weight: 700">{{ currentStreak() }} ngày</span>
           </div>
 
-          <!-- Notifications button -->
-          <button type="button" class="relative p-2 rounded-xl cursor-pointer" style="background: #E2F0F9; color: #286FB4" aria-label="Notifications">
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-            <span class="absolute top-1 right-1 w-2 h-2 rounded-full" style="background: #DF4C73"></span>
-          </button>
+          <!-- Notifications button & dropdown -->
+          <div class="relative">
+            <button
+              type="button"
+              class="relative p-2 rounded-xl cursor-pointer"
+              style="background: #E2F0F9; color: #286FB4"
+              aria-label="Notifications"
+              (click)="toggleNotifications()"
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              @if (unreadCount() > 0) {
+                <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center" style="background: #DF4C73">
+                  {{ unreadCount() }}
+                </span>
+              }
+            </button>
+
+            <!-- Notifications Dropdown -->
+            @if (notificationsOpen()) {
+              <div
+                class="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl shadow-xl z-50 overflow-hidden border"
+                style="background: #fff; border-color: #E2F0F9"
+              >
+                <div class="p-3.5 border-b flex items-center justify-between" style="border-color: #E2F0F9">
+                  <div class="font-700 text-sm" style="color: #1e293b; font-weight: 700">
+                    Thông báo @if (unreadCount() > 0) { ({{ unreadCount() }}) }
+                  </div>
+                  @if (unreadCount() > 0) {
+                    <button
+                      type="button"
+                      class="text-xs font-600 hover:underline cursor-pointer border-0 bg-transparent"
+                      style="color: #286FB4"
+                      (click)="markAllNotificationsRead()"
+                    >
+                      Đánh dấu tất cả đã đọc
+                    </button>
+                  }
+                </div>
+
+                <div class="max-h-80 overflow-y-auto divide-y" style="border-color: #F1F5F9">
+                  @if (notifications().length === 0) {
+                    <div class="p-6 text-center text-xs text-slate-400">
+                      Không có thông báo nào
+                    </div>
+                  } @else {
+                    @for (item of notifications(); track item.id) {
+                      <div
+                        class="p-3 hover:bg-slate-50 transition cursor-pointer flex gap-3 items-start"
+                        [class.bg-blue-50]="!item.read"
+                        (click)="markNotificationRead(item)"
+                      >
+                        <div class="w-2 h-2 rounded-full mt-1.5 shrink-0" [style.background]="item.read ? 'transparent' : '#DF4C73'"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-xs font-600 truncate" style="color: #1e293b">{{ item.title }}</div>
+                          <div class="text-xs mt-0.5 text-slate-600 leading-snug line-clamp-2">{{ item.message }}</div>
+                          <div class="text-[10px] mt-1 text-slate-400">{{ formatNotificationTime(item.createdAt) }}</div>
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          </div>
 
           <!-- Avatar ở góc trên bên phải -->
           <button
@@ -186,7 +252,7 @@ interface NavItem {
         </header>
 
         <!-- Dynamic Content Slot -->
-        <main class="flex-1 overflow-y-auto">
+        <main class="flex-1 overflow-y-auto" (click)="onMainClick()">
           <router-outlet></router-outlet>
           <ng-content></ng-content>
         </main>
@@ -194,10 +260,15 @@ interface NavItem {
     </div>
   `
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnInit {
   readonly appState = inject(AppStateService);
   readonly authService = inject(AuthService);
+  private readonly gamificationService = inject(GamificationService);
+
   readonly sidebarOpen = signal(false);
+  readonly notificationsOpen = signal(false);
+  readonly notifications = signal<NotificationItem[]>([]);
+  readonly gamificationSummary = signal<GamificationSummaryResponse | null>(null);
 
   readonly userName = computed(() => {
     return this.authService.currentUser()?.fullName ?? this.appState.appUser().name ?? 'Người dùng';
@@ -218,6 +289,43 @@ export class LayoutComponent {
     if (!name) return 'U';
     const parts = name.split(/\s+/);
     return parts[parts.length - 1][0].toUpperCase();
+  });
+
+  readonly currentLevel = computed(() => {
+    return this.gamificationSummary()?.currentLevel ?? this.authService.currentUser()?.cefrLevel ?? this.appState.appUser().level ?? 'A1';
+  });
+
+  readonly totalXp = computed(() => {
+    return this.gamificationSummary()?.totalXp ?? this.appState.totalXp();
+  });
+
+  readonly currentStreak = computed(() => {
+    return this.gamificationSummary()?.currentStreak ?? this.appState.currentStreak();
+  });
+
+  readonly unreadCount = computed(() => {
+    return this.notifications().filter(n => !n.read).length;
+  });
+
+  readonly advancementConditionsTotal = computed(() => {
+    const conds = this.gamificationSummary()?.advancement?.conditions;
+    return conds && conds.length > 0 ? conds.length : 4;
+  });
+
+  readonly advancementConditionsMet = computed(() => {
+    const conds = this.gamificationSummary()?.advancement?.conditions;
+    return conds ? conds.filter(c => c.met).length : 0;
+  });
+
+  readonly levelProgressPct = computed(() => {
+    const total = this.advancementConditionsTotal();
+    if (!total) return 100;
+    return Math.round((this.advancementConditionsMet() / total) * 100);
+  });
+
+  readonly nextLevelText = computed(() => {
+    const target = this.gamificationSummary()?.advancement?.targetLevel;
+    return target ? `Lên Level ${target}` : 'Đạt cấp tối đa';
   });
 
   readonly mainNavItems: NavItem[] = [
@@ -271,18 +379,82 @@ export class LayoutComponent {
     }
   ];
 
+  ngOnInit(): void {
+    this.refreshGamification();
+  }
+
+  refreshGamification(): void {
+    if (!this.authService.isAuthenticated()) return;
+
+    this.gamificationService.getGamificationSummary().subscribe({
+      next: (summary) => {
+        this.gamificationSummary.set(summary);
+        this.appState.updateGamification(summary.totalXp, summary.currentStreak, summary.currentLevel);
+      },
+      error: () => {
+        // Fallback gracefully to appState
+      }
+    });
+
+    this.gamificationService.getNotifications().subscribe({
+      next: (res) => {
+        this.notifications.set(res.notifications);
+      },
+      error: () => {}
+    });
+  }
+
   toggleSidebar(open: boolean): void {
     this.sidebarOpen.set(open);
   }
 
+  toggleNotifications(): void {
+    this.notificationsOpen.update(v => !v);
+  }
+
+  onMainClick(): void {
+    if (this.notificationsOpen()) {
+      this.notificationsOpen.set(false);
+    }
+  }
+
+  markNotificationRead(item: NotificationItem): void {
+    if (item.read) return;
+    this.gamificationService.markNotificationRead(item.id).subscribe({
+      next: () => {
+        this.notifications.update(list => list.map(n => n.id === item.id ? { ...n, read: true } : n));
+      }
+    });
+  }
+
+  markAllNotificationsRead(): void {
+    this.gamificationService.markAllNotificationsRead().subscribe({
+      next: () => {
+        this.notifications.update(list => list.map(n => ({ ...n, read: true })));
+      }
+    });
+  }
+
+  formatNotificationTime(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return dateStr;
+    }
+  }
+
   @HostListener('document:keydown.escape')
-  closeSidebarOnEscape(): void {
+  closeOnEscape(): void {
     if (this.sidebarOpen()) this.toggleSidebar(false);
+    if (this.notificationsOpen()) this.notificationsOpen.set(false);
   }
 
   navigate(page: AppPage): void {
     this.appState.go(page);
     this.sidebarOpen.set(false);
+    this.notificationsOpen.set(false);
   }
 
   navIcon(page: AppPage): string {
