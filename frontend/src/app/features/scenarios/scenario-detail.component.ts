@@ -1043,7 +1043,9 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     const url = this.userAudioUrl();
     if (url) {
       const audio = new Audio(url);
-      audio.play().catch(() => {});
+      void audio.play().catch((err: unknown) => {
+        console.debug('Failed to play user audio:', err);
+      });
     }
   }
 

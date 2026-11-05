@@ -156,9 +156,13 @@ import {
             @for (b of filteredBadges(); track b.id || b.key) {
               <div
                 class="card p-5 relative transition-all duration-150 cursor-pointer border hover:border-sky-400 hover:shadow-xs"
+                tabindex="0"
+                role="button"
+                [attr.aria-label]="b.name"
                 [style.borderColor]="b.earned ? '#CBD5E1' : '#E2E8F0'"
                 [style.background]="b.earned ? '#FFFFFF' : '#FAFAFA'"
                 (click)="selectedBadge.set(b)"
+                (keydown.enter)="selectedBadge.set(b)"
               >
                 <!-- Rarity Banner / Stamp -->
                 <div class="flex items-center justify-between mb-3">
@@ -323,12 +327,19 @@ import {
 
       <!-- Badge Detail Modal -->
       @if (selectedBadge(); as badge) {
-        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in" (click)="selectedBadge.set(null)">
+        <div
+          class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in"
+          tabindex="0"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chi tiết huy hiệu"
+          (click)="onBackdropClick($event)"
+          (keydown.escape)="selectedBadge.set(null)"
+        >
           <div
             class="card p-6 max-w-md w-full text-center relative border-2 shadow-2xl"
             [style.borderColor]="badge.earned ? '#F59E0B' : '#94A3B8'"
             [style.background]="badge.earned ? 'radial-gradient(circle at 50% 30%, #FFFBEB 0%, #FFFFFF 100%)' : '#FFFFFF'"
-            (click)="$event.stopPropagation()"
           >
             <!-- Close Button -->
             <button class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl border-0 bg-transparent cursor-pointer" (click)="selectedBadge.set(null)">✕</button>
@@ -717,5 +728,11 @@ export class AchievementsComponent implements OnInit {
 
   formatDate(dateStr: string | null | undefined): string {
     return formatDDMMYYYY(dateStr);
+  }
+
+  onBackdropClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.selectedBadge.set(null);
+    }
   }
 }
