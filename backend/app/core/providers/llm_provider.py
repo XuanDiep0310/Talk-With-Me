@@ -168,12 +168,30 @@ class FakeLlmProvider:
     async def evaluate_placement(self, transcripts: list[str]) -> LlmLevelEvaluation:
         total_words = sum(len(t.split()) for t in transcripts)
         avg_w = total_words / max(len(transcripts), 1)
-        if avg_w < 12:
+        all_text = " ".join(transcripts).lower()
+
+        # Check for intermediate/advanced vocabulary markers indicative of B1+
+        has_advanced_vocab = any(
+            w in all_text
+            for w in (
+                "perspective",
+                "transforming",
+                "specialized",
+                "industries",
+                "culture",
+                "incredible",
+                "career paths",
+                "artificial intelligence",
+                "foreign languages",
+            )
+        )
+
+        if avg_w < 12 and not has_advanced_vocab:
             suggested = "A1"
-        elif avg_w < 22:
+        elif avg_w < 18 and not has_advanced_vocab:
             suggested = "A2"
-        elif avg_w < 38:
-            suggested = "B1"
+        elif avg_w < 35 or has_advanced_vocab:
+            suggested = "B2" if (has_advanced_vocab and avg_w >= 18) else "B1"
         elif avg_w < 58:
             suggested = "B2"
         else:

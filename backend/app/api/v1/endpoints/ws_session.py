@@ -19,6 +19,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.core.database import async_session_factory
@@ -26,10 +27,10 @@ from app.core.providers.llm_provider import get_llm_provider
 from app.core.providers.stt_provider import get_stt_provider
 from app.core.redis import get_redis_client
 from app.core.ws_manager import session_ws_manager
+from app.models.auth import UserSettings
 from app.models.session import TranscriptSegment
 from app.repositories.scenario import ScenarioRepository
 from app.repositories.session import SessionRepository, TranscriptRepository
-from app.repositories.user import UserRepository
 from app.services.session_state_machine import (
     InvalidSessionStateTransitionError,
     SessionState,
@@ -160,11 +161,11 @@ async def session_websocket_endpoint(
     voice_pref = "female"
     speed_pref = "normal"
     async with async_session_factory() as db:
-        user_repo = UserRepository(db)
-        u_obj = await user_repo.get_by_id(user_id)
-        if u_obj and u_obj.settings:
-            voice_pref = u_obj.settings.ai_voice or "female"
-            speed_pref = u_obj.settings.speech_speed or "normal"
+        settings_res = await db.execute(select(UserSettings).where(UserSettings.user_id == user_id))
+        u_settings = settings_res.scalar_one_or_none()
+        if u_settings:
+            voice_pref = u_settings.ai_voice or "female"
+            speed_pref = u_settings.speech_speed or "normal"
 
     await websocket.send_json(
         {
