@@ -957,7 +957,7 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     this.scenarioService.startRoleplay(s.id).subscribe({
       next: (res) => {
         this.isStartingRoleplay.set(false);
-        this.router.navigate(['/scenario-roleplay', res.sessionId]);
+        this.router.navigate(['/scenario-roleplay', res.sessionId], { state: { scenario: s, roleplaySession: res }, queryParams: { scenarioId: s.id } });
       },
       error: () => {
         this.isStartingRoleplay.set(false);

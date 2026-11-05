@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { CoachService } from './coach.service';
+import { AppStateService } from './app-state.service';
 import { environment } from '../../../environments/environment';
 
 export type CoachUxState =
@@ -35,6 +36,7 @@ export interface LiveTranscriptItem {
 })
 export class CoachVoiceService {
   private readonly coachService = inject(CoachService);
+  private readonly appState = inject(AppStateService);
 
   // Reactive state signals
   readonly uxState = signal<CoachUxState>('ready');
@@ -67,7 +69,14 @@ export class CoachVoiceService {
    * Start a real-time voice conversation session over WebSocket.
    */
   async startVoiceSession(sessionId: string): Promise<void> {
+    // Completely clear prior session and transcripts to prevent conversation bleeding
+    if (this.ws || this.activeSessionId !== sessionId || this.liveTranscripts().length > 0) {
+      this.cleanup();
+    }
     this.activeSessionId = sessionId;
+    this.lastSeq = 0;
+    this.liveTranscripts.set([]);
+    this.currentSuggestions.set([]);
     this.isIntentionalClose = false;
     this.errorMessage.set(null);
     this.isRecordingTurn.set(false);
@@ -443,6 +452,59 @@ export class CoachVoiceService {
     this.speakWithSynthesis(item);
   }
 
+  private getSpeechRate(): number {
+    const speed = this.appState.settings().aiSpeed || 'normal';
+    switch (speed) {
+      case 'slow': return 0.78;
+      case 'fast': return 1.2;
+      default: return 0.95;
+    }
+  }
+
+  private configureAiVoice(utterance: SpeechSynthesisUtterance): void {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const voices = window.speechSynthesis.getVoices();
+    const voicePref = this.appState.settings().aiVoice || 'female';
+    const rate = this.getSpeechRate();
+    utterance.rate = rate;
+
+    // Filter for English voices
+    const enVoices = voices.filter((v) => v.lang.startsWith('en'));
+    const pool = enVoices.length > 0 ? enVoices : voices;
+
+    if (voicePref === 'male') {
+      utterance.pitch = 0.92;
+      const maleVoice = pool.find((v) => {
+        const name = v.name.toLowerCase();
+        return (
+          name.includes('male') ||
+          name.includes('david') ||
+          name.includes('george') ||
+          name.includes('daniel') ||
+          name.includes('guy') ||
+          name.includes('mark')
+        );
+      });
+      if (maleVoice) utterance.voice = maleVoice;
+    } else {
+      utterance.pitch = 1.05;
+      const femaleVoice = pool.find((v) => {
+        const name = v.name.toLowerCase();
+        return (
+          name.includes('female') ||
+          name.includes('zira') ||
+          name.includes('samantha') ||
+          name.includes('karen') ||
+          name.includes('victoria') ||
+          name.includes('jenny') ||
+          name.includes('aria') ||
+          name.includes('eva')
+        );
+      });
+      if (femaleVoice) utterance.voice = femaleVoice;
+    }
+  }
+
   private speakWithSynthesis(item: LiveTranscriptItem): void {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       setTimeout(() => {
@@ -460,8 +522,12 @@ export class CoachVoiceService {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(item.text);
       utterance.lang = 'en-US';
-      utterance.rate = item.speaker === 'AI' ? 0.98 : 1.0;
-      utterance.pitch = item.speaker === 'AI' ? 1.05 : 1.0;
+      if (item.speaker === 'AI') {
+        this.configureAiVoice(utterance);
+      } else {
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+      }
 
       utterance.onend = () => {
         if (this.playingSegmentId() === item.id) {
@@ -590,7 +656,7 @@ export class CoachVoiceService {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
-      utterance.rate = 0.92;
+      this.configureAiVoice(utterance);
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       console.warn('TTS error playing sample text:', e);
@@ -650,6 +716,13 @@ export class CoachVoiceService {
     this.isRecordingTurn.set(false);
     this.stopHeartbeat();
     this.stopAudioPlayback();
+
+    // Reset transcripts and conversation sequences to prevent session bleed
+    this.liveTranscripts.set([]);
+    this.currentSuggestions.set([]);
+    this.lastSeq = 0;
+    this.currentTurnSegmentId = null;
+    this.recordedChunks = [];
 
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);

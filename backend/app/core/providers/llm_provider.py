@@ -208,31 +208,32 @@ class FakeLlmProvider:
         msg_lower = user_message.lower()
         level = user_level.upper()
 
-        if any(w in msg_lower for w in ("again", "hear", "clearly", "repeat", "pardon", "sorry")):
+        if any(w in msg_lower for w in ("again", "hear", "clearly", "repeat", "pardon", "sorry", "what")):
             if level in ("A1", "A2"):
                 return f"No problem! What do you like about {topic_title.lower()}?"
-            return f"No worries at all! I was asking: what do you enjoy most when exploring {topic_title.lower()}?"
+            return f"No worries at all! I was asking: what do you think is most important about {topic_title.lower()}?"
 
-        if any(
-            w in msg_lower for w in ("travel", "beach", "city", "da nang", "hanoi", "trip", "visit")
-        ):
-            if level in ("A1", "A2"):
-                return "That is nice! Do you like the beach or the food more?"
-            return "That sounds like a wonderful destination! What is your favorite activity or local food when you are there?"
+        # Topic-anchored and level-calibrated responses ensuring conversation NEVER drifts
+        if level in ("A1", "A2"):
+            anchored_replies = [
+                f"That sounds great! How does that help you with {topic_title.lower()}?",
+                f"I understand! What is most interesting to you about {topic_title.lower()}?",
+                f"Very nice! Do you often talk about {topic_title.lower()} with family or friends?",
+                f"Good point! Can you share one more detail about {topic_title.lower()}?",
+                f"Thanks for sharing! What else do you enjoy about {topic_title.lower()}?",
+            ]
+        else:
+            anchored_replies = [
+                f"That's an interesting perspective! How does that connect with your daily thoughts on {topic_title.lower()}?",
+                f"I appreciate that reflection. Coming back to our focus on {topic_title.lower()}, what major challenges do you face?",
+                f"That makes a lot of sense. In the context of {topic_title.lower()}, what outcome would you consider ideal?",
+                f"Compelling point! Could you elaborate further on how that influences {topic_title.lower()}?",
+                f"That's very insightful! What key lesson have you learned about {topic_title.lower()} from that experience?",
+            ]
 
-        if any(w in msg_lower for w in ("work", "job", "office", "company", "career")):
-            if level in ("A1", "A2"):
-                return "Great! Do you enjoy your daily work with colleagues?"
-            return "Working on that sounds challenging yet rewarding! What do you find most interesting about your daily tasks?"
-
-        if any(w in msg_lower for w in ("weekend", "free time", "hobby", "music", "sport", "game")):
-            if level in ("A1", "A2"):
-                return "Sounds fun! Do you do that on Saturdays?"
-            return "That's a fantastic way to recharge your energy! Do you usually do that alone or with friends?"
-
-        idx = FakeLlmProvider._counter % len(self._REPLIES)
+        idx = FakeLlmProvider._counter % len(anchored_replies)
         FakeLlmProvider._counter += 1
-        return self._REPLIES[idx]
+        return anchored_replies[idx]
 
     async def generate_suggested_replies(
         self,
@@ -454,13 +455,14 @@ class GeminiLlmProvider:
         topic_min_level: str = "A1",
     ) -> str:
         system_instruction = (
-            f"You are Alex, an encouraging English Communication Coach at TalkWithMe. "
-            f"The user is at CEFR Level {user_level}, discussing the topic '{topic_title}' (Topic min level: {topic_min_level}). "
+            f"You are Alex, an encouraging English Communication Coach at TalkWithMe.\n"
+            f"The user is at CEFR Level {user_level}, discussing the specific lesson topic: '{topic_title}' (Topic min level: {topic_min_level}).\n\n"
             f"Rules:\n"
-            f"1. Keep responses short and conversational (1 to 2 sentences max).\n"
-            f"2. Always end with one friendly, open-ended question to keep the conversation flowing.\n"
-            f"3. Do NOT interrupt or criticize grammar mid-conversation.\n"
-            f"4. CEFR CALIBRATION: Strictly adapt your vocabulary and sentence length to level {user_level}."
+            f"1. TOPIC GROUNDING (STRICT): The conversation must stay focused on '{topic_title}'. If the user wanders off-topic, acknowledge warmly in one brief phrase and smoothly guide the conversation back to '{topic_title}'.\n"
+            f"2. Keep responses short and conversational (1 to 2 sentences max).\n"
+            f"3. Always end with one friendly, open-ended question strictly about '{topic_title}' to keep the conversation flowing.\n"
+            f"4. Do NOT interrupt or criticize grammar mid-conversation.\n"
+            f"5. CEFR CALIBRATION: Strictly adapt your vocabulary and sentence length to level {user_level}."
         )
 
         contents: list[dict[str, Any]] = []
@@ -726,15 +728,16 @@ class GroqLlmProvider:
         topic_min_level: str = "A1",
     ) -> str:
         system_instruction = (
-            f"You are Alex, an encouraging and empathetic English Communication Coach at TalkWithMe. "
-            f"The user is at CEFR Level {user_level}, discussing the topic '{topic_title}' (Topic min level: {topic_min_level}).\n"
-            f"Rules (Communication-First):\n"
-            f"1. Directly respond to and acknowledge what the learner just said!\n"
-            f"2. Keep responses short and natural (1 to 2 sentences max).\n"
-            f"3. Always conclude with exactly ONE friendly, open-ended question to invite the user to speak more.\n"
-            f"4. Do NOT criticize grammar or interrupt the flow.\n"
-            f"5. CEFR CALIBRATION: Strictly adapt your vocabulary, sentence length, and syntax to CEFR level {user_level}. "
-            f"For A1/A2, use simple, common words and keep questions under 12 words. For B1/B2, speak naturally. For C1, use richer vocabulary."
+            f"You are Alex, an encouraging and empathetic English Communication Coach at TalkWithMe.\n"
+            f"The user is at CEFR Level {user_level}, discussing the specific lesson topic: '{topic_title}' (Topic min level: {topic_min_level}).\n\n"
+            f"MANDATORY COMMUNICATION-FIRST RULES:\n"
+            f"1. TOPIC GROUNDING (STRICT): The conversation must stay focused on '{topic_title}'. Do NOT let the conversation drift away to unrelated subjects.\n"
+            f"2. SKILLFUL REDIRECTION (AGENTS.md Rule 9): If the user wanders off-topic or talks about something else, warmly acknowledge their point in 1 brief phrase, then smoothly steer the conversation back to '{topic_title}' with your follow-up question.\n"
+            f"3. Directly acknowledge what the learner just said!\n"
+            f"4. Keep responses short and natural (1 to 2 sentences max).\n"
+            f"5. Always conclude with exactly ONE friendly, open-ended question strictly related to '{topic_title}' to invite the user to speak more.\n"
+            f"6. Do NOT criticize grammar or interrupt the conversational flow.\n"
+            f"7. CEFR CALIBRATION: Strictly adapt your vocabulary, sentence length, and syntax to CEFR level {user_level}. For A1/A2, use simple, common words and keep questions under 12 words. For B1/B2, speak naturally. For C1, use richer vocabulary."
         )
 
         messages: list[dict[str, str]] = [{"role": "system", "content": system_instruction}]
@@ -929,7 +932,7 @@ class GroqLlmProvider:
             f"CRITICAL RULES:\n"
             f"1. Stay strictly in character as {ai_role}.\n"
             f"2. Keep responses brief and conversational (1 to 2 sentences), adapted to CEFR {user_level}.\n"
-            f"3. Guide the dialogue naturally towards the goals.\n"
+            f"3. Guide the dialogue naturally towards the goals. If the user drifts away from the scenario, bring them back in character!\n"
             f"4. Do NOT break character or correct grammar mid-dialogue."
         )
         messages = [{"role": "system", "content": system_msg}]
