@@ -7,7 +7,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -209,6 +209,8 @@ async def seed_scenarios(db: AsyncSession, seeds_dir: Path | None = None) -> int
                 chk.audio_url = c_dict.get("audio_url")
                 chk.example_sentence = c_dict["example_sentence"]
                 chk.accepted_variations = c_dict.get("accepted_variations", [])
+                chk.distractors_en = c_dict.get("distractors_en", [])
+                chk.distractors_vi = c_dict.get("distractors_vi", [])
             else:
                 new_chunk = ScenarioChunk(
                     id=c_id,
@@ -219,6 +221,8 @@ async def seed_scenarios(db: AsyncSession, seeds_dir: Path | None = None) -> int
                     audio_url=c_dict.get("audio_url"),
                     example_sentence=c_dict["example_sentence"],
                     accepted_variations=c_dict.get("accepted_variations", []),
+                    distractors_en=c_dict.get("distractors_en", []),
+                    distractors_vi=c_dict.get("distractors_vi", []),
                     sort_order=c_order,
                 )
                 db.add(new_chunk)

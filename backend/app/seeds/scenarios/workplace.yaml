@@ -1,395 +1,632 @@
 scenarios:
-  - slug: "job-interview"
-    category: "WORKPLACE"
-    title_vi: "Phỏng vấn xin việc"
-    title_en: "Job Interview & Career Background"
-    level: "B1"
-    estimated_duration_minutes: 18
-    context: "Bạn đang tham gia vòng phỏng vấn đầu tiên cho vị trí Chuyên viên phát triển sản phẩm tại một công ty đa quốc gia. Người phỏng vấn đặt câu hỏi về kinh nghiệm làm việc và cách xử lý áp lực."
-    user_role: "Ứng viên tìm việc"
-    ai_role: "Trưởng phòng tuyển dụng (HR Lead)"
-    goals:
-      - "Tự tin giới thiệu tóm tắt kinh nghiệm làm việc liên quan"
-      - "Nêu thế mạnh chính và cách khắc phục điểm yếu"
-      - "Đặt một câu hỏi hay cho nhà tuyển dụng vào cuối buổi"
-    sort_order: 16
-    requirements:
-      - description: "Chào hỏi trang trọng và cảm ơn lời mời phỏng vấn"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Tóm tắt kinh nghiệm làm việc gần đây và thành tựu chính"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Đặt câu hỏi về văn hóa đội ngũ hoặc mục tiêu quý tới"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Đồng tình hoặc bày tỏ sự hứng thú với vai trò"
-        type: "TASK"
-        expected_chunk_function: "AGREE_DECLINE"
-        is_mandatory: false
-        sort_order: 4
-      - description: "Cảm ơn người phỏng vấn và chào kết thúc buổi"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 5
-    chunks:
-      - function_tag: "OPENING"
-        text: "Thank you for giving me the opportunity to interview today."
-        meaning_vi: "Cảm ơn anh/chị đã cho tôi cơ hội tham gia buổi phỏng vấn hôm nay."
-        example_sentence: "Good morning! Thank you for giving me the opportunity to interview for this position today."
-        accepted_variations:
-          - "Thank you for inviting me to this interview."
-          - "I'm really excited to be interviewing with your team today."
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "In my previous role, I was primarily responsible for..."
-        meaning_vi: "Ở vị trí trước đây, tôi chịu trách nhiệm chính về..."
-        example_sentence: "In my previous role, I was primarily responsible for leading web development sprints and improving system performance."
-        accepted_variations:
-          - "My main responsibility previously was..."
-          - "Over the past three years, I focused on..."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Could you tell me more about the team's top priorities?"
-        meaning_vi: "Anh/chị có thể chia sẻ thêm về ưu tiên hàng đầu của đội ngũ không?"
-        example_sentence: "Could you tell me more about the team's top priorities for the upcoming quarter?"
-        accepted_variations:
-          - "What does success look like in this role?"
-          - "How would you describe the team culture here?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "That aligns strongly with my personal career goals."
-        meaning_vi: "Điều đó rất tương đồng với mục tiêu sự nghiệp cá nhân của tôi."
-        example_sentence: "That mission aligns strongly with my personal career goals and core values."
-        accepted_variations:
-          - "That matches my experience very well."
-          - "I am confident that fits my background."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "I look forward to the next steps in the hiring process."
-        meaning_vi: "Tôi rất mong chờ các bước tiếp theo trong quy trình tuyển dụng."
-        example_sentence: "Thank you for your valuable time, I look forward to the next steps in the process."
-        accepted_variations:
-          - "Thank you again, hope to hear from you soon."
-          - "I appreciate the insightful conversation today."
-        sort_order: 5
-
-  - slug: "team-sync-meeting"
-    category: "WORKPLACE"
-    title_vi: "Họp nhóm dự án"
-    title_en: "Project Team Sync & Standup"
-    level: "B2"
-    estimated_duration_minutes: 15
-    context: "Bạn đang tham gia buổi họp cập nhật tiến độ (daily standup) với nhóm phát triển phần mềm quốc tế. Bạn cần báo cáo những việc đã làm, việc chuẩn bị làm và rào cản kỹ thuật nếu có."
-    user_role: "Kỹ sư phần mềm trong nhóm"
-    ai_role: "Scrum Master / Quản lý dự án (Project Manager)"
-    goals:
-      - "Báo cáo ngắn gọn các công việc đã hoàn thành hôm qua"
-      - "Nêu rõ mục tiêu công việc trong ngày hôm nay"
-      - "Nêu khó khăn hoặc vướng mắc (blocker) cần sự hỗ trợ"
-    sort_order: 17
-    requirements:
-      - description: "Bắt đầu phần cập nhật công việc cá nhân"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Nêu các nhiệm vụ dự kiến hoàn thành hôm nay"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Hỏi làm rõ sự hỗ trợ cho rào cản kỹ thuật"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Đồng thuận với giải pháp của nhóm và kết thúc lượt phát biểu"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "From my side, yesterday I finished working on..."
-        meaning_vi: "Về phần tôi, hôm qua tôi đã hoàn thành công việc trên..."
-        example_sentence: "From my side, yesterday I finished implementing the authentication flow and wrote unit tests."
-        accepted_variations:
-          - "To give a quick update from my end..."
-          - "On my end, yesterday I wrapped up..."
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "Today my main focus is going to be..."
-        meaning_vi: "Hôm nay trọng tâm chính của tôi sẽ là..."
-        example_sentence: "Today my main focus is going to be optimizing the database queries and reviewing open PRs."
-        accepted_variations:
-          - "I plan to work on..."
-          - "My goal for today is..."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "I'm currently blocked on... could someone take a look?"
-        meaning_vi: "Tôi đang bị vướng ở... có ai xem qua giúp tôi được không?"
-        example_sentence: "I'm currently blocked on the third-party API integration, could someone pair with me this afternoon?"
-        accepted_variations:
-          - "There is a slight blocker regarding..."
-          - "Could we jump on a quick huddle after standup?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "Sounds great, let's sync up right after this call."
-        meaning_vi: "Nghe hay đấy, chúng ta hãy trao đổi ngay sau cuộc gọi này nhé."
-        example_sentence: "Sounds great, let's sync up for ten minutes right after this meeting."
-        accepted_variations:
-          - "I agree, let's take that offline."
-          - "Perfect, let's connect right after."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "That's all from me, passing it over to..."
-        meaning_vi: "Đó là toàn bộ phần của tôi, xin nhường lời lại cho..."
-        example_sentence: "That's all from me for now, passing it over to Sarah!"
-        accepted_variations:
-          - "That wraps up my update, over to you."
-          - "Thanks everyone, that's everything from my side."
-        sort_order: 5
-
-  - slug: "handling-client-call"
-    category: "WORKPLACE"
-    title_vi: "Gọi điện khách hàng"
-    title_en: "Handling a Client Inbound Call"
-    level: "B2"
-    estimated_duration_minutes: 15
-    context: "Bạn là chuyên viên chăm sóc khách hàng doanh nghiệp. Một đối tác gọi điện phàn nàn về sự cố gián đoạn dịch vụ vào sáng nay và yêu cầu phương án bồi thường cũng như khắc phục."
-    user_role: "Chuyên viên chăm sóc khách hàng"
-    ai_role: "Đại diện đối tác doanh nghiệp (Client Representative)"
-    goals:
-      - "Lắng nghe, thấu cảm và xin lỗi chân thành về sự bất tiện"
-      - "Giải thích ngắn gọn nguyên nhân sự cố đã được đội kỹ thuật kiểm soát"
-      - "Đề xuất kế hoạch bồi hoàn hoặc cập nhật định kỳ"
-    sort_order: 18
-    requirements:
-      - description: "Chào hỏi chuyên nghiệp và nhận diện khách hàng"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Bày tỏ sự thấu cảm và đưa ra lời xin lỗi chính thức"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Làm rõ chi tiết tác động và mốc thời gian cam kết"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Đề xuất giải pháp và cam kết gửi văn bản chi tiết"
-        type: "TASK"
-        expected_chunk_function: "AGREE_DECLINE"
-        is_mandatory: false
-        sort_order: 4
-      - description: "Tái khẳng định hỗ trợ và kết thúc cuộc gọi lịch sự"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 5
-    chunks:
-      - function_tag: "OPENING"
-        text: "Thank you for reaching out to us today. How may I assist you?"
-        meaning_vi: "Cảm ơn quý khách đã liên hệ với chúng tôi hôm nay. Tôi có thể hỗ trợ gì cho quý khách ạ?"
-        example_sentence: "Hello Mr. Smith, thank you for reaching out to our support desk today. How may I assist you?"
-        accepted_variations:
-          - "Thank you for calling, how can I help you today?"
-          - "Welcome to customer support, my name is Alex, how can I assist?"
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "I completely understand your frustration regarding this issue."
-        meaning_vi: "Tôi hoàn toàn hiểu được sự bất tiện và bức xúc của quý khách về sự cố này."
-        example_sentence: "I completely understand your frustration regarding the downtime this morning, and we sincerely apologize."
-        accepted_variations:
-          - "I deeply apologize for any inconvenience caused."
-          - "I understand how crucial this is for your business operations."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Could you specify which accounts were affected the most?"
-        meaning_vi: "Quý khách có thể cho biết cụ thể những tài khoản nào bị ảnh hưởng nặng nhất không?"
-        example_sentence: "Could you specify which regional accounts were affected during the outage?"
-        accepted_variations:
-          - "Can you confirm the exact timeframe you experienced the issue?"
-          - "Could you provide more details on the error message?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "We will prioritize your case and send a full incident report."
-        meaning_vi: "Chúng tôi sẽ ưu tiên trường hợp này và gửi báo cáo sự cố toàn diện."
-        example_sentence: "We will prioritize your case with the engineering team and provide an incident report by 3 PM."
-        accepted_variations:
-          - "We commit to resolving this as our utmost priority."
-          - "I will personally monitor this ticket and keep you informed."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "Thank you for your patience while we work on resolving this."
-        meaning_vi: "Cảm ơn quý khách đã kiên nhẫn trong khi chúng tôi xử lý sự việc."
-        example_sentence: "Thank you for your continued patience while we work on resolving this matter promptly."
-        accepted_variations:
-          - "Thank you for bringing this to our attention, have a good day."
-          - "We appreciate your understanding and support."
-        sort_order: 5
-
-  - slug: "project-status-update"
-    category: "WORKPLACE"
-    title_vi: "Báo cáo tiến độ công việc"
-    title_en: "Project Milestone Status Update"
-    level: "B2"
-    estimated_duration_minutes: 14
-    context: "Bạn đại diện nhóm phụ trách trình bày tóm tắt tiến độ triển khai sản phẩm mới cho Giám đốc điều hành (Director) trước khi bước vào giai đoạn thử nghiệm người dùng (Beta testing)."
-    user_role: "Trưởng dự án (Project Lead)"
-    ai_role: "Giám đốc điều hành (Operations Director)"
-    goals:
-      - "Báo cáo các cột mốc đã hoàn thành đúng hạn"
-      - "Nêu rõ các chỉ số kỹ thuật và độ sẵn sàng của hệ thống"
-      - "Xin phê duyệt chuyển sang giai đoạn phát hành thử nghiệm"
-    sort_order: 19
-    requirements:
-      - description: "Mở đầu buổi trình bày với thông điệp tổng quan rõ ràng"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Báo cáo chi tiết các mốc hoàn thành chính"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Làm rõ các biện pháp kiểm soát rủi ro tiềm ẩn"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Cảm ơn ban giám đốc và xin ý kiến chỉ đạo"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "I'd like to provide an executive update on..."
-        meaning_vi: "Tôi xin phép báo cáo tóm lược tiến độ điều hành về..."
-        example_sentence: "I'd like to provide an executive update on Phase 2 of our mobile application rollout."
-        accepted_variations:
-          - "Here is a brief update on the project status..."
-          - "To begin, I'd like to walk you through our recent milestones on..."
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "We are currently on track to hit our deadline."
-        meaning_vi: "Chúng tôi hiện đang đi đúng tiến độ để đạt mục tiêu thời hạn."
-        example_sentence: "All critical deliverables are completed, and we are on track to launch next Monday."
-        accepted_variations:
-          - "The project is progressing according to schedule."
-          - "We have met all our initial performance benchmarks."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Are there any specific metrics you'd like us to elaborate on?"
-        meaning_vi: "Ban giám đốc có muốn chúng tôi làm rõ thêm chỉ số cụ thể nào không?"
-        example_sentence: "Are there any specific metrics or user feedback stats you'd like us to elaborate on?"
-        accepted_variations:
-          - "Would you like more details on the testing outcomes?"
-          - "Does anyone have questions regarding the deployment timeline?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "We will incorporate your feedback into the rollout plan."
-        meaning_vi: "Chúng tôi sẽ tích hợp ý kiến đóng góp của anh/chị vào kế hoạch triển khai."
-        example_sentence: "We will incorporate your suggestions regarding load testing into the rollout plan immediately."
-        accepted_variations:
-          - "Understood, we will adjust the timeline accordingly."
-          - "That's a great point, we'll make sure it's addressed."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "Thank you for your guidance, we'll keep you posted."
-        meaning_vi: "Cảm ơn sự chỉ đạo của anh/chị, chúng tôi sẽ liên tục cập nhật."
-        example_sentence: "Thank you for your guidance and support, we'll keep you posted as we enter Beta."
-        accepted_variations:
-          - "Thank you for your time, we'll share the next update next Friday."
-          - "Much appreciated, thank you everyone."
-        sort_order: 5
-
-  - slug: "negotiating-deadline"
-    category: "WORKPLACE"
-    title_vi: "Đàm phán thời hạn công việc"
-    title_en: "Negotiating Project Scope & Deadlines"
-    level: "C1"
-    estimated_duration_minutes: 16
-    context: "Do yêu cầu thay đổi tính năng từ khách hàng vào phút chót, khối lượng công việc tăng lên đáng kể. Bạn gặp Trưởng phòng kỹ thuật để đàm phán kéo dài thời hạn thêm 5 ngày làm việc nhằm đảm bảo chất lượng."
-    user_role: "Kỹ sư trưởng nhóm (Tech Lead)"
-    ai_role: "Trưởng phòng kỹ thuật (VP of Engineering)"
-    goals:
-      - "Trình bày rõ ràng lý do thay đổi phạm vi công việc phát sinh"
-      - "Phân tích rủi ro nếu cố gắng phát hành mà không kiểm thử kỹ lưỡng"
-      - "Đề xuất mốc thời gian mới thực tế và kế hoạch bàn giao theo giai đoạn"
-    sort_order: 20
-    requirements:
-      - description: "Khởi đầu cuộc trao đổi nghiêm túc và chuyên nghiệp"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Đề xuất giải pháp giãn tiến độ hoặc giảm bớt phạm vi"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Làm rõ các tác động kỹ thuật và cam kết chất lượng"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Thống nhất mốc bàn giao mới và kết thúc cuộc họp"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "I wanted to touch base regarding the feasibility of our current deadline."
-        meaning_vi: "Tôi muốn trao đổi nhanh về tính khả thi của thời hạn hiện tại của chúng ta."
-        example_sentence: "Thanks for meeting me. I wanted to touch base regarding the feasibility of our current deadline given the new requirements."
-        accepted_variations:
-          - "I'd like to discuss the project timeline and scope."
-          - "Can we review our deliverables against the upcoming deadline?"
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "In order to maintain code quality, I propose pushing back the release by..."
-        meaning_vi: "Để đảm bảo chất lượng mã nguồn, tôi đề xuất lùi ngày phát hành lại..."
-        example_sentence: "In order to maintain strict code quality, I propose pushing back the release by five business days."
-        accepted_variations:
-          - "I recommend extending the delivery window by one week."
-          - "A realistic adjustment would be to shift the launch to next Thursday."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Alternatively, we could descope the non-critical features for now."
-        meaning_vi: "Hoặc cách khác, chúng ta có thể tạm lược bỏ các tính năng không quá cốt lõi."
-        example_sentence: "Alternatively, we could descope the analytics dashboard for this sprint and deliver the core API first."
-        accepted_variations:
-          - "We could split the release into two phases."
-          - "Another option is to deliver a simplified version first."
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "I completely agree that releasing with zero bugs is our utmost priority."
-        meaning_vi: "Tôi hoàn toàn đồng ý rằng phát hành sản phẩm không lỗi là ưu tiên cao nhất."
-        example_sentence: "I completely agree that releasing a rock-solid product is far more crucial than rushing out the door."
-        accepted_variations:
-          - "That compromise works best for both engineering and product."
-          - "I'm fully onboard with that revised timeline."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "Thank you for your flexibility, I'll update the roadmap right away."
-        meaning_vi: "Cảm ơn sự linh hoạt của anh/chị, tôi sẽ cập nhật lại lộ trình ngay."
-        example_sentence: "Thank you for your flexibility on this, I'll update Jira and inform the stakeholders right away."
-        accepted_variations:
-          - "I appreciate your understanding, will keep you updated."
-          - "Thanks for working through this with me, have a good day."
-        sort_order: 5
+- slug: job-interview
+  category: WORKPLACE
+  title_vi: Phỏng vấn xin việc
+  title_en: Job Interview & Career Background
+  level: B1
+  estimated_duration_minutes: 18
+  context: Bạn đang tham gia vòng phỏng vấn đầu tiên cho vị trí Chuyên viên phát triển
+    sản phẩm tại một công ty đa quốc gia. Người phỏng vấn đặt câu hỏi về kinh nghiệm
+    làm việc và cách xử lý áp lực.
+  user_role: Ứng viên tìm việc
+  ai_role: Trưởng phòng tuyển dụng (HR Lead)
+  goals:
+  - Tự tin giới thiệu tóm tắt kinh nghiệm làm việc liên quan
+  - Nêu thế mạnh chính và cách khắc phục điểm yếu
+  - Đặt một câu hỏi hay cho nhà tuyển dụng vào cuối buổi
+  sort_order: 16
+  requirements:
+  - description: Chào hỏi trang trọng và cảm ơn lời mời phỏng vấn
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Tóm tắt kinh nghiệm làm việc gần đây và thành tựu chính
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Đặt câu hỏi về văn hóa đội ngũ hoặc mục tiêu quý tới
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Đồng tình hoặc bày tỏ sự hứng thú với vai trò
+    type: TASK
+    expected_chunk_function: AGREE_DECLINE
+    is_mandatory: false
+    sort_order: 4
+  - description: Cảm ơn người phỏng vấn và chào kết thúc buổi
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 5
+  chunks:
+  - function_tag: OPENING
+    text: Thank you for giving me the opportunity to interview today.
+    meaning_vi: Cảm ơn anh/chị đã cho tôi cơ hội tham gia buổi phỏng vấn hôm nay.
+    example_sentence: Good morning! Thank you for giving me the opportunity to interview
+      for this position today.
+    accepted_variations:
+    - Thank you for inviting me to this interview.
+    - I'm really excited to be interviewing with your team today.
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: In my previous role, I was primarily responsible for...
+    meaning_vi: Ở vị trí trước đây, tôi chịu trách nhiệm chính về...
+    example_sentence: In my previous role, I was primarily responsible for leading
+      web development sprints and improving system performance.
+    accepted_variations:
+    - My main responsibility previously was...
+    - Over the past three years, I focused on...
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: Could you tell me more about the team's top priorities?
+    meaning_vi: Anh/chị có thể chia sẻ thêm về ưu tiên hàng đầu của đội ngũ không?
+    example_sentence: Could you tell me more about the team's top priorities for the
+      upcoming quarter?
+    accepted_variations:
+    - What does success look like in this role?
+    - How would you describe the team culture here?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: That aligns strongly with my personal career goals.
+    meaning_vi: Điều đó rất tương đồng với mục tiêu sự nghiệp cá nhân của tôi.
+    example_sentence: That mission aligns strongly with my personal career goals and
+      core values.
+    accepted_variations:
+    - That matches my experience very well.
+    - I am confident that fits my background.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: I look forward to the next steps in the hiring process.
+    meaning_vi: Tôi rất mong chờ các bước tiếp theo trong quy trình tuyển dụng.
+    example_sentence: Thank you for your valuable time, I look forward to the next
+      steps in the process.
+    accepted_variations:
+    - Thank you again, hope to hear from you soon.
+    - I appreciate the insightful conversation today.
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+- slug: team-sync-meeting
+  category: WORKPLACE
+  title_vi: Họp nhóm dự án
+  title_en: Project Team Sync & Standup
+  level: B2
+  estimated_duration_minutes: 15
+  context: Bạn đang tham gia buổi họp cập nhật tiến độ (daily standup) với nhóm phát
+    triển phần mềm quốc tế. Bạn cần báo cáo những việc đã làm, việc chuẩn bị làm và
+    rào cản kỹ thuật nếu có.
+  user_role: Kỹ sư phần mềm trong nhóm
+  ai_role: Scrum Master / Quản lý dự án (Project Manager)
+  goals:
+  - Báo cáo ngắn gọn các công việc đã hoàn thành hôm qua
+  - Nêu rõ mục tiêu công việc trong ngày hôm nay
+  - Nêu khó khăn hoặc vướng mắc (blocker) cần sự hỗ trợ
+  sort_order: 17
+  requirements:
+  - description: Bắt đầu phần cập nhật công việc cá nhân
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Nêu các nhiệm vụ dự kiến hoàn thành hôm nay
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Hỏi làm rõ sự hỗ trợ cho rào cản kỹ thuật
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Đồng thuận với giải pháp của nhóm và kết thúc lượt phát biểu
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 4
+  chunks:
+  - function_tag: OPENING
+    text: From my side, yesterday I finished working on...
+    meaning_vi: Về phần tôi, hôm qua tôi đã hoàn thành công việc trên...
+    example_sentence: From my side, yesterday I finished implementing the authentication
+      flow and wrote unit tests.
+    accepted_variations:
+    - To give a quick update from my end...
+    - On my end, yesterday I wrapped up...
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: Today my main focus is going to be...
+    meaning_vi: Hôm nay trọng tâm chính của tôi sẽ là...
+    example_sentence: Today my main focus is going to be optimizing the database queries
+      and reviewing open PRs.
+    accepted_variations:
+    - I plan to work on...
+    - My goal for today is...
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: I'm currently blocked on... could someone take a look?
+    meaning_vi: Tôi đang bị vướng ở... có ai xem qua giúp tôi được không?
+    example_sentence: I'm currently blocked on the third-party API integration, could
+      someone pair with me this afternoon?
+    accepted_variations:
+    - There is a slight blocker regarding...
+    - Could we jump on a quick huddle after standup?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: Sounds great, let's sync up right after this call.
+    meaning_vi: Nghe hay đấy, chúng ta hãy trao đổi ngay sau cuộc gọi này nhé.
+    example_sentence: Sounds great, let's sync up for ten minutes right after this
+      meeting.
+    accepted_variations:
+    - I agree, let's take that offline.
+    - Perfect, let's connect right after.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: That's all from me, passing it over to...
+    meaning_vi: Đó là toàn bộ phần của tôi, xin nhường lời lại cho...
+    example_sentence: That's all from me for now, passing it over to Sarah!
+    accepted_variations:
+    - That wraps up my update, over to you.
+    - Thanks everyone, that's everything from my side.
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+- slug: handling-client-call
+  category: WORKPLACE
+  title_vi: Gọi điện khách hàng
+  title_en: Handling a Client Inbound Call
+  level: B2
+  estimated_duration_minutes: 15
+  context: Bạn là chuyên viên chăm sóc khách hàng doanh nghiệp. Một đối tác gọi điện
+    phàn nàn về sự cố gián đoạn dịch vụ vào sáng nay và yêu cầu phương án bồi thường
+    cũng như khắc phục.
+  user_role: Chuyên viên chăm sóc khách hàng
+  ai_role: Đại diện đối tác doanh nghiệp (Client Representative)
+  goals:
+  - Lắng nghe, thấu cảm và xin lỗi chân thành về sự bất tiện
+  - Giải thích ngắn gọn nguyên nhân sự cố đã được đội kỹ thuật kiểm soát
+  - Đề xuất kế hoạch bồi hoàn hoặc cập nhật định kỳ
+  sort_order: 18
+  requirements:
+  - description: Chào hỏi chuyên nghiệp và nhận diện khách hàng
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Bày tỏ sự thấu cảm và đưa ra lời xin lỗi chính thức
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Làm rõ chi tiết tác động và mốc thời gian cam kết
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Đề xuất giải pháp và cam kết gửi văn bản chi tiết
+    type: TASK
+    expected_chunk_function: AGREE_DECLINE
+    is_mandatory: false
+    sort_order: 4
+  - description: Tái khẳng định hỗ trợ và kết thúc cuộc gọi lịch sự
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 5
+  chunks:
+  - function_tag: OPENING
+    text: Thank you for reaching out to us today. How may I assist you?
+    meaning_vi: Cảm ơn quý khách đã liên hệ với chúng tôi hôm nay. Tôi có thể hỗ trợ
+      gì cho quý khách ạ?
+    example_sentence: Hello Mr. Smith, thank you for reaching out to our support desk
+      today. How may I assist you?
+    accepted_variations:
+    - Thank you for calling, how can I help you today?
+    - Welcome to customer support, my name is Alex, how can I assist?
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: I completely understand your frustration regarding this issue.
+    meaning_vi: Tôi hoàn toàn hiểu được sự bất tiện và bức xúc của quý khách về sự
+      cố này.
+    example_sentence: I completely understand your frustration regarding the downtime
+      this morning, and we sincerely apologize.
+    accepted_variations:
+    - I deeply apologize for any inconvenience caused.
+    - I understand how crucial this is for your business operations.
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: Could you specify which accounts were affected the most?
+    meaning_vi: Quý khách có thể cho biết cụ thể những tài khoản nào bị ảnh hưởng
+      nặng nhất không?
+    example_sentence: Could you specify which regional accounts were affected during
+      the outage?
+    accepted_variations:
+    - Can you confirm the exact timeframe you experienced the issue?
+    - Could you provide more details on the error message?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: We will prioritize your case and send a full incident report.
+    meaning_vi: Chúng tôi sẽ ưu tiên trường hợp này và gửi báo cáo sự cố toàn diện.
+    example_sentence: We will prioritize your case with the engineering team and provide
+      an incident report by 3 PM.
+    accepted_variations:
+    - We commit to resolving this as our utmost priority.
+    - I will personally monitor this ticket and keep you informed.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: Thank you for your patience while we work on resolving this.
+    meaning_vi: Cảm ơn quý khách đã kiên nhẫn trong khi chúng tôi xử lý sự việc.
+    example_sentence: Thank you for your continued patience while we work on resolving
+      this matter promptly.
+    accepted_variations:
+    - Thank you for bringing this to our attention, have a good day.
+    - We appreciate your understanding and support.
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+- slug: project-status-update
+  category: WORKPLACE
+  title_vi: Báo cáo tiến độ công việc
+  title_en: Project Milestone Status Update
+  level: B2
+  estimated_duration_minutes: 14
+  context: Bạn đại diện nhóm phụ trách trình bày tóm tắt tiến độ triển khai sản phẩm
+    mới cho Giám đốc điều hành (Director) trước khi bước vào giai đoạn thử nghiệm
+    người dùng (Beta testing).
+  user_role: Trưởng dự án (Project Lead)
+  ai_role: Giám đốc điều hành (Operations Director)
+  goals:
+  - Báo cáo các cột mốc đã hoàn thành đúng hạn
+  - Nêu rõ các chỉ số kỹ thuật và độ sẵn sàng của hệ thống
+  - Xin phê duyệt chuyển sang giai đoạn phát hành thử nghiệm
+  sort_order: 19
+  requirements:
+  - description: Mở đầu buổi trình bày với thông điệp tổng quan rõ ràng
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Báo cáo chi tiết các mốc hoàn thành chính
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Làm rõ các biện pháp kiểm soát rủi ro tiềm ẩn
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Cảm ơn ban giám đốc và xin ý kiến chỉ đạo
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 4
+  chunks:
+  - function_tag: OPENING
+    text: I'd like to provide an executive update on...
+    meaning_vi: Tôi xin phép báo cáo tóm lược tiến độ điều hành về...
+    example_sentence: I'd like to provide an executive update on Phase 2 of our mobile
+      application rollout.
+    accepted_variations:
+    - Here is a brief update on the project status...
+    - To begin, I'd like to walk you through our recent milestones on...
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: We are currently on track to hit our deadline.
+    meaning_vi: Chúng tôi hiện đang đi đúng tiến độ để đạt mục tiêu thời hạn.
+    example_sentence: All critical deliverables are completed, and we are on track
+      to launch next Monday.
+    accepted_variations:
+    - The project is progressing according to schedule.
+    - We have met all our initial performance benchmarks.
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: Are there any specific metrics you'd like us to elaborate on?
+    meaning_vi: Ban giám đốc có muốn chúng tôi làm rõ thêm chỉ số cụ thể nào không?
+    example_sentence: Are there any specific metrics or user feedback stats you'd
+      like us to elaborate on?
+    accepted_variations:
+    - Would you like more details on the testing outcomes?
+    - Does anyone have questions regarding the deployment timeline?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: We will incorporate your feedback into the rollout plan.
+    meaning_vi: Chúng tôi sẽ tích hợp ý kiến đóng góp của anh/chị vào kế hoạch triển
+      khai.
+    example_sentence: We will incorporate your suggestions regarding load testing
+      into the rollout plan immediately.
+    accepted_variations:
+    - Understood, we will adjust the timeline accordingly.
+    - That's a great point, we'll make sure it's addressed.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: Thank you for your guidance, we'll keep you posted.
+    meaning_vi: Cảm ơn sự chỉ đạo của anh/chị, chúng tôi sẽ liên tục cập nhật.
+    example_sentence: Thank you for your guidance and support, we'll keep you posted
+      as we enter Beta.
+    accepted_variations:
+    - Thank you for your time, we'll share the next update next Friday.
+    - Much appreciated, thank you everyone.
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+- slug: negotiating-deadline
+  category: WORKPLACE
+  title_vi: Đàm phán thời hạn công việc
+  title_en: Negotiating Project Scope & Deadlines
+  level: C1
+  estimated_duration_minutes: 16
+  context: Do yêu cầu thay đổi tính năng từ khách hàng vào phút chót, khối lượng công
+    việc tăng lên đáng kể. Bạn gặp Trưởng phòng kỹ thuật để đàm phán kéo dài thời
+    hạn thêm 5 ngày làm việc nhằm đảm bảo chất lượng.
+  user_role: Kỹ sư trưởng nhóm (Tech Lead)
+  ai_role: Trưởng phòng kỹ thuật (VP of Engineering)
+  goals:
+  - Trình bày rõ ràng lý do thay đổi phạm vi công việc phát sinh
+  - Phân tích rủi ro nếu cố gắng phát hành mà không kiểm thử kỹ lưỡng
+  - Đề xuất mốc thời gian mới thực tế và kế hoạch bàn giao theo giai đoạn
+  sort_order: 20
+  requirements:
+  - description: Khởi đầu cuộc trao đổi nghiêm túc và chuyên nghiệp
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Đề xuất giải pháp giãn tiến độ hoặc giảm bớt phạm vi
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Làm rõ các tác động kỹ thuật và cam kết chất lượng
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Thống nhất mốc bàn giao mới và kết thúc cuộc họp
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 4
+  chunks:
+  - function_tag: OPENING
+    text: I wanted to touch base regarding the feasibility of our current deadline.
+    meaning_vi: Tôi muốn trao đổi nhanh về tính khả thi của thời hạn hiện tại của
+      chúng ta.
+    example_sentence: Thanks for meeting me. I wanted to touch base regarding the
+      feasibility of our current deadline given the new requirements.
+    accepted_variations:
+    - I'd like to discuss the project timeline and scope.
+    - Can we review our deliverables against the upcoming deadline?
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: In order to maintain code quality, I propose pushing back the release by...
+    meaning_vi: Để đảm bảo chất lượng mã nguồn, tôi đề xuất lùi ngày phát hành lại...
+    example_sentence: In order to maintain strict code quality, I propose pushing
+      back the release by five business days.
+    accepted_variations:
+    - I recommend extending the delivery window by one week.
+    - A realistic adjustment would be to shift the launch to next Thursday.
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: Alternatively, we could descope the non-critical features for now.
+    meaning_vi: Hoặc cách khác, chúng ta có thể tạm lược bỏ các tính năng không quá
+      cốt lõi.
+    example_sentence: Alternatively, we could descope the analytics dashboard for
+      this sprint and deliver the core API first.
+    accepted_variations:
+    - We could split the release into two phases.
+    - Another option is to deliver a simplified version first.
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: I completely agree that releasing with zero bugs is our utmost priority.
+    meaning_vi: Tôi hoàn toàn đồng ý rằng phát hành sản phẩm không lỗi là ưu tiên
+      cao nhất.
+    example_sentence: I completely agree that releasing a rock-solid product is far
+      more crucial than rushing out the door.
+    accepted_variations:
+    - That compromise works best for both engineering and product.
+    - I'm fully onboard with that revised timeline.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: Thank you for your flexibility, I'll update the roadmap right away.
+    meaning_vi: Cảm ơn sự linh hoạt của anh/chị, tôi sẽ cập nhật lại lộ trình ngay.
+    example_sentence: Thank you for your flexibility on this, I'll update Jira and
+      inform the stakeholders right away.
+    accepted_variations:
+    - I appreciate your understanding, will keep you updated.
+    - Thanks for working through this with me, have a good day.
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?

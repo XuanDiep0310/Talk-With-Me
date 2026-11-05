@@ -12,13 +12,16 @@ Tables:
 
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.gamification import GamificationProfile
 
 
 class User(Base, TimestampMixin):
@@ -42,6 +45,9 @@ class User(Base, TimestampMixin):
     )
     settings: Mapped[Optional["UserSettings"]] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    gamification_profile: Mapped[Optional["GamificationProfile"]] = relationship(
+        "GamificationProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
 

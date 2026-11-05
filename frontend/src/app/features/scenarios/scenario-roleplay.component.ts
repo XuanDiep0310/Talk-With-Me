@@ -436,16 +436,51 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
     this.sessionId.set(id);
 
     if (id) {
-      // Connect to WebSocket roleplay session
+      // Reset any previous conversation state and connect to roleplay session
+      this.voiceService.cleanup();
       void this.voiceService.startVoiceSession(id);
 
       // Load scenario details for context
       this.loadScenarioContext();
 
+      // Ensure AI speaks the opening roleplay message immediately
+      const initialOpening = history.state?.roleplaySession?.openingMessage;
+      if (initialOpening) {
+        setTimeout(() => {
+          if (this.voiceService.liveTranscripts().length === 0) {
+            this.voiceService.speakText(initialOpening);
+          }
+        }, 500);
+      }
+
       // Start timer
       this.timerInterval = setInterval(() => {
         this.timer.update((t) => t + 1);
       }, 1000);
+    } else {
+      // No session id in route — initialize fresh roleplay session to prevent any session bleed
+      const queryScenId = this.route.snapshot.queryParamMap.get('scenarioId') || 'supermarket-shopping';
+      this.scenarioService.startRoleplay(queryScenId).subscribe({
+        next: (res) => {
+          this.sessionId.set(res.sessionId);
+          this.voiceService.cleanup();
+          void this.voiceService.startVoiceSession(res.sessionId);
+          this.loadScenarioContext();
+          if (res.openingMessage) {
+            setTimeout(() => {
+              if (this.voiceService.liveTranscripts().length === 0) {
+                this.voiceService.speakText(res.openingMessage);
+              }
+            }, 500);
+          }
+          this.timerInterval = setInterval(() => {
+            this.timer.update((t) => t + 1);
+          }, 1000);
+        },
+        error: () => {
+          void this.router.navigate(['/scenarios']);
+        },
+      });
     }
   }
 
@@ -457,7 +492,14 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
   }
 
   loadScenarioContext(): void {
-    this.scenarioService.getScenario('supermarket-shopping').subscribe({
+    const navState = history.state?.scenario;
+    if (navState && navState.id) {
+      this.scenario.set(navState);
+      return;
+    }
+    const queryScenId = this.route.snapshot.queryParamMap.get('scenarioId');
+    const targetId = queryScenId || 'supermarket-shopping';
+    this.scenarioService.getScenario(targetId).subscribe({
       next: (s) => this.scenario.set(s),
     });
   }

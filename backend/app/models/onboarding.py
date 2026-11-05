@@ -92,12 +92,19 @@ class LevelHistory(Base):
     )
     # Level value assigned: A1, A2, B1, B2, C1
     level: Mapped[str] = mapped_column(String(5), nullable=False)
-    # How level was assigned: PLACEMENT | SELF | DEFAULT
+    # How level was assigned: PLACEMENT | SELF | DEFAULT | ADVANCEMENT
     source: Mapped[str] = mapped_column(String(20), nullable=False)
     # Optional: link to the placement test that triggered this change
     placement_test_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("placement_tests.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    from_level: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("sessions.id", ondelete="SET NULL"),
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

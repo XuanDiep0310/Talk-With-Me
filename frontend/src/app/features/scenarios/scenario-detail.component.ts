@@ -8,6 +8,7 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
@@ -21,27 +22,41 @@ import {
   WordPronunciationScore,
 } from '../../core/services/scenario.service';
 
-/**
- * 4 Spiral learning modes for unconscious mastery:
- * - 'phonetics': Nạp cụm & Chuẩn hóa phát âm (Vòng tròn điểm, chậm rãi, từng âm tiết IPA)
- * - 'listen_repeat': Phản xạ thính giác (Nghe AI đọc câu hoàn chỉnh và nói lại)
- * - 'fill_blank': Truy xuất trí nhớ chủ động (Ẩn cụm từ, chỉ hiện gợi ý nghĩa và câu ngữ cảnh)
- * - 'reflex_quiz': Phản xạ tình huống tự nhiên (Nhìn tình huống tiếng Việt, bật nói tiếng Anh tức thì không cần nhìn chữ)
- */
-export type DrillActivity = 'phonetics' | 'listen_repeat' | 'fill_blank' | 'reflex_quiz';
+export type DrillPhase =
+  | 'mcq_vi_to_en'
+  | 'pronounce_chunk'
+  | 'mcq_en_to_vi'
+  | 'listen_repeat'
+  | 'fill_blank';
 
 export type CoachStage = 'overview' | 'interactive_drill' | 'summary_ready';
 
-const FUNCTIONAL_TAG_CONFIG: Record<
-  string,
-  { label: string; color: string; bg: string }
-> = {
-  OPENING: { label: 'Mở đầu', color: '#286FB4', bg: '#E2F0F9' },
-  REQUEST: { label: 'Yêu cầu', color: '#7c3aed', bg: '#F5F3FF' },
-  CLARIFY: { label: 'Làm rõ', color: '#059669', bg: '#ECFDF5' },
-  AGREE_DECLINE: { label: 'Đồng ý / Từ chối', color: '#f59e0b', bg: '#FFF5E5' },
-  CLOSING: { label: 'Kết thúc', color: '#64748b', bg: '#F1F5F9' },
-};
+const PHASE_ORDER: DrillPhase[] = [
+  'mcq_vi_to_en',
+  'pronounce_chunk',
+  'mcq_en_to_vi',
+  'listen_repeat',
+  'fill_blank',
+];
+
+const MIN_PRONUN_SCORE = 50;
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildMcqOptions(correct: string, distractors: string[]): { text: string; correct: boolean }[] {
+  const pool = distractors.slice(0, 3);
+  return shuffle([
+    { text: correct, correct: true },
+    ...pool.map((t) => ({ text: t, correct: false })),
+  ]);
+}
 
 @Component({
   selector: 'app-scenario-detail',
@@ -49,581 +64,658 @@ const FUNCTIONAL_TAG_CONFIG: Record<
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="min-h-screen bg-slate-50/70 pb-16">
-      <!-- Loading / Error States -->
+    <div class="min-h-screen bg-[#F8FAFC] pb-16 text-slate-800">
       @if (isLoading()) {
-        <div class="py-24 text-center text-slate-400">
-          <div class="text-4xl animate-bounce mb-3">⏳</div>
-          <p class="text-sm font-600">Đang tải tình huống...</p>
+        <div class="py-32 flex flex-col items-center justify-center text-slate-400">
+          <div class="w-10 h-10 border-4 border-slate-200 border-t-[#286FB4] rounded-full animate-spin mb-3"></div>
+          <p class="text-sm font-medium">Đang tải bài học...</p>
         </div>
       } @else if (errorMessage()) {
-        <div class="max-w-md mx-auto mt-12 p-6 rounded-2xl bg-rose-50 border border-rose-200 text-center">
-          <p class="text-sm font-600 text-rose-700 mb-4">{{ errorMessage() }}</p>
+        <div class="max-w-md mx-auto mt-16 p-6 rounded-2xl bg-white border border-rose-200 text-center shadow-sm">
+          <p class="text-sm font-semibold text-rose-600 mb-4">{{ errorMessage() }}</p>
           <button type="button" class="btn-secondary cursor-pointer" (click)="loadScenario()">
             Thử lại
           </button>
         </div>
       } @else {
         @if (scenario(); as s) {
+
           <!-- ============================================================== -->
-          <!-- SCREEN 1: TỔNG QUAN BÀI HỌC & CÁC CHUNK CẦN NHỚ               -->
+          <!-- SCREEN 1: THE COACH OVERVIEW                                   -->
           <!-- ============================================================== -->
           @if (stage() === 'overview') {
-            <div class="max-w-2xl mx-auto px-4 pt-6 space-y-6">
-              <!-- Header Bar -->
+            <div class="max-w-lg mx-auto px-4 pt-6 space-y-6">
+              <!-- Top bar -->
               <div class="flex items-center justify-between">
                 <button
                   type="button"
-                  aria-label="Quay lại danh sách"
-                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-xs border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Quay lại"
+                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-xs border border-slate-200 text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                   (click)="goBack()"
                 >
-                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <div class="flex items-center gap-2">
-                  <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#E2F0F9] text-[#286FB4]">
-                    Level {{ s.level }}
-                  </span>
-                  <span class="text-xs text-slate-500 font-600">
-                    ⏱ {{ s.estimatedDurationMinutes || 10 }} phút
-                  </span>
+                <div class="text-xs font-semibold text-slate-500">
+                  {{ s.chunks.length }} cụm cần nhớ
                 </div>
               </div>
 
-              <!-- Question & Objective Card (TalkWithMe Design System) -->
-              <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
-                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-[#286FB4]/20 rounded-full blur-2xl"></div>
-                <div class="text-[11px] font-extrabold uppercase tracking-widest text-sky-300 mb-1">
-                  ĐỂ TRẢ LỜI CÂU HỎI
+              <!-- Question & Context Header -->
+              <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-2">
+                <div class="text-xs font-bold uppercase tracking-wider text-[#286FB4]">
+                  Để trả lời câu hỏi:
                 </div>
-                <h1 class="text-xl md:text-2xl font-800 leading-snug mb-2 font-extrabold">
+                <h1 class="text-xl md:text-2xl font-extrabold text-slate-900 leading-snug">
                   {{ s.titleEn }}
                 </h1>
-                <p class="text-xs md:text-sm text-slate-300 font-500">
+                <p class="text-sm text-slate-500 font-medium">
                   {{ s.titleVi }}
                 </p>
-
-                <!-- Context hint -->
-                <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs text-slate-300">
-                  <span>Vai: <strong class="text-white">{{ s.userRole }}</strong> vs <strong class="text-white">{{ s.aiRole }}</strong></span>
-                  <button
-                    type="button"
-                    class="text-sky-300 hover:text-sky-200 underline font-600 cursor-pointer"
-                    (click)="showContextModal.set(true)"
-                  >
-                    Xem bối cảnh & nhiệm vụ
-                  </button>
-                </div>
               </div>
 
-              <!-- Chunks Checklist -->
+              <!-- Chunks List -->
               <div class="space-y-3">
-                <div class="flex items-center justify-between px-1">
-                  <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-500">
-                    BẠN CẦN NHỚ CỤM SAU ({{ s.chunks.length }})
-                  </h2>
-                  <span class="text-xs text-[#286FB4] font-700">
-                    +{{ s.xpReward || 100 }} XP khi hoàn thành
-                  </span>
+                <div class="text-xs font-bold uppercase tracking-wider text-slate-500 px-1">
+                  Bạn cần nhớ các cụm sau:
                 </div>
 
-                <div class="space-y-3">
+                <div class="space-y-2.5">
                   @for (c of s.chunks; track c.id) {
-                    <div
-                      class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:shadow-sm transition-all flex items-start gap-3.5"
-                    >
-                      <!-- Audio Speaker Button -->
+                    <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs hover:border-[#286FB4]/40 transition flex items-center gap-3.5">
                       <button
                         type="button"
-                        class="w-10 h-10 rounded-full shrink-0 flex items-center justify-center bg-[#E2F0F9] text-[#286FB4] hover:bg-sky-100 transition cursor-pointer"
-                        title="Nghe phát âm chuẩn"
+                        class="w-10 h-10 rounded-full shrink-0 flex items-center justify-center bg-sky-50 text-[#286FB4] hover:bg-sky-100 transition cursor-pointer"
+                        title="Nghe phát âm mẫu"
                         (click)="playAudio(c.text, c.audioUrl)"
                       >
-                        🔊
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
                       </button>
 
-                      <!-- Chunk Details -->
                       <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                          <span
-                            class="px-2 py-0.5 rounded text-[10px] font-bold"
-                            [style.background]="getTagMeta(c.functionTag).bg"
-                            [style.color]="getTagMeta(c.functionTag).color"
-                          >
-                            {{ getTagMeta(c.functionTag).label }}
-                          </span>
-                        </div>
-                        <div class="text-base font-extrabold text-slate-900 leading-snug">
+                        <div class="text-base font-bold text-slate-900 leading-snug">
                           {{ c.text }}
                         </div>
-                        <div class="text-xs text-slate-500 mt-0.5">
+                        <div class="text-xs text-slate-500 mt-0.5 font-medium">
                           {{ c.meaningVi }}
-                        </div>
-                        <div class="text-[11px] text-slate-600 italic mt-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                          💬 "{{ c.exampleSentence }}"
                         </div>
                       </div>
 
-                      <!-- Bookmark & Mastery check -->
-                      <div class="flex flex-col items-center gap-2 shrink-0 pt-0.5">
-                        <button
-                          type="button"
-                          class="text-base transition cursor-pointer"
-                          [title]="isBookmarked(c.id) ? 'Đã lưu vào Chunk Bank' : 'Lưu vào Chunk Bank'"
-                          (click)="toggleBookmark(c.id)"
-                        >
-                          {{ isBookmarked(c.id) ? '🔖' : '🏷️' }}
-                        </button>
-                        @if (isChunkPracticed(c.id)) {
-                          <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold" title="Đã luyện tập">
-                            ✓
-                          </span>
-                        }
-                      </div>
+                      @if (isChunkPracticed(c.id)) {
+                        <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold shrink-0">
+                          ✓
+                        </span>
+                      }
                     </div>
                   }
                 </div>
               </div>
 
-              <!-- Coach Alexander Card -->
-              <div class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-[#286FB4] to-sky-400 text-white font-extrabold flex items-center justify-center text-base shadow-xs">
-                    🤖
-                  </div>
-                  <div>
-                    <div class="text-sm font-bold text-slate-800">Luyện ghi nhớ trong tiềm thức</div>
-                    <div class="text-xs text-slate-500">4 vòng lặp đa dạng: Phát âm ➔ Nghe lặp ➔ Điền khuyết ➔ Phản xạ</div>
-                  </div>
-                </div>
-                <span class="px-3 py-1 rounded-full text-xs font-bold bg-[#E2F0F9] text-[#286FB4]">
-                  Luyện tập ➔
-                </span>
-              </div>
-
-              <!-- Sticky / Big Bottom Button -->
-              <div class="pt-2 pb-6">
+              <!-- Start Button -->
+              <div class="pt-4 pb-8">
                 <button
                   type="button"
-                  class="w-full py-4 rounded-2xl text-white font-extrabold text-base bg-[#286FB4] hover:bg-[#1d5a94] shadow-lg shadow-[#286FB4]/25 transition cursor-pointer"
+                  class="w-full py-4 rounded-2xl text-white font-extrabold text-base bg-[#286FB4] hover:bg-[#1d5a94] active:scale-[0.99] shadow-lg shadow-[#286FB4]/25 transition cursor-pointer"
                   (click)="startDrillFlow()"
                 >
-                  Bắt đầu luyện phản xạ
+                  Bắt đầu nạp cụm
                 </button>
               </div>
             </div>
           }
 
           <!-- ============================================================== -->
-          <!-- SCREEN 2: LUYỆN LẶP ĐA DẠNG (SPIRAL DRILLS CHO CHUNK)          -->
+          <!-- SCREEN 2: INTERACTIVE DRILL (THE COACH STYLE)                  -->
           <!-- ============================================================== -->
           @if (stage() === 'interactive_drill') {
-            <div class="max-w-xl mx-auto px-4 pt-6 space-y-6">
-              <!-- Top Navigation Bar & Multi-Step Indicators -->
-              <div class="flex items-center justify-between">
+            <div class="max-w-lg mx-auto px-4 pt-4 flex flex-col min-h-[90vh]">
+
+              <!-- Clean Top Bar -->
+              <div class="flex items-center gap-3 mb-6">
                 <button
                   type="button"
-                  aria-label="Đóng bài luyện"
-                  class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-xs border border-slate-200 text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Thoát"
+                  class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer text-lg font-bold"
                   (click)="stage.set('overview')"
                 >
                   ✕
                 </button>
 
-                <!-- Current Activity Badge & Dots -->
-                <div class="flex flex-col items-center">
-                  <div class="flex items-center gap-1.5">
-                    <span class="text-xs font-bold text-slate-800">{{ activityTitle() }}</span>
-                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#E2F0F9] text-[#286FB4]">
-                      Vòng {{ currentRound() }}/4
-                    </span>
-                  </div>
-                  <!-- Progress bar for all 4 rounds x chunks -->
-                  <div class="flex items-center gap-1 mt-1.5">
-                    @for (dot of progressDots(); track $index) {
-                      <div
-                        class="h-1.5 rounded-full transition-all"
-                        [style.width]="dot.active ? '16px' : '5px'"
-                        [style.background]="dot.active ? '#286FB4' : (dot.completed ? '#16a34a' : '#cbd5e1')"
-                      ></div>
-                    }
-                  </div>
+                <!-- Thin Sleek Progress Bar -->
+                <div class="flex-1 h-2.5 rounded-full bg-slate-200 overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-[#286FB4] transition-all duration-300"
+                    [style.width]="overallProgressPct() + '%'"
+                  ></div>
                 </div>
 
-                <div class="text-right text-xs font-bold text-slate-400">
-                  Chunk {{ drillChunkIdx() + 1 }}/{{ s.chunks.length }}
+                <div class="text-xs font-bold text-slate-400">
+                  {{ drillChunkIdx() + 1 }}/{{ s.chunks.length }}
                 </div>
               </div>
 
               @if (currentChunk(); as chunk) {
-                <!-- Activity Instruction Subtitle -->
-                <div class="text-center pt-1">
-                  <div class="text-xs font-extrabold uppercase tracking-widest text-[#286FB4] mb-1">
-                    {{ activityInstruction() }}
-                  </div>
-                </div>
+                <div class="flex-1 flex flex-col justify-between space-y-5">
 
-                <!-- ======================================================== -->
-                <!-- DẠNG 1: PHONETICS (NẠP CỤM & VÒNG TRÒN ĐIỂM SVG)        -->
-                <!-- ======================================================== -->
-                @if (currentActivity() === 'phonetics') {
-                  <!-- Circular Pronunciation Score Meter -->
-                  <div class="relative w-32 h-32 mx-auto flex items-center justify-center">
-                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="7" fill="none" />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        [attr.stroke]="scoreColor()"
-                        stroke-width="7"
-                        stroke-linecap="round"
-                        fill="none"
-                        [attr.stroke-dasharray]="circleCircumference"
-                        [attr.stroke-dashoffset]="circleDashOffset()"
-                        class="transition-all duration-700 ease-out"
-                      />
-                    </svg>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span class="text-3xl font-extrabold leading-none" [style.color]="scoreColor()">
-                        {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
-                      </span>
-                      <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
-                        {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
-                      </span>
+                  <!-- ---------------------------------------------------- -->
+                  <!-- PHASE 1: MCQ VI -> EN (Dịch cụm in đậm)               -->
+                  <!-- ---------------------------------------------------- -->
+                  @if (currentPhase() === 'mcq_vi_to_en') {
+                    <div class="space-y-6">
+                      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Hãy dịch cụm in đậm
+                      </div>
+
+                      <!-- Question text -->
+                      <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs">
+                        <div
+                          class="text-lg md:text-xl font-medium text-slate-800 leading-relaxed"
+                          [innerHTML]="mcqViSentenceHtml()"
+                        ></div>
+                      </div>
+
+                      <!-- MCQ Options -->
+                      <div class="space-y-3">
+                        @for (opt of mcqOptions(); track opt.text; let i = $index) {
+                          <button
+                            type="button"
+                            class="w-full text-left p-4 rounded-2xl border-2 font-bold text-base transition-all cursor-pointer flex items-center justify-between"
+                            [class]="getMcqOptionClass(opt)"
+                            (click)="selectMcqOption(opt)"
+                            [disabled]="mcqAnswered()"
+                          >
+                            <span>{{ opt.text }}</span>
+                            @if (mcqAnswered() && opt.correct) {
+                              <span class="text-emerald-600 font-bold text-lg">✓</span>
+                            }
+                          </button>
+                        }
+                      </div>
                     </div>
-                  </div>
+                  }
 
-                  <!-- Normal + Snail Audio Controls -->
-                  <div class="flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                      (click)="playAudio(chunk.text, chunk.audioUrl, false)"
-                    >
-                      <span>🔊</span> Nghe chuẩn
-                    </button>
-                    <button
-                      type="button"
-                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-amber-700 hover:bg-amber-50 transition cursor-pointer"
-                      title="Nghe phát âm chậm rãi"
-                      (click)="playAudio(chunk.text, chunk.audioUrl, true)"
-                    >
-                      <span>🐌</span> Chậm rãi
-                    </button>
-                  </div>
+                  <!-- ---------------------------------------------------- -->
+                  <!-- PHASE 2: PRONOUNCE CHUNK (Hãy nói cụm sau)            -->
+                  <!-- ---------------------------------------------------- -->
+                  @if (currentPhase() === 'pronounce_chunk') {
+                    <div class="space-y-5 text-center">
+                      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Hãy nói cụm sau
+                      </div>
 
-                  <!-- Target Chunk Text with Word-by-Word Colors & IPA -->
-                  <div class="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs text-center space-y-2">
-                    <div class="text-2xl md:text-3xl font-extrabold tracking-tight flex flex-wrap items-center justify-center gap-2">
-                      @for (token of evaluatedWordTokens(); track $index) {
-                        <span
-                          class="transition-colors"
-                          [class.text-emerald-600]="token.status === 'correct'"
-                          [class.text-rose-600]="token.status === 'imperfect'"
-                          [class.text-slate-800]="token.status === 'missing'"
-                        >
-                          {{ token.word }}
-                        </span>
+                      <!-- Circular Pronunciation Score Meter -->
+                      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="8" fill="none" />
+                          <circle
+                            cx="50" cy="50" r="40"
+                            [attr.stroke]="scoreColor()"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            fill="none"
+                            [attr.stroke-dasharray]="circleCircumference"
+                            [attr.stroke-dashoffset]="circleDashOffset()"
+                            class="transition-all duration-700 ease-out"
+                          />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span class="text-2xl font-extrabold leading-none" [style.color]="scoreColor()">
+                            {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
+                          </span>
+                          <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
+                            {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Chunk Card -->
+                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2">
+                        <div class="text-2xl font-extrabold text-slate-900 leading-snug">
+                          @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
+                            <div class="flex flex-wrap gap-1.5 justify-center">
+                              @for (w of evaluatedWordTokens(); track $index) {
+                                <span
+                                  class="transition-colors"
+                                  [class.text-emerald-600]="w.status === 'correct'"
+                                  [class.text-amber-500]="w.status === 'imperfect'"
+                                  [class.text-rose-500]="w.status === 'missing'"
+                                >{{ w.word }}</span>
+                              }
+                            </div>
+                          } @else {
+                            {{ chunk.text }}
+                          }
+                        </div>
+
+                        <div class="text-xs text-slate-400 font-mono tracking-wide">
+                          {{ ipaTranscript() }}
+                        </div>
+
+                        <div class="text-sm text-slate-500 font-medium pt-1">
+                          {{ chunk.meaningVi }}
+                        </div>
+
+                        <!-- Listen Sample Button -->
+                        <div class="pt-1">
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+                            (click)="playAudio(chunk.text, chunk.audioUrl)"
+                          >
+                            <svg class="w-4 h-4 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                            Nghe mẫu
+                          </button>
+                        </div>
+                      </div>
+
+                      <!-- Recognized Speech Transcript Display -->
+                      @if (recognizedSpeech()) {
+                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
+                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
+                          <div class="text-sm font-semibold text-slate-800">
+                            "{{ recognizedSpeech() }}"
+                          </div>
+                        </div>
                       }
-                    </div>
-                    <div class="text-xs font-mono font-600 text-slate-400">
-                      {{ ipaTranscript() }}
-                    </div>
-                    <div class="text-sm text-slate-600 font-500 pt-1">
-                      {{ chunk.meaningVi }}
-                    </div>
-                  </div>
-                }
 
-                <!-- ======================================================== -->
-                <!-- DẠNG 2: LISTEN & REPEAT (NGHE NÓI GHÉP CÂU)              -->
-                <!-- ======================================================== -->
-                @if (currentActivity() === 'listen_repeat') {
-                  <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs text-center space-y-3">
-                    <div class="text-lg md:text-xl font-extrabold text-[#286FB4] leading-relaxed">
-                      "{{ chunk.exampleSentence }}"
-                    </div>
-                    <div class="text-xs md:text-sm text-slate-600 font-500">
-                      {{ chunk.meaningVi }}
-                    </div>
-                  </div>
+                      <!-- Center Microphone & Playback -->
+                      <div class="py-2 flex flex-col items-center justify-center space-y-3">
+                        <button
+                          type="button"
+                          class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
+                          [class]="isListening() ? 'bg-rose-500 text-white scale-110 shadow-rose-300 ring-4 ring-rose-200 animate-pulse' : 'bg-[#286FB4] text-white hover:bg-[#1d5a94] shadow-[#286FB4]/30 active:scale-95'"
+                          (click)="toggleMicrophone()"
+                        >
+                          @if (isListening()) {
+                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                              <rect x="6" y="6" width="12" height="12" rx="2" />
+                            </svg>
+                          } @else {
+                            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v7.5a3 3 0 0 1-3 3z" />
+                            </svg>
+                          }
+                        </button>
+                        <span class="text-xs text-slate-400 font-medium">
+                          {{ isListening() ? 'Đang lắng nghe bạn nói...' : 'Nhấn vào micro để nói' }}
+                        </span>
 
-                  <!-- Audio Controls -->
-                  <div class="flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                      (click)="playAudio(chunk.exampleSentence, null, false)"
-                    >
-                      <span>🔊</span> Nghe câu
-                    </button>
-                    <button
-                      type="button"
-                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-amber-700 hover:bg-amber-50 transition cursor-pointer"
-                      (click)="playAudio(chunk.exampleSentence, null, true)"
-                    >
-                      <span>🐌</span> Chậm rãi
-                    </button>
-                  </div>
-                }
+                        <!-- User Audio Playback Button -->
+                        @if (userAudioUrl()) {
+                          <div class="pt-1">
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer shadow-xs"
+                              (click)="playUserAudio()"
+                            >
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                              </svg>
+                              Nghe lại giọng của bạn
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
 
-                <!-- ======================================================== -->
-                <!-- DẠNG 3: FILL IN THE BLANK (ĐIỀN KHUYẾT TỪ TRÍ NHỚ)       -->
-                <!-- ======================================================== -->
-                @if (currentActivity() === 'fill_blank') {
-                  <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs text-center space-y-3">
-                    <div class="text-lg md:text-xl font-extrabold text-slate-800 leading-relaxed">
-                      <span class="tracking-widest text-[#286FB4] font-mono">_____ _____ _____</span>
-                      <span> {{ getSentenceTail(chunk) }}</span>
+                  <!-- ---------------------------------------------------- -->
+                  <!-- PHASE 3: MCQ EN -> VI (Dịch cụm in đậm)               -->
+                  <!-- ---------------------------------------------------- -->
+                  @if (currentPhase() === 'mcq_en_to_vi') {
+                    <div class="space-y-6">
+                      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Hãy dịch cụm in đậm
+                      </div>
+
+                      <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs">
+                        <div
+                          class="text-lg md:text-xl font-medium text-slate-800 leading-relaxed"
+                          [innerHTML]="mcqEnSentenceHtml()"
+                        ></div>
+                      </div>
+
+                      <div class="space-y-3">
+                        @for (opt of mcqOptions(); track opt.text; let i = $index) {
+                          <button
+                            type="button"
+                            class="w-full text-left p-4 rounded-2xl border-2 font-bold text-base transition-all cursor-pointer flex items-center justify-between"
+                            [class]="getMcqOptionClass(opt)"
+                            (click)="selectMcqOption(opt)"
+                            [disabled]="mcqAnswered()"
+                          >
+                            <span>{{ opt.text }}</span>
+                            @if (mcqAnswered() && opt.correct) {
+                              <span class="text-emerald-600 font-bold text-lg">✓</span>
+                            }
+                          </button>
+                        }
+                      </div>
                     </div>
-                    <div class="text-xs md:text-sm text-slate-600 font-500">
-                      💡 Nghĩa tiếng Việt: <strong class="text-slate-800">{{ chunk.meaningVi }}</strong>
+                  }
+
+                  <!-- ---------------------------------------------------- -->
+                  <!-- PHASE 4: LISTEN & REPEAT FULL SENTENCE                -->
+                  <!-- ---------------------------------------------------- -->
+                  @if (currentPhase() === 'listen_repeat') {
+                    <div class="space-y-5 text-center">
+                      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Nghe mình nói và đọc lại
+                      </div>
+
+                      <!-- Circular Pronunciation Score Meter -->
+                      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="8" fill="none" />
+                          <circle
+                            cx="50" cy="50" r="40"
+                            [attr.stroke]="scoreColor()"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            fill="none"
+                            [attr.stroke-dasharray]="circleCircumference"
+                            [attr.stroke-dashoffset]="circleDashOffset()"
+                            class="transition-all duration-700 ease-out"
+                          />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span class="text-2xl font-extrabold leading-none" [style.color]="scoreColor()">
+                            {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
+                          </span>
+                          <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
+                            {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2">
+                        <div class="text-xl md:text-2xl font-extrabold text-slate-900 leading-snug">
+                          @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
+                            <div class="flex flex-wrap gap-1.5 justify-center">
+                              @for (w of evaluatedWordTokens(); track $index) {
+                                <span
+                                  class="transition-colors"
+                                  [class.text-emerald-600]="w.status === 'correct'"
+                                  [class.text-amber-500]="w.status === 'imperfect'"
+                                  [class.text-rose-500]="w.status === 'missing'"
+                                >{{ w.word }}</span>
+                              }
+                            </div>
+                          } @else {
+                            {{ chunk.exampleSentence }}
+                          }
+                        </div>
+
+                        <div class="text-sm text-slate-500 font-medium pt-1">
+                          {{ chunk.meaningVi }}
+                        </div>
+
+                        <div class="pt-1">
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+                            (click)="playAudio(chunk.exampleSentence, chunk.audioUrl)"
+                          >
+                            <svg class="w-4 h-4 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                            Nghe mẫu
+                          </button>
+                        </div>
+                      </div>
+
+                      @if (recognizedSpeech()) {
+                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
+                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
+                          <div class="text-sm font-semibold text-slate-800">
+                            "{{ recognizedSpeech() }}"
+                          </div>
+                        </div>
+                      }
+
+                      <div class="py-2 flex flex-col items-center justify-center space-y-3">
+                        <button
+                          type="button"
+                          class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
+                          [class]="isListening() ? 'bg-rose-500 text-white scale-110 ring-4 ring-rose-200 animate-pulse' : 'bg-[#286FB4] text-white hover:bg-[#1d5a94] shadow-[#286FB4]/30 active:scale-95'"
+                          (click)="toggleMicrophone()"
+                        >
+                          @if (isListening()) {
+                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                              <rect x="6" y="6" width="12" height="12" rx="2" />
+                            </svg>
+                          } @else {
+                            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v7.5a3 3 0 0 1-3 3z" />
+                            </svg>
+                          }
+                        </button>
+                        <span class="text-xs text-slate-400 font-medium">
+                          {{ isListening() ? 'Đang lắng nghe bạn nói...' : 'Nhấn vào micro để nói' }}
+                        </span>
+
+                        @if (userAudioUrl()) {
+                          <div class="pt-1">
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer shadow-xs"
+                              (click)="playUserAudio()"
+                            >
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                              </svg>
+                              Nghe lại giọng của bạn
+                            </button>
+                          </div>
+                        }
+                      </div>
                     </div>
-                    @if (showHint()) {
-                      <div class="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 font-bold animate-fadeIn">
-                        Cụm từ cần nhớ: "{{ chunk.text }}"
+                  }
+
+                  <!-- ---------------------------------------------------- -->
+                  <!-- PHASE 5: FILL IN THE BLANK                            -->
+                  <!-- ---------------------------------------------------- -->
+                  @if (currentPhase() === 'fill_blank') {
+                    <div class="space-y-5 text-center">
+                      <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Nói cụm còn thiếu
+                      </div>
+
+                      <!-- Circular Pronunciation Score Meter -->
+                      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="8" fill="none" />
+                          <circle
+                            cx="50" cy="50" r="40"
+                            [attr.stroke]="scoreColor()"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            fill="none"
+                            [attr.stroke-dasharray]="circleCircumference"
+                            [attr.stroke-dashoffset]="circleDashOffset()"
+                            class="transition-all duration-700 ease-out"
+                          />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span class="text-2xl font-extrabold leading-none" [style.color]="scoreColor()">
+                            {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
+                          </span>
+                          <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
+                            {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-3">
+                        <div class="text-lg md:text-xl font-extrabold text-slate-900 tracking-wide leading-relaxed">
+                          @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
+                            <div class="flex flex-wrap gap-1.5 justify-center">
+                              @for (w of evaluatedWordTokens(); track $index) {
+                                <span
+                                  class="transition-colors"
+                                  [class.text-emerald-600]="w.status === 'correct'"
+                                  [class.text-amber-500]="w.status === 'imperfect'"
+                                  [class.text-rose-500]="w.status === 'missing'"
+                                >{{ w.word }}</span>
+                              }
+                            </div>
+                          } @else {
+                            {{ fillBlankSentence() }}
+                          }
+                        </div>
+
+                        <div class="text-sm text-slate-500 font-medium">
+                          {{ chunk.meaningVi }}
+                        </div>
+                      </div>
+
+                      @if (recognizedSpeech()) {
+                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
+                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
+                          <div class="text-sm font-semibold text-slate-800">
+                            "{{ recognizedSpeech() }}"
+                          </div>
+                        </div>
+                      }
+
+                      <div class="py-2 flex flex-col items-center justify-center space-y-3">
+                        <button
+                          type="button"
+                          class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
+                          [class]="isListening() ? 'bg-rose-500 text-white scale-110 ring-4 ring-rose-200 animate-pulse' : 'bg-[#286FB4] text-white hover:bg-[#1d5a94] shadow-[#286FB4]/30 active:scale-95'"
+                          (click)="toggleMicrophone()"
+                        >
+                          @if (isListening()) {
+                            <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                              <rect x="6" y="6" width="12" height="12" rx="2" />
+                            </svg>
+                          } @else {
+                            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v7.5a3 3 0 0 1-3 3z" />
+                            </svg>
+                          }
+                        </button>
+                        <span class="text-xs text-slate-400 font-medium">
+                          {{ isListening() ? 'Đang lắng nghe bạn nói...' : 'Nói hoàn thiện cả câu' }}
+                        </span>
+
+                        @if (userAudioUrl()) {
+                          <div class="pt-1">
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer shadow-xs"
+                              (click)="playUserAudio()"
+                            >
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                              </svg>
+                              Nghe lại giọng của bạn
+                            </button>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Bottom Navigation CTA -->
+                  <div class="pt-6 pb-6">
+                    @if (isMcqPhase()) {
+                      @if (mcqAnswered()) {
+                        <button
+                          type="button"
+                          class="w-full py-4 rounded-2xl text-white font-extrabold text-base bg-[#286FB4] hover:bg-[#1d5a94] shadow-lg shadow-[#286FB4]/25 transition cursor-pointer"
+                          (click)="advancePhase()"
+                        >
+                          Tiếp tục
+                        </button>
+                      }
+                    } @else {
+                      <div class="space-y-2">
+                        <button
+                          type="button"
+                          class="w-full py-4 rounded-2xl font-extrabold text-base transition-all cursor-pointer shadow-lg"
+                          [class]="canAdvanceVoice() ? 'bg-[#286FB4] text-white hover:bg-[#1d5a94] shadow-[#286FB4]/25' : 'bg-slate-200 text-slate-400 cursor-not-allowed'"
+                          [disabled]="!canAdvanceVoice()"
+                          (click)="advancePhase()"
+                        >
+                          {{ isLastStep() ? 'Hoàn thành' : 'Tiếp tục' }}
+                        </button>
+
+                        <div class="text-center">
+                          <button
+                            type="button"
+                            class="text-xs text-slate-400 hover:text-slate-600 font-medium py-1 cursor-pointer"
+                            (click)="skipVoiceStep()"
+                          >
+                            Bỏ qua câu này
+                          </button>
+                        </div>
                       </div>
                     }
                   </div>
 
-                  <div class="flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                      (click)="playAudio(chunk.exampleSentence, null, false)"
-                    >
-                      <span>🔊</span> Nghe câu hoàn chỉnh
-                    </button>
-                    <button
-                      type="button"
-                      class="px-4 py-2 rounded-full border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold hover:bg-amber-100 transition cursor-pointer"
-                      (click)="toggleHint()"
-                    >
-                      💡 {{ showHint() ? 'Ẩn gợi ý' : 'Gợi ý' }}
-                    </button>
-                  </div>
-                }
-
-                <!-- ======================================================== -->
-                <!-- DẠNG 4: REFLEX QUIZ (PHẢN XẠ NHANH KHÔNG NHÌN CHỮ ANH)   -->
-                <!-- ======================================================== -->
-                @if (currentActivity() === 'reflex_quiz') {
-                  <div class="bg-gradient-to-br from-[#E2F0F9] to-sky-50 rounded-3xl p-6 border border-sky-200 shadow-xs text-center space-y-3">
-                    <div class="text-[10px] uppercase font-bold tracking-wider text-[#286FB4]">
-                      Tình huống giao tiếp thực tế
-                    </div>
-                    <div class="text-lg md:text-xl font-extrabold text-slate-900 leading-snug">
-                      Bạn muốn nói: "{{ chunk.meaningVi }}"
-                    </div>
-                    <p class="text-xs text-slate-500">
-                      ⚡ Hãy bật nói ngay bằng tiếng Anh từ phản xạ tiềm thức!
-                    </p>
-                    @if (showHint()) {
-                      <div class="p-2.5 rounded-xl bg-white border border-sky-300 text-xs text-[#286FB4] font-bold animate-fadeIn">
-                        Mẫu câu: "{{ chunk.text }}"
-                      </div>
-                    }
-                  </div>
-
-                  <div class="flex items-center justify-center gap-3">
-                    <button
-                      type="button"
-                      class="px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs flex items-center gap-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                      (click)="playAudio(chunk.text, chunk.audioUrl, false)"
-                    >
-                      <span>🔊</span> Nghe đáp án
-                    </button>
-                    <button
-                      type="button"
-                      class="px-4 py-2 rounded-full border border-amber-300 bg-amber-50 text-amber-800 text-xs font-bold hover:bg-amber-100 transition cursor-pointer"
-                      (click)="toggleHint()"
-                    >
-                      💡 {{ showHint() ? 'Ẩn đáp án' : 'Xem đáp án' }}
-                    </button>
-                  </div>
-                }
-
-                <!-- User Spoken Bubble Preview -->
-                @if (recognizedSpeech()) {
-                  <div class="p-3.5 rounded-2xl bg-sky-50 border border-sky-100 text-xs text-sky-900 text-center">
-                    <span class="font-bold">Bạn đã nói:</span> "{{ recognizedSpeech() }}"
-                  </div>
-                }
-
-                <!-- Central Pulsing Mic + Bottom Step Navigation -->
-                <div class="flex flex-col items-center gap-4 pt-1">
-                  <!-- Mic Button -->
-                  <div class="relative">
-                    @if (isListening()) {
-                      <div class="absolute inset-0 rounded-full bg-rose-400 animate-ping opacity-60"></div>
-                    }
-                    <button
-                      type="button"
-                      aria-label="Thu âm giọng nói"
-                      class="relative w-20 h-20 rounded-full flex items-center justify-center text-3xl text-white shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
-                      [style.background]="isListening() ? '#DF4C73' : '#286FB4'"
-                      (click)="toggleMicrophone()"
-                    >
-                      {{ isListening() ? '⏹' : '🎙️' }}
-                    </button>
-                  </div>
-                  <span class="text-xs text-slate-500 font-600">
-                    {{ isListening() ? 'Đang lắng nghe... nói to câu của bạn' : 'Chạm vào micro để nói' }}
-                  </span>
-
-                  <!-- Bottom Controls: Repeat, Skip, Next Step -->
-                  <div class="w-full flex items-center justify-between pt-4 border-t border-slate-200">
-                    <button
-                      type="button"
-                      class="px-3.5 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
-                      (click)="repeatActivity(chunk.id)"
-                    >
-                      🔄 Nói lại
-                    </button>
-
-                    <button
-                      type="button"
-                      class="px-3.5 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 cursor-pointer"
-                      (click)="skipActivity(chunk.id)"
-                    >
-                      ⏭ Bỏ qua
-                    </button>
-
-                    <button
-                      type="button"
-                      class="px-5 py-2.5 rounded-xl bg-[#286FB4] hover:bg-[#1d5a94] text-white text-xs font-extrabold shadow-md cursor-pointer transition"
-                      (click)="advanceActivity(chunk.id)"
-                    >
-                      {{ isLastStep() ? 'Hoàn thành nạp cụm ➔' : 'Tiếp tục ➔' }}
-                    </button>
-                  </div>
                 </div>
               }
             </div>
           }
 
           <!-- ============================================================== -->
-          <!-- SCREEN 3: HOÀN THÀNH NẠP CỤM -> SẴN SÀNG ROLEPLAY            -->
+          <!-- SCREEN 3: CELEBRATION & READY TO ROLEPLAY                      -->
           <!-- ============================================================== -->
           @if (stage() === 'summary_ready') {
-            <div class="max-w-md mx-auto px-4 pt-12 text-center space-y-6">
-              <div class="w-20 h-20 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-4xl shadow-sm animate-bounce">
-                🎯
+            <div class="max-w-md mx-auto px-4 pt-16 text-center space-y-6">
+              <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-3xl font-bold shadow-xs">
+                ✓
               </div>
-              <div>
+
+              <div class="space-y-1">
                 <h2 class="text-2xl font-extrabold text-slate-900">
-                  Tuyệt vời! Bạn đã nạp sâu các cụm từ
+                  Hoàn thành nạp cụm
                 </h2>
-                <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-                  Các mẫu câu đã được củng cố qua 4 tầng phản xạ. Giờ là lúc đưa vào hội thoại thực tế cùng AI Coach trong vai diễn của bạn!
+                <p class="text-xs text-slate-500">
+                  Bạn đã sẵn sàng để áp dụng vào hội thoại thực tế.
                 </p>
               </div>
 
-              <!-- Quick Recap List -->
-              <div class="bg-white rounded-3xl p-5 border border-slate-200 text-left space-y-2.5 shadow-xs">
-                <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Mẫu câu bạn sẽ dùng trong Roleplay:
-                </div>
+              <!-- Mastered Chunks List -->
+              <div class="bg-white rounded-3xl p-5 border border-slate-200/90 text-left space-y-3 shadow-xs">
                 @for (c of s.chunks; track c.id) {
-                  <div class="flex items-center gap-2.5 text-xs text-slate-800">
-                    <span class="text-emerald-500 font-bold">✓</span>
-                    <span class="font-bold text-[#286FB4]">"{{ c.text }}"</span>
-                    <span class="text-slate-400 italic text-[11px] truncate">— {{ c.meaningVi }}</span>
+                  <div class="flex items-center gap-3 text-sm">
+                    <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold shrink-0">
+                      ✓
+                    </span>
+                    <span class="font-bold text-slate-900">{{ c.text }}</span>
+                    <span class="text-xs text-slate-400 truncate">— {{ c.meaningVi }}</span>
                   </div>
                 }
               </div>
 
-              <div class="space-y-3 pt-2">
+              <!-- Action buttons -->
+              <div class="space-y-3 pt-4">
                 <button
                   type="button"
-                  class="w-full py-4 rounded-2xl bg-[#286FB4] hover:bg-[#1d5a94] text-white font-extrabold text-sm shadow-xl shadow-[#286FB4]/25 transition cursor-pointer"
+                  class="w-full py-4 rounded-2xl bg-[#286FB4] hover:bg-[#1d5a94] text-white font-extrabold text-base shadow-lg shadow-[#286FB4]/25 transition cursor-pointer"
                   [disabled]="isStartingRoleplay()"
                   (click)="startRoleplay()"
                 >
-                  {{ isStartingRoleplay() ? 'Đang tạo phòng roleplay...' : '🎭 Bắt đầu Roleplay ngay' }}
+                  {{ isStartingRoleplay() ? 'Đang tạo phòng...' : 'Vào hội thoại thực hành' }}
                 </button>
                 <button
                   type="button"
-                  class="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold cursor-pointer"
+                  class="w-full py-3 text-xs text-slate-500 hover:text-slate-700 font-semibold cursor-pointer"
                   (click)="stage.set('overview')"
                 >
-                  Quay lại xem bài học
+                  Xem lại danh sách cụm
                 </button>
               </div>
             </div>
           }
 
-          <!-- ============================================================== -->
-          <!-- CONTEXT & REQUIREMENTS MODAL                                   -->
-          <!-- ============================================================== -->
-          @if (showContextModal()) {
-            <div class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-              <div class="bg-white rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
-                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 class="font-extrabold text-base text-slate-800">
-                    Bối cảnh & Nhiệm vụ
-                  </h3>
-                  <button
-                    type="button"
-                    class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
-                    (click)="showContextModal.set(false)"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div>
-                  <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Bối cảnh</h4>
-                  <p class="text-sm text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                    {{ s.context }}
-                  </p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                  <div class="p-3 rounded-xl bg-sky-50 border border-sky-100">
-                    <div class="text-[10px] font-bold text-sky-700 uppercase">Vai của bạn</div>
-                    <div class="text-xs font-bold text-slate-800">{{ s.userRole }}</div>
-                  </div>
-                  <div class="p-3 rounded-xl bg-indigo-50 border border-indigo-100">
-                    <div class="text-[10px] font-bold text-indigo-700 uppercase">Vai của AI</div>
-                    <div class="text-xs font-bold text-slate-800">{{ s.aiRole }}</div>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Mục tiêu cần hoàn thành</h4>
-                  <div class="space-y-2">
-                    @for (req of s.requirements; track req.id) {
-                      <div class="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                        <span class="text-emerald-600 font-bold mt-0.5">✓</span>
-                        <div class="flex-1">
-                          <span class="font-600 text-slate-800">{{ req.description }}</span>
-                        </div>
-                        @if (req.isMandatory) {
-                          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
-                            Bắt buộc
-                          </span>
-                        }
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                <div class="pt-2">
-                  <button
-                    type="button"
-                    class="w-full py-3 rounded-xl bg-[#286FB4] text-white text-xs font-bold hover:bg-[#1d5a94] transition cursor-pointer"
-                    (click)="showContextModal.set(false)"
-                  >
-                    Đã hiểu, quay lại học
-                  </button>
-                </div>
-              </div>
-            </div>
-          }
         }
       }
     </div>
@@ -633,52 +725,81 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   private readonly scenarioService = inject(ScenarioService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly sanitizer = inject(DomSanitizer);
   readonly appState = inject(AppStateService);
   readonly speechService = inject(SpeechRecognitionService);
 
   readonly stage = signal<CoachStage>('overview');
   readonly drillChunkIdx = signal(0);
-  readonly currentActivity = signal<DrillActivity>('phonetics');
-
-  readonly isListening = signal(false);
-  readonly recognizedSpeech = signal('');
-  readonly drillMessage = signal<string | null>(null);
+  readonly currentPhase = signal<DrillPhase>('mcq_vi_to_en');
 
   readonly isLoading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly isStartingRoleplay = signal(false);
-  readonly showContextModal = signal(false);
-  readonly showHint = signal(false);
-
   readonly scenario = signal<ScenarioDetail | null>(null);
-  readonly bookmarkedChunkIds = signal<Set<string>>(new Set());
   readonly practicedChunkIds = signal<Set<string>>(new Set());
 
-  // Pronunciation score meter state
-  readonly circleCircumference = 2 * Math.PI * 40; // ~251.33
+  // MCQ state
+  readonly mcqOptions = signal<{ text: string; correct: boolean }[]>([]);
+  readonly mcqAnswered = signal(false);
+  readonly selectedOption = signal<{ text: string; correct: boolean } | null>(null);
+
+  // Pronunciation & Recording state
+  readonly circleCircumference = 2 * Math.PI * 40;
   readonly pronunciationScore = signal<number | null>(null);
   readonly evaluatedWordTokens = signal<WordPronunciationScore[]>([]);
+  readonly recognizedSpeech = signal('');
+  readonly isListening = signal(false);
+  readonly userAudioUrl = signal<string | null>(null);
 
   private speechSub?: Subscription;
+  private mediaRecorder?: MediaRecorder;
+  private audioChunks: Blob[] = [];
 
   readonly currentChunk = computed<ScenarioChunk | null>(() => {
     const s = this.scenario();
     if (!s || !s.chunks || s.chunks.length === 0) return null;
-    const idx = this.drillChunkIdx();
-    return s.chunks[idx] || s.chunks[0];
+    return s.chunks[this.drillChunkIdx()] ?? s.chunks[0];
   });
 
   readonly ipaTranscript = computed(() => {
     const chunk = this.currentChunk();
-    return chunk ? getIpaPhonetic(chunk.text) : '';
+    return chunk ? `/${getIpaPhonetic(chunk.text)}/` : '';
+  });
+
+  readonly isMcqPhase = computed(() => {
+    const p = this.currentPhase();
+    return p === 'mcq_vi_to_en' || p === 'mcq_en_to_vi';
+  });
+
+  readonly canAdvanceVoice = computed(() => {
+    const score = this.pronunciationScore();
+    return score !== null && score >= MIN_PRONUN_SCORE;
+  });
+
+  readonly isLastStep = computed(() => {
+    const s = this.scenario();
+    if (!s) return false;
+    return (
+      this.drillChunkIdx() === s.chunks.length - 1 &&
+      this.currentPhase() === PHASE_ORDER[PHASE_ORDER.length - 1]
+    );
+  });
+
+  readonly overallProgressPct = computed(() => {
+    const s = this.scenario();
+    if (!s || s.chunks.length === 0) return 0;
+    const totalSteps = s.chunks.length * PHASE_ORDER.length;
+    const currentStep = this.drillChunkIdx() * PHASE_ORDER.length + PHASE_ORDER.indexOf(this.currentPhase());
+    return Math.round((currentStep / totalSteps) * 100);
   });
 
   readonly scoreColor = computed(() => {
     const score = this.pronunciationScore();
-    if (score === null) return '#286FB4';
-    if (score >= 70) return '#16a34a';
+    if (score === null) return '#94a3b8';
+    if (score >= 75) return '#16a34a';
     if (score >= 50) return '#f59e0b';
-    return '#dc2626';
+    return '#ef4444';
   });
 
   readonly circleDashOffset = computed(() => {
@@ -687,68 +808,39 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     return this.circleCircumference * (1 - score / 100);
   });
 
-  readonly currentRound = computed(() => {
-    switch (this.currentActivity()) {
-      case 'phonetics':
-        return 1;
-      case 'listen_repeat':
-        return 2;
-      case 'fill_blank':
-        return 3;
-      case 'reflex_quiz':
-        return 4;
+  readonly fillBlankSentence = computed(() => {
+    const chunk = this.currentChunk();
+    if (!chunk) return '';
+    const ex = chunk.exampleSentence;
+    const txt = chunk.text;
+    const idx = ex.toLowerCase().indexOf(txt.toLowerCase());
+    if (idx === -1) {
+      return txt
+        .split(' ')
+        .map(() => '------')
+        .join(' ');
     }
+    const dashes = txt
+      .split(' ')
+      .map(() => '------')
+      .join(' ');
+    return ex.substring(0, idx) + dashes + ex.substring(idx + txt.length);
   });
 
-  readonly activityTitle = computed(() => {
-    switch (this.currentActivity()) {
-      case 'phonetics':
-        return 'Nạp âm & Phát âm';
-      case 'listen_repeat':
-        return 'Nghe & Đọc lại';
-      case 'fill_blank':
-        return 'Điền khuyết trí nhớ';
-      case 'reflex_quiz':
-        return 'Phản xạ tiềm thức';
-    }
+  readonly mcqViSentenceHtml = computed((): SafeHtml => {
+    const chunk = this.currentChunk();
+    if (!chunk) return '';
+    return this.sanitizer.bypassSecurityTrustHtml(
+      `<strong>${chunk.meaningVi}</strong>`,
+    );
   });
 
-  readonly activityInstruction = computed(() => {
-    switch (this.currentActivity()) {
-      case 'phonetics':
-        return 'HÃY PHÁT ÂM CHUẨN CỤM TỪ NÀY';
-      case 'listen_repeat':
-        return 'HÃY NGHE MÌNH NÓI VÀ ĐỌC LẠI';
-      case 'fill_blank':
-        return 'NÓI HOÀN THIỆN CÂU SAU TỪ TRÍ NHỚ';
-      case 'reflex_quiz':
-        return 'BẬT NÓI TIẾNG ANH NGAY TỨC THÌ';
-    }
-  });
-
-  readonly progressDots = computed(() => {
-    const s = this.scenario();
-    if (!s || !s.chunks.length) return [];
-    const totalChunks = s.chunks.length;
-    const activities: DrillActivity[] = ['phonetics', 'listen_repeat', 'fill_blank', 'reflex_quiz'];
-    const currentActIdx = activities.indexOf(this.currentActivity());
-    const currentGlobalStep = currentActIdx * totalChunks + this.drillChunkIdx();
-    const totalSteps = 4 * totalChunks;
-
-    const dots = [];
-    for (let i = 0; i < totalSteps; i++) {
-      dots.push({
-        active: i === currentGlobalStep,
-        completed: i < currentGlobalStep,
-      });
-    }
-    return dots;
-  });
-
-  readonly isLastStep = computed(() => {
-    const s = this.scenario();
-    if (!s || !s.chunks.length) return false;
-    return this.currentActivity() === 'reflex_quiz' && this.drillChunkIdx() === s.chunks.length - 1;
+  readonly mcqEnSentenceHtml = computed((): SafeHtml => {
+    const chunk = this.currentChunk();
+    if (!chunk) return '';
+    return this.sanitizer.bypassSecurityTrustHtml(
+      `<strong>${chunk.text}</strong>`,
+    );
   });
 
   ngOnInit(): void {
@@ -760,14 +852,16 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.speechSub?.unsubscribe();
+    this.stopMediaRecorder();
+    if (this.userAudioUrl()) {
+      URL.revokeObjectURL(this.userAudioUrl()!);
+    }
   }
 
   loadScenario(): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
-
     const paramId = this.route.snapshot.paramMap.get('id') || 'supermarket-shopping';
-
     this.scenarioService.getScenario(paramId).subscribe({
       next: (data) => {
         this.scenario.set(data);
@@ -775,10 +869,9 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
           this.practicedChunkIds.set(new Set(data.practicedChunks));
         }
         this.isLoading.set(false);
-        this.resetChunkEvaluation();
       },
       error: () => {
-        this.errorMessage.set('Không thể tải thông tin tình huống.');
+        this.errorMessage.set('Không thể tải thông tin bài học.');
         this.isLoading.set(false);
       },
     });
@@ -786,163 +879,178 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
 
   startDrillFlow(): void {
     this.drillChunkIdx.set(0);
-    this.currentActivity.set('phonetics');
-    this.resetChunkEvaluation();
+    this.currentPhase.set('mcq_vi_to_en');
+    this.resetPhaseState();
     this.stage.set('interactive_drill');
+    this.buildMcqOptions();
   }
 
-  resetChunkEvaluation(): void {
+  private resetPhaseState(): void {
+    this.pronunciationScore.set(null);
+    this.evaluatedWordTokens.set([]);
+    this.recognizedSpeech.set('');
+    this.isListening.set(false);
+    this.mcqAnswered.set(false);
+    this.selectedOption.set(null);
+    if (this.userAudioUrl()) {
+      URL.revokeObjectURL(this.userAudioUrl()!);
+      this.userAudioUrl.set(null);
+    }
+    this.stopMediaRecorder();
+  }
+
+  private buildMcqOptions(): void {
     const chunk = this.currentChunk();
     if (!chunk) return;
-    const words = chunk.text.trim().split(/\s+/).map((w) => ({
-      word: w,
-      status: 'missing' as const,
-    }));
-    this.evaluatedWordTokens.set(words);
-    this.pronunciationScore.set(null);
-    this.recognizedSpeech.set('');
-    this.showHint.set(false);
+    if (this.currentPhase() === 'mcq_vi_to_en') {
+      const distractors = chunk.distractorsEn?.length ? chunk.distractorsEn : ['I work there for', 'I am working at', 'I have worked'];
+      this.mcqOptions.set(buildMcqOptions(chunk.text, distractors));
+    } else if (this.currentPhase() === 'mcq_en_to_vi') {
+      const distractors = chunk.distractorsVi?.length ? chunk.distractorsVi : ['Tôi làm việc ở đó', 'Tôi từng ở đó', 'Tôi đang đến đó'];
+      this.mcqOptions.set(buildMcqOptions(chunk.meaningVi, distractors));
+    }
+  }
+
+  selectMcqOption(opt: { text: string; correct: boolean }): void {
+    if (this.mcqAnswered()) return;
+    this.selectedOption.set(opt);
+    this.mcqAnswered.set(true);
+  }
+
+  getMcqOptionClass(opt: { text: string; correct: boolean }): string {
+    const answered = this.mcqAnswered();
+    const selected = this.selectedOption();
+    if (!answered) {
+      return 'bg-white border-slate-200 text-slate-800 hover:border-[#286FB4] hover:bg-sky-50/50';
+    }
+    if (opt.correct) {
+      return 'bg-emerald-50 border-emerald-500 text-emerald-900';
+    }
+    if (selected === opt && !opt.correct) {
+      return 'bg-rose-50 border-rose-400 text-rose-800';
+    }
+    return 'bg-slate-50 border-slate-200 text-slate-400';
+  }
+
+  advancePhase(): void {
+    const currentIdx = PHASE_ORDER.indexOf(this.currentPhase());
+    if (currentIdx < PHASE_ORDER.length - 1) {
+      const nextPhase = PHASE_ORDER[currentIdx + 1];
+      this.currentPhase.set(nextPhase);
+      this.resetPhaseState();
+      this.buildMcqOptions();
+
+      // Auto play audio once on listen_repeat or pronounce
+      if (nextPhase === 'pronounce_chunk') {
+        const c = this.currentChunk();
+        if (c) setTimeout(() => this.playAudio(c.text, c.audioUrl), 300);
+      } else if (nextPhase === 'listen_repeat') {
+        const c = this.currentChunk();
+        if (c) setTimeout(() => this.playAudio(c.exampleSentence, c.audioUrl), 300);
+      }
+    } else {
+      // Chunk completed
+      const s = this.scenario();
+      const chunk = this.currentChunk();
+      if (s && chunk) {
+        this.practicedChunkIds.update((set) => new Set([...set, chunk.id]));
+        this.scenarioService.recordDrill(s.id, { chunkId: chunk.id, isSkipped: false }).subscribe();
+      }
+
+      if (this.drillChunkIdx() < (s?.chunks.length ?? 0) - 1) {
+        this.drillChunkIdx.update((i) => i + 1);
+        this.currentPhase.set('mcq_vi_to_en');
+        this.resetPhaseState();
+        this.buildMcqOptions();
+      } else {
+        this.stage.set('summary_ready');
+      }
+    }
+  }
+
+  skipVoiceStep(): void {
+    this.advancePhase();
   }
 
   handleSpokenResult(spokenText: string): void {
     this.recognizedSpeech.set(spokenText);
     this.isListening.set(false);
-
     const chunk = this.currentChunk();
     if (!chunk) return;
 
-    if (this.currentActivity() === 'phonetics' || this.currentActivity() === 'reflex_quiz') {
-      const evaluation = evaluatePronunciation(chunk.text, spokenText);
-      this.pronunciationScore.set(evaluation.score);
-      this.evaluatedWordTokens.set(evaluation.words);
-    } else {
-      const evaluation = evaluatePronunciation(chunk.exampleSentence, spokenText);
-      this.pronunciationScore.set(evaluation.score);
+    let target = chunk.text;
+    if (this.currentPhase() === 'listen_repeat' || this.currentPhase() === 'fill_blank') {
+      target = chunk.exampleSentence;
     }
-  }
 
-  getTagMeta(tag: string) {
-    return (
-      FUNCTIONAL_TAG_CONFIG[tag] || {
-        label: tag,
-        color: '#286FB4',
-        bg: '#E2F0F9',
-      }
-    );
-  }
-
-  playAudio(text: string, audioUrl?: string | null, slow = false): void {
-    this.scenarioService.playChunkAudio(text, audioUrl, slow);
+    const evaluation = evaluatePronunciation(target, spokenText);
+    this.pronunciationScore.set(evaluation.score);
+    this.evaluatedWordTokens.set(evaluation.words);
   }
 
   toggleMicrophone(): void {
     if (this.isListening()) {
       this.speechService.stopListening();
       this.isListening.set(false);
+      this.stopMediaRecorder();
     } else {
       this.recognizedSpeech.set('');
-      this.drillMessage.set(null);
+      this.pronunciationScore.set(null);
+      this.evaluatedWordTokens.set([]);
+      if (this.userAudioUrl()) {
+        URL.revokeObjectURL(this.userAudioUrl()!);
+        this.userAudioUrl.set(null);
+      }
       this.isListening.set(true);
+      this.startMediaRecorder();
       this.speechService.startListening('en-US').catch(() => {
         this.isListening.set(false);
+        this.stopMediaRecorder();
       });
     }
   }
 
-  repeatActivity(chunkId: string): void {
-    const s = this.scenario();
-    if (!s) return;
-    this.scenarioService
-      .recordDrill(s.id, {
-        chunkId,
-        isSkipped: false,
+  private startMediaRecorder(): void {
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        this.audioChunks = [];
+        this.mediaRecorder = new MediaRecorder(stream);
+        this.mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) this.audioChunks.push(e.data);
+        };
+        this.mediaRecorder.onstop = () => {
+          const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+          const url = URL.createObjectURL(blob);
+          this.userAudioUrl.set(url);
+          stream.getTracks().forEach((t) => t.stop());
+        };
+        this.mediaRecorder.start();
       })
-      .subscribe();
-    this.resetChunkEvaluation();
+      .catch(() => {
+        // microphone error handled gracefully
+      });
   }
 
-  skipActivity(chunkId: string): void {
-    this.advanceStep(chunkId, true);
-  }
-
-  advanceActivity(chunkId: string): void {
-    this.advanceStep(chunkId, false);
-  }
-
-  private advanceStep(chunkId: string, isSkipped: boolean): void {
-    const s = this.scenario();
-    if (!s) return;
-
-    this.scenarioService
-      .recordDrill(s.id, {
-        chunkId,
-        isSkipped,
-      })
-      .subscribe();
-
-    if (!isSkipped) {
-      this.practicedChunkIds.update((set) => new Set([...set, chunkId]));
-    }
-
-    const totalChunks = s.chunks.length;
-    const currentIdx = this.drillChunkIdx();
-    const act = this.currentActivity();
-
-    // Spaced Spiral Transition logic
-    if (currentIdx < totalChunks - 1) {
-      // Advance to next chunk within current activity
-      this.drillChunkIdx.update((i) => i + 1);
-      this.resetChunkEvaluation();
-    } else {
-      // Reached end of chunks for current activity; escalate to next round
-      if (act === 'phonetics') {
-        this.currentActivity.set('listen_repeat');
-        this.drillChunkIdx.set(0);
-        this.resetChunkEvaluation();
-      } else if (act === 'listen_repeat') {
-        this.currentActivity.set('fill_blank');
-        this.drillChunkIdx.set(0);
-        this.resetChunkEvaluation();
-      } else if (act === 'fill_blank') {
-        this.currentActivity.set('reflex_quiz');
-        this.drillChunkIdx.set(0);
-        this.resetChunkEvaluation();
-      } else {
-        // All 4 rounds complete!
-        this.stage.set('summary_ready');
-      }
+  private stopMediaRecorder(): void {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
     }
   }
 
-  getSentenceTail(chunk: ScenarioChunk): string {
-    const ex = chunk.exampleSentence;
-    const txt = chunk.text;
-    const idx = ex.toLowerCase().indexOf(txt.toLowerCase());
-    if (idx !== -1) {
-      const tail = ex.substring(idx + txt.length).trim();
-      return tail.length > 0 ? tail : ex;
+  playUserAudio(): void {
+    const url = this.userAudioUrl();
+    if (url) {
+      const audio = new Audio(url);
+      void audio.play().catch((err: unknown) => {
+        console.debug('Failed to play user audio:', err);
+      });
     }
-    return ex;
   }
 
-  toggleHint(): void {
-    this.showHint.update((v) => !v);
-  }
-
-  isBookmarked(chunkId: string): boolean {
-    return this.bookmarkedChunkIds().has(chunkId);
-  }
-
-  toggleBookmark(chunkId: string): void {
-    this.bookmarkedChunkIds.update((set) => {
-      const next = new Set(set);
-      if (next.has(chunkId)) {
-        next.delete(chunkId);
-      } else {
-        next.add(chunkId);
-      }
-      return next;
-    });
+  playAudio(text: string, audioUrl?: string | null): void {
+    this.scenarioService.playChunkAudio(text, audioUrl, false);
   }
 
   isChunkPracticed(chunkId: string): boolean {
@@ -952,12 +1060,14 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   startRoleplay(): void {
     const s = this.scenario();
     if (!s) return;
-
     this.isStartingRoleplay.set(true);
     this.scenarioService.startRoleplay(s.id).subscribe({
       next: (res) => {
         this.isStartingRoleplay.set(false);
-        this.router.navigate(['/scenario-roleplay', res.sessionId]);
+        this.router.navigate(['/scenario-roleplay', res.sessionId], {
+          state: { scenario: s, roleplaySession: res },
+          queryParams: { scenarioId: s.id },
+        });
       },
       error: () => {
         this.isStartingRoleplay.set(false);

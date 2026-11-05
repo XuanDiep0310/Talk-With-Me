@@ -1,4 +1,11 @@
+from __future__ import annotations
+
 import uuid
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.services.gamification import GamificationService
+    from app.services.progress import ProgressService
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -212,3 +219,24 @@ def get_placement_service(
     llm_provider: LlmProvider = Depends(get_llm_provider),
 ) -> PlacementService:
     return PlacementService(session=session, settings=settings, llm_provider=llm_provider)
+
+
+# ---------------------------------------------------------------------------
+# Gamification & Progress Services
+# ---------------------------------------------------------------------------
+
+
+def get_gamification_service(
+    session: AsyncSession = Depends(get_db),
+) -> GamificationService:
+    from app.services.gamification import GamificationService
+
+    return GamificationService(db_session=session)
+
+
+def get_progress_service(
+    session: AsyncSession = Depends(get_db),
+) -> ProgressService:
+    from app.services.progress import ProgressService
+
+    return ProgressService(db_session=session)
