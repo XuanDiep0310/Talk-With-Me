@@ -1,401 +1,612 @@
 scenarios:
-  - slug: "introducing-yourself"
-    category: "SOCIAL"
-    title_vi: "Giới thiệu bản thân"
-    title_en: "Introducing Yourself"
-    level: "A2"
-    estimated_duration_minutes: 10
-    context: "Bạn tham gia buổi giao lưu đầu tiên của câu lạc bộ tiếng Anh. Bạn gặp một thành viên mới và hai người bắt chuyện, giới thiệu về tên tuổi, nghề nghiệp và sở thích."
-    user_role: "Thành viên mới"
-    ai_role: "Bạn cùng sinh hoạt câu lạc bộ"
-    goals:
-      - "Chào hỏi và giới thiệu tên, nghề nghiệp hoặc ngành học"
-      - "Hỏi thông tin về người đối diện"
-      - "Chia sẻ một sở thích cá nhân"
-    sort_order: 6
-    requirements:
-      - description: "Mở đầu cuộc trò chuyện và giới thiệu tên của mình"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Nói về công việc, quê quán hoặc ngành học hiện tại"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Hỏi lại thông tin tương tự từ người đối diện"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Bày tỏ niềm vui khi được làm quen"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "Hi, nice to meet you, I'm..."
-        meaning_vi: "Xin chào, rất vui được gặp bạn, tôi là..."
-        example_sentence: "Hi, nice to meet you, I'm Alex from Hanoi."
-        accepted_variations:
-          - "Hello, my name is..."
-          - "Hi there, I don't think we've met, I'm..."
-          - "Pleased to meet you, I am..."
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "Currently, I work as a..."
-        meaning_vi: "Hiện tại, tôi đang làm nghề..."
-        example_sentence: "Currently, I work as a software engineer at a tech startup."
-        accepted_variations:
-          - "I'm currently working as a..."
-          - "Right now I study..."
-          - "I work in the field of..."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "What about you? What do you do?"
-        meaning_vi: "Còn bạn thì sao? Bạn làm nghề gì?"
-        example_sentence: "What about you? What do you do in your free time?"
-        accepted_variations:
-          - "How about you?"
-          - "And what about yourself?"
-          - "What kind of work do you do?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "That sounds really interesting!"
-        meaning_vi: "Điều đó nghe thật thú vị!"
-        example_sentence: "That sounds really interesting! How long have you been doing that?"
-        accepted_variations:
-          - "That's awesome!"
-          - "That sounds fascinating."
-          - "Really? That sounds cool."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "It was really nice chatting with you."
-        meaning_vi: "Rất vui được trò chuyện cùng bạn."
-        example_sentence: "It was really nice chatting with you, Alex! Let's stay in touch."
-        accepted_variations:
-          - "Great meeting you!"
-          - "Nice talking to you."
-          - "Hope to talk again soon."
-        sort_order: 5
-
-  - slug: "networking-party"
-    category: "SOCIAL"
-    title_vi: "Tiệc gặp mặt (Party)"
-    title_en: "Networking Party & Small Talk"
-    level: "B1"
-    estimated_duration_minutes: 15
-    context: "Bạn đang tham dự một buổi tiệc giao lưu sau hội thảo chuyên môn. Bạn chủ động tiếp cận một vị khách đang đứng gần quầy đồ uống để bắt chuyện và mở rộng mối quan hệ."
-    user_role: "Khách tham dự tiệc"
-    ai_role: "Khách tham gia hội thảo / Chuyên gia cùng ngành"
-    goals:
-      - "Chủ động bắt chuyện tự nhiên (small talk)"
-      - "Hỏi cảm nhận về buổi thuyết trình hoặc chủ đề hội thảo"
-      - "Trao đổi phương thức liên lạc trước khi rời đi"
-    sort_order: 7
-    requirements:
-      - description: "Bắt đầu cuộc trò chuyện bằng câu gợi mở tự nhiên"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Chia sẻ hoặc hỏi ý kiến về phiên hội thảo hôm nay"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Đồng tình hoặc bình luận thêm về nội dung trao đổi"
-        type: "TASK"
-        expected_chunk_function: "AGREE_DECLINE"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Đề xuất kết nối trên LinkedIn hoặc xin thông tin liên hệ"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: false
-        sort_order: 4
-      - description: "Chào tạm biệt lịch sự khi kết thúc trò chuyện"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 5
-    chunks:
-      - function_tag: "OPENING"
-        text: "Mind if I join you here?"
-        meaning_vi: "Tôi có thể đứng cùng bạn ở đây được không?"
-        example_sentence: "Hi! Mind if I join you here? It's pretty crowded today."
-        accepted_variations:
-          - "Do you mind if I join you?"
-          - "Is anyone sitting here?"
-          - "May I join you?"
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "What did you think of the presentation on...?"
-        meaning_vi: "Bạn nghĩ sao về bài thuyết trình về...?"
-        example_sentence: "What did you think of the presentation on artificial intelligence earlier?"
-        accepted_variations:
-          - "How did you find the keynote speech?"
-          - "What was your takeaway from the talk?"
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Could we connect on LinkedIn?"
-        meaning_vi: "Chúng ta có thể kết nối trên LinkedIn được không?"
-        example_sentence: "Could we connect on LinkedIn so we can keep in touch?"
-        accepted_variations:
-          - "Can I add you on LinkedIn?"
-          - "Are you on LinkedIn?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "I couldn't agree more with that point."
-        meaning_vi: "Tôi hoàn toàn đồng ý với quan điểm đó."
-        example_sentence: "I couldn't agree more with that point, it was very insightful."
-        accepted_variations:
-          - "I completely agree with you."
-          - "That's exactly what I was thinking."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "I'll let you mingle, but let's keep in touch!"
-        meaning_vi: "Tôi để bạn giao lưu với mọi người nhé, hãy giữ liên lạc nhé!"
-        example_sentence: "I'll let you mingle, but let's definitely keep in touch!"
-        accepted_variations:
-          - "Enjoy the rest of the evening!"
-          - "It was a pleasure meeting you."
-        sort_order: 5
-
-  - slug: "making-friends-online"
-    category: "SOCIAL"
-    title_vi: "Kết bạn online"
-    title_en: "Making Friends Online"
-    level: "B1"
-    estimated_duration_minutes: 12
-    context: "Bạn kết nối với một người bạn quốc tế qua ứng dụng trao đổi ngôn ngữ. Hai người trò chuyện để tìm hiểu điểm chung về văn hóa và thói quen hàng ngày."
-    user_role: "Người học tiếng Anh"
-    ai_role: "Người bạn học ngôn ngữ bản xứ"
-    goals:
-      - "Bắt đầu cuộc gọi video thân thiện"
-      - "Hỏi về văn hóa và cuộc sống ở đất nước của bạn"
-      - "Thảo luận về mục tiêu học ngôn ngữ của cả hai"
-    sort_order: 8
-    requirements:
-      - description: "Chào hỏi và xác nhận tín hiệu âm thanh hình ảnh"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Hỏi về múi giờ hoặc cuộc sống hàng ngày của đối phương"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Chia sẻ về kế hoạch học tiếng Anh của bản thân"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Hẹn buổi nói chuyện tiếp theo"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "Hey! Can you hear me clearly?"
-        meaning_vi: "Chào bạn! Bạn có nghe rõ tôi nói không?"
-        example_sentence: "Hey there! Can you hear and see me clearly on your end?"
-        accepted_variations:
-          - "Hi! Is the audio working fine?"
-          - "Hello! Can you hear me okay?"
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "What made you want to learn...?"
-        meaning_vi: "Điều gì khiến bạn muốn học...?"
-        example_sentence: "What made you want to learn Vietnamese in the first place?"
-        accepted_variations:
-          - "Why did you decide to learn...?"
-          - "What inspired you to study...?"
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Could you tell me how you say that in...?"
-        meaning_vi: "Bạn có thể chỉ tôi cách nói điều đó bằng... không?"
-        example_sentence: "Could you tell me how native speakers usually say that in English?"
-        accepted_variations:
-          - "How do you naturally say that in English?"
-          - "What is the common expression for that?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "We have so much in common!"
-        meaning_vi: "Chúng ta có nhiều điểm chung quá!"
-        example_sentence: "That's incredible, we really have so much in common!"
-        accepted_variations:
-          - "I feel the same way!"
-          - "Same here, that's so cool."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "Let's definitely schedule another chat next week."
-        meaning_vi: "Nhất định chúng ta hãy hẹn một buổi trò chuyện khác vào tuần tới nhé."
-        example_sentence: "This was awesome, let's definitely schedule another chat next weekend!"
-        accepted_variations:
-          - "Let's talk again soon!"
-          - "Catch you next week, take care!"
-        sort_order: 5
-
-  - slug: "weekend-invitation"
-    category: "SOCIAL"
-    title_vi: "Rủ bạn đi chơi cuối tuần"
-    title_en: "Weekend Hangout Invitation"
-    level: "A2"
-    estimated_duration_minutes: 10
-    context: "Bạn muốn rủ một người bạn đi xem phim hoặc thử một quán ăn mới vào thứ Bảy này. Bạn gọi điện để bàn kế hoạch và thống nhất địa điểm."
-    user_role: "Người rủ đi chơi"
-    ai_role: "Người bạn thân"
-    goals:
-      - "Hỏi thăm kế hoạch cuối tuần của bạn"
-      - "Đưa ra lời mời và gợi ý hoạt động"
-      - "Chốt thời gian và điểm hẹn"
-    sort_order: 9
-    requirements:
-      - description: "Hỏi thăm dự định cuối tuần"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Đề xuất một địa điểm hoặc hoạt động cụ thể"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Hỏi làm rõ thời gian hoặc phương tiện di chuyển"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Chốt lại cuộc hẹn và tạm biệt"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "Are you free this weekend?"
-        meaning_vi: "Cuối tuần này bạn có rảnh không?"
-        example_sentence: "Hey! Are you free this weekend to hang out?"
-        accepted_variations:
-          - "Do you have any plans this weekend?"
-          - "What are you doing this Saturday?"
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "Do you feel like going to...?"
-        meaning_vi: "Bạn có hứng thú đi... không?"
-        example_sentence: "Do you feel like trying that new Italian restaurant downtown?"
-        accepted_variations:
-          - "How about we go to...?"
-          - "Would you like to check out...?"
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "What time would be best for you?"
-        meaning_vi: "Mấy giờ thì tiện nhất cho bạn?"
-        example_sentence: "What time would be best for you on Saturday afternoon?"
-        accepted_variations:
-          - "When are you available?"
-          - "Does two in the afternoon work for you?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "Sounds like a plan to me!"
-        meaning_vi: "Nghe có vẻ là kế hoạch tuyệt vời đấy!"
-        example_sentence: "Meeting at the cinema at six? Sounds like a plan to me!"
-        accepted_variations:
-          - "That sounds like a great plan!"
-          - "Count me in, that works."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "Awesome, see you on Saturday!"
-        meaning_vi: "Tuyệt vời, hẹn gặp bạn vào thứ Bảy nhé!"
-        example_sentence: "Awesome, I'll pick you up at five. See you on Saturday!"
-        accepted_variations:
-          - "Great, see you then!"
-          - "Can't wait, talk to you later!"
-        sort_order: 5
-
-  - slug: "talking-about-hobbies"
-    category: "SOCIAL"
-    title_vi: "Trò chuyện về sở thích"
-    title_en: "Talking About Hobbies & Passions"
-    level: "B2"
-    estimated_duration_minutes: 14
-    context: "Trong một buổi sinh hoạt nhóm nhiếp ảnh và nghệ thuật, bạn chia sẻ về đam mê chụp ảnh phong cảnh và hỏi về sở thích du lịch khám phá của bạn cùng nhóm."
-    user_role: "Thành viên nhóm sở thích"
-    ai_role: "Nhiếp ảnh gia nghiệp dư / Bạn cùng sở thích"
-    goals:
-      - "Diễn đạt niềm đam mê và thời gian gắn bó với sở thích"
-      - "Thảo luận về kỹ thuật hoặc trải nghiệm đáng nhớ"
-      - "Đưa ra lời khuyên hoặc gợi ý địa điểm thú vị"
-    sort_order: 10
-    requirements:
-      - description: "Mở đầu chia sẻ về sở thích cá nhân"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Nêu lý do vì sao bạn yêu thích hoạt động này"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Hỏi ý kiến của bạn về một trải nghiệm tương tự"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Đồng tình hoặc chia sẻ góc nhìn sâu sắc"
-        type: "TASK"
-        expected_chunk_function: "AGREE_DECLINE"
-        is_mandatory: false
-        sort_order: 4
-      - description: "Kết thúc cuộc trò chuyện với lời hứa cùng thực hiện"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 5
-    chunks:
-      - function_tag: "OPENING"
-        text: "I've been passionate about... for years."
-        meaning_vi: "Tôi đã đam mê... nhiều năm nay."
-        example_sentence: "I've been passionate about landscape photography for over five years."
-        accepted_variations:
-          - "I'm really into..."
-          - "One of my biggest hobbies is..."
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "What I love most about it is..."
-        meaning_vi: "Điều tôi thích nhất ở nó là..."
-        example_sentence: "What I love most about it is the feeling of capturing a fleeting moment in nature."
-        accepted_variations:
-          - "The best part of it is..."
-          - "What draws me in is..."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Have you ever tried doing that yourself?"
-        meaning_vi: "Bạn đã từng thử tự làm điều đó bao giờ chưa?"
-        example_sentence: "Have you ever tried doing night photography or astrophotography yourself?"
-        accepted_variations:
-          - "Did you ever give that a try?"
-          - "Have you had any experience with that?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "I completely resonate with that feeling."
-        meaning_vi: "Tôi hoàn toàn đồng cảm với cảm giác đó."
-        example_sentence: "I completely resonate with that feeling of serenity when being outdoors."
-        accepted_variations:
-          - "I feel the exact same way."
-          - "That totally makes sense to me."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "We should definitely go on a photo walk together sometime."
-        meaning_vi: "Thỉnh thoảng chúng ta nhất định nên cùng đi dạo chụp ảnh nhé."
-        example_sentence: "We should definitely go on a photo walk together sometime next month!"
-        accepted_variations:
-          - "Let's do that together sometime!"
-          - "I'd love to join you next time."
-        sort_order: 5
+- slug: introducing-yourself
+  category: SOCIAL
+  title_vi: Giới thiệu bản thân
+  title_en: Introducing Yourself
+  level: A2
+  estimated_duration_minutes: 10
+  context: Bạn tham gia buổi giao lưu đầu tiên của câu lạc bộ tiếng Anh. Bạn gặp một
+    thành viên mới và hai người bắt chuyện, giới thiệu về tên tuổi, nghề nghiệp và
+    sở thích.
+  user_role: Thành viên mới
+  ai_role: Bạn cùng sinh hoạt câu lạc bộ
+  goals:
+  - Chào hỏi và giới thiệu tên, nghề nghiệp hoặc ngành học
+  - Hỏi thông tin về người đối diện
+  - Chia sẻ một sở thích cá nhân
+  sort_order: 6
+  requirements:
+  - description: Mở đầu cuộc trò chuyện và giới thiệu tên của mình
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Nói về công việc, quê quán hoặc ngành học hiện tại
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Hỏi lại thông tin tương tự từ người đối diện
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Bày tỏ niềm vui khi được làm quen
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 4
+  chunks:
+  - function_tag: OPENING
+    text: Hi, nice to meet you, I'm...
+    meaning_vi: Xin chào, rất vui được gặp bạn, tôi là...
+    example_sentence: Hi, nice to meet you, I'm Alex from Hanoi.
+    accepted_variations:
+    - Hello, my name is...
+    - Hi there, I don't think we've met, I'm...
+    - Pleased to meet you, I am...
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: Currently, I work as a...
+    meaning_vi: Hiện tại, tôi đang làm nghề...
+    example_sentence: Currently, I work as a software engineer at a tech startup.
+    accepted_variations:
+    - I'm currently working as a...
+    - Right now I study...
+    - I work in the field of...
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: What about you? What do you do?
+    meaning_vi: Còn bạn thì sao? Bạn làm nghề gì?
+    example_sentence: What about you? What do you do in your free time?
+    accepted_variations:
+    - How about you?
+    - And what about yourself?
+    - What kind of work do you do?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: That sounds really interesting!
+    meaning_vi: Điều đó nghe thật thú vị!
+    example_sentence: That sounds really interesting! How long have you been doing
+      that?
+    accepted_variations:
+    - That's awesome!
+    - That sounds fascinating.
+    - Really? That sounds cool.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: It was really nice chatting with you.
+    meaning_vi: Rất vui được trò chuyện cùng bạn.
+    example_sentence: It was really nice chatting with you, Alex! Let's stay in touch.
+    accepted_variations:
+    - Great meeting you!
+    - Nice talking to you.
+    - Hope to talk again soon.
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+- slug: networking-party
+  category: SOCIAL
+  title_vi: Tiệc gặp mặt (Party)
+  title_en: Networking Party & Small Talk
+  level: B1
+  estimated_duration_minutes: 15
+  context: Bạn đang tham dự một buổi tiệc giao lưu sau hội thảo chuyên môn. Bạn chủ
+    động tiếp cận một vị khách đang đứng gần quầy đồ uống để bắt chuyện và mở rộng
+    mối quan hệ.
+  user_role: Khách tham dự tiệc
+  ai_role: Khách tham gia hội thảo / Chuyên gia cùng ngành
+  goals:
+  - Chủ động bắt chuyện tự nhiên (small talk)
+  - Hỏi cảm nhận về buổi thuyết trình hoặc chủ đề hội thảo
+  - Trao đổi phương thức liên lạc trước khi rời đi
+  sort_order: 7
+  requirements:
+  - description: Bắt đầu cuộc trò chuyện bằng câu gợi mở tự nhiên
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Chia sẻ hoặc hỏi ý kiến về phiên hội thảo hôm nay
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Đồng tình hoặc bình luận thêm về nội dung trao đổi
+    type: TASK
+    expected_chunk_function: AGREE_DECLINE
+    is_mandatory: true
+    sort_order: 3
+  - description: Đề xuất kết nối trên LinkedIn hoặc xin thông tin liên hệ
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: false
+    sort_order: 4
+  - description: Chào tạm biệt lịch sự khi kết thúc trò chuyện
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 5
+  chunks:
+  - function_tag: OPENING
+    text: Mind if I join you here?
+    meaning_vi: Tôi có thể đứng cùng bạn ở đây được không?
+    example_sentence: Hi! Mind if I join you here? It's pretty crowded today.
+    accepted_variations:
+    - Do you mind if I join you?
+    - Is anyone sitting here?
+    - May I join you?
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: What did you think of the presentation on...?
+    meaning_vi: Bạn nghĩ sao về bài thuyết trình về...?
+    example_sentence: What did you think of the presentation on artificial intelligence
+      earlier?
+    accepted_variations:
+    - How did you find the keynote speech?
+    - What was your takeaway from the talk?
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: Could we connect on LinkedIn?
+    meaning_vi: Chúng ta có thể kết nối trên LinkedIn được không?
+    example_sentence: Could we connect on LinkedIn so we can keep in touch?
+    accepted_variations:
+    - Can I add you on LinkedIn?
+    - Are you on LinkedIn?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: I couldn't agree more with that point.
+    meaning_vi: Tôi hoàn toàn đồng ý với quan điểm đó.
+    example_sentence: I couldn't agree more with that point, it was very insightful.
+    accepted_variations:
+    - I completely agree with you.
+    - That's exactly what I was thinking.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: I'll let you mingle, but let's keep in touch!
+    meaning_vi: Tôi để bạn giao lưu với mọi người nhé, hãy giữ liên lạc nhé!
+    example_sentence: I'll let you mingle, but let's definitely keep in touch!
+    accepted_variations:
+    - Enjoy the rest of the evening!
+    - It was a pleasure meeting you.
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+- slug: making-friends-online
+  category: SOCIAL
+  title_vi: Kết bạn online
+  title_en: Making Friends Online
+  level: B1
+  estimated_duration_minutes: 12
+  context: Bạn kết nối với một người bạn quốc tế qua ứng dụng trao đổi ngôn ngữ. Hai
+    người trò chuyện để tìm hiểu điểm chung về văn hóa và thói quen hàng ngày.
+  user_role: Người học tiếng Anh
+  ai_role: Người bạn học ngôn ngữ bản xứ
+  goals:
+  - Bắt đầu cuộc gọi video thân thiện
+  - Hỏi về văn hóa và cuộc sống ở đất nước của bạn
+  - Thảo luận về mục tiêu học ngôn ngữ của cả hai
+  sort_order: 8
+  requirements:
+  - description: Chào hỏi và xác nhận tín hiệu âm thanh hình ảnh
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Hỏi về múi giờ hoặc cuộc sống hàng ngày của đối phương
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Chia sẻ về kế hoạch học tiếng Anh của bản thân
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Hẹn buổi nói chuyện tiếp theo
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 4
+  chunks:
+  - function_tag: OPENING
+    text: Hey! Can you hear me clearly?
+    meaning_vi: Chào bạn! Bạn có nghe rõ tôi nói không?
+    example_sentence: Hey there! Can you hear and see me clearly on your end?
+    accepted_variations:
+    - Hi! Is the audio working fine?
+    - Hello! Can you hear me okay?
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: What made you want to learn...?
+    meaning_vi: Điều gì khiến bạn muốn học...?
+    example_sentence: What made you want to learn Vietnamese in the first place?
+    accepted_variations:
+    - Why did you decide to learn...?
+    - What inspired you to study...?
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: Could you tell me how you say that in...?
+    meaning_vi: Bạn có thể chỉ tôi cách nói điều đó bằng... không?
+    example_sentence: Could you tell me how native speakers usually say that in English?
+    accepted_variations:
+    - How do you naturally say that in English?
+    - What is the common expression for that?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: We have so much in common!
+    meaning_vi: Chúng ta có nhiều điểm chung quá!
+    example_sentence: That's incredible, we really have so much in common!
+    accepted_variations:
+    - I feel the same way!
+    - Same here, that's so cool.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: Let's definitely schedule another chat next week.
+    meaning_vi: Nhất định chúng ta hãy hẹn một buổi trò chuyện khác vào tuần tới nhé.
+    example_sentence: This was awesome, let's definitely schedule another chat next
+      weekend!
+    accepted_variations:
+    - Let's talk again soon!
+    - Catch you next week, take care!
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+- slug: weekend-invitation
+  category: SOCIAL
+  title_vi: Rủ bạn đi chơi cuối tuần
+  title_en: Weekend Hangout Invitation
+  level: A2
+  estimated_duration_minutes: 10
+  context: Bạn muốn rủ một người bạn đi xem phim hoặc thử một quán ăn mới vào thứ
+    Bảy này. Bạn gọi điện để bàn kế hoạch và thống nhất địa điểm.
+  user_role: Người rủ đi chơi
+  ai_role: Người bạn thân
+  goals:
+  - Hỏi thăm kế hoạch cuối tuần của bạn
+  - Đưa ra lời mời và gợi ý hoạt động
+  - Chốt thời gian và điểm hẹn
+  sort_order: 9
+  requirements:
+  - description: Hỏi thăm dự định cuối tuần
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Đề xuất một địa điểm hoặc hoạt động cụ thể
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Hỏi làm rõ thời gian hoặc phương tiện di chuyển
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Chốt lại cuộc hẹn và tạm biệt
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 4
+  chunks:
+  - function_tag: OPENING
+    text: Are you free this weekend?
+    meaning_vi: Cuối tuần này bạn có rảnh không?
+    example_sentence: Hey! Are you free this weekend to hang out?
+    accepted_variations:
+    - Do you have any plans this weekend?
+    - What are you doing this Saturday?
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: Do you feel like going to...?
+    meaning_vi: Bạn có hứng thú đi... không?
+    example_sentence: Do you feel like trying that new Italian restaurant downtown?
+    accepted_variations:
+    - How about we go to...?
+    - Would you like to check out...?
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: What time would be best for you?
+    meaning_vi: Mấy giờ thì tiện nhất cho bạn?
+    example_sentence: What time would be best for you on Saturday afternoon?
+    accepted_variations:
+    - When are you available?
+    - Does two in the afternoon work for you?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: Sounds like a plan to me!
+    meaning_vi: Nghe có vẻ là kế hoạch tuyệt vời đấy!
+    example_sentence: Meeting at the cinema at six? Sounds like a plan to me!
+    accepted_variations:
+    - That sounds like a great plan!
+    - Count me in, that works.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: Awesome, see you on Saturday!
+    meaning_vi: Tuyệt vời, hẹn gặp bạn vào thứ Bảy nhé!
+    example_sentence: Awesome, I'll pick you up at five. See you on Saturday!
+    accepted_variations:
+    - Great, see you then!
+    - Can't wait, talk to you later!
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+- slug: talking-about-hobbies
+  category: SOCIAL
+  title_vi: Trò chuyện về sở thích
+  title_en: Talking About Hobbies & Passions
+  level: B2
+  estimated_duration_minutes: 14
+  context: Trong một buổi sinh hoạt nhóm nhiếp ảnh và nghệ thuật, bạn chia sẻ về đam
+    mê chụp ảnh phong cảnh và hỏi về sở thích du lịch khám phá của bạn cùng nhóm.
+  user_role: Thành viên nhóm sở thích
+  ai_role: Nhiếp ảnh gia nghiệp dư / Bạn cùng sở thích
+  goals:
+  - Diễn đạt niềm đam mê và thời gian gắn bó với sở thích
+  - Thảo luận về kỹ thuật hoặc trải nghiệm đáng nhớ
+  - Đưa ra lời khuyên hoặc gợi ý địa điểm thú vị
+  sort_order: 10
+  requirements:
+  - description: Mở đầu chia sẻ về sở thích cá nhân
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Nêu lý do vì sao bạn yêu thích hoạt động này
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Hỏi ý kiến của bạn về một trải nghiệm tương tự
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Đồng tình hoặc chia sẻ góc nhìn sâu sắc
+    type: TASK
+    expected_chunk_function: AGREE_DECLINE
+    is_mandatory: false
+    sort_order: 4
+  - description: Kết thúc cuộc trò chuyện với lời hứa cùng thực hiện
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 5
+  chunks:
+  - function_tag: OPENING
+    text: I've been passionate about... for years.
+    meaning_vi: Tôi đã đam mê... nhiều năm nay.
+    example_sentence: I've been passionate about landscape photography for over five
+      years.
+    accepted_variations:
+    - I'm really into...
+    - One of my biggest hobbies is...
+    sort_order: 1
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: REQUEST
+    text: What I love most about it is...
+    meaning_vi: Điều tôi thích nhất ở nó là...
+    example_sentence: What I love most about it is the feeling of capturing a fleeting
+      moment in nature.
+    accepted_variations:
+    - The best part of it is...
+    - What draws me in is...
+    sort_order: 2
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLARIFY
+    text: Have you ever tried doing that yourself?
+    meaning_vi: Bạn đã từng thử tự làm điều đó bao giờ chưa?
+    example_sentence: Have you ever tried doing night photography or astrophotography
+      yourself?
+    accepted_variations:
+    - Did you ever give that a try?
+    - Have you had any experience with that?
+    sort_order: 3
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: AGREE_DECLINE
+    text: I completely resonate with that feeling.
+    meaning_vi: Tôi hoàn toàn đồng cảm với cảm giác đó.
+    example_sentence: I completely resonate with that feeling of serenity when being
+      outdoors.
+    accepted_variations:
+    - I feel the exact same way.
+    - That totally makes sense to me.
+    sort_order: 4
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?
+  - function_tag: CLOSING
+    text: We should definitely go on a photo walk together sometime.
+    meaning_vi: Thỉnh thoảng chúng ta nhất định nên cùng đi dạo chụp ảnh nhé.
+    example_sentence: We should definitely go on a photo walk together sometime next
+      month!
+    accepted_variations:
+    - Let's do that together sometime!
+    - I'd love to join you next time.
+    sort_order: 5
+    distractors_en:
+    - I'm sorry, I don't understand.
+    - Let me get back to you on that.
+    - Could you repeat that please?
+    distractors_vi:
+    - Xin lỗi, tôi không hiểu.
+    - Để tôi trả lời bạn sau nhé.
+    - Bạn có thể nhắc lại không?

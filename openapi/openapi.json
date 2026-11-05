@@ -5052,6 +5052,20 @@
             "type": "array",
             "title": "Acceptedvariations"
           },
+          "distractorsEn": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Distractorsen"
+          },
+          "distractorsVi": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Distractorsvi"
+          },
           "sortOrder": {
             "type": "integer",
             "title": "Sortorder"

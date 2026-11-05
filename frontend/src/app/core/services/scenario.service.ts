@@ -59,6 +59,10 @@ export interface ScenarioChunk {
   audioUrl?: string | null;
   exampleSentence: string;
   acceptedVariations: string[];
+  /** Wrong English options for VI→EN MCQ drill phase */
+  distractorsEn: string[];
+  /** Wrong Vietnamese options for EN→VI MCQ drill phase */
+  distractorsVi: string[];
   sortOrder: number;
 }
 

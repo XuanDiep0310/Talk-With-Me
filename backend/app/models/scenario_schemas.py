@@ -28,6 +28,9 @@ class ScenarioChunkSchema(BaseScenarioSchema):
     audio_url: str | None = None
     example_sentence: str
     accepted_variations: list[str] = Field(default_factory=list)
+    # MCQ distractors for chunk drill phases
+    distractors_en: list[str] = Field(default_factory=list)
+    distractors_vi: list[str] = Field(default_factory=list)
     sort_order: int
 
 

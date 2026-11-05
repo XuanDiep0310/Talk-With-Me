@@ -104,6 +104,15 @@ class ScenarioChunk(Base, TimestampMixin):
     accepted_variations: Mapped[list[str]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"), default=list, nullable=False
     )
+    # MCQ distractor options for chunk drill phases:
+    # distractors_en: wrong English options for VI->EN MCQ (Phase 1)
+    # distractors_vi: wrong Vietnamese options for EN->VI MCQ (Phase 3)
+    distractors_en: Mapped[list[str]] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), default=list, nullable=False
+    )
+    distractors_vi: Mapped[list[str]] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), default=list, nullable=False
+    )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     scenario: Mapped[Scenario] = relationship("Scenario", back_populates="chunks")
