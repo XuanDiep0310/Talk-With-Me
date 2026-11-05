@@ -359,23 +359,53 @@ class FakeLlmProvider:
         user_level: str,  # noqa: ARG002
     ) -> dict[str, Any]:
         user_turns = [h["content"] for h in history if h.get("role") == "user"]
-        has_sufficient_speech = (
-            len(user_turns) >= 1 and sum(len(t.split()) for t in user_turns) >= 3
-        )
+        all_user_text = " ".join(user_turns).lower()
+        user_words = set(all_user_text.replace(",", " ").replace(".", " ").replace("?", " ").split())
+        total_word_count = sum(len(t.split()) for t in user_turns)
 
+        # Strictly check which target chunks were genuinely used in conversation
+        functional_verdicts: dict[str, bool] = {}
+        for c in chunks:
+            c_id = str(c.get("id", ""))
+            c_text = c.get("text", "").lower()
+            kw = [w.strip(".,!?;:'\"") for w in c_text.split() if len(w.strip(".,!?;:'\"")) >= 3]
+            if not kw:
+                functional_verdicts[c_id] = False
+                continue
+            kw_matches = sum(1 for w in kw if w in user_words or w in all_user_text)
+            is_matched = (kw_matches / len(kw)) >= 0.5
+            functional_verdicts[c_id] = is_matched
+
+        # Strict requirement evaluation based on actual evidence
         req_evals: list[dict[str, Any]] = []
-        for req in requirements:
+        function_keywords: dict[str, list[str]] = {
+            "OPENING": ["hi", "hello", "excuse", "morning", "afternoon", "evening", "could", "would"],
+            "REQUEST": ["where", "how", "much", "want", "like", "need", "can", "could", "table", "book", "order"],
+            "CLARIFY": ["what", "when", "how", "confirm", "include", "card", "time", "if", "available"],
+            "AGREE_DECLINE": ["sounds", "good", "great", "perfect", "fine", "work", "works", "take", "yes", "no"],
+            "CLOSING": ["thank", "thanks", "bye", "goodbye", "see", "later", "night", "appreciate"],
+        }
+
+        for idx, req in enumerate(requirements):
             r_id = str(req.get("id", ""))
             desc = req.get("description", "")
             is_mand = req.get("is_mandatory", True)
+            func_tag = req.get("expected_chunk_function", "")
 
-            # If user spoke sufficiently, pass mandatory requirements
-            status = "PASS" if has_sufficient_speech else "FAIL"
-            evidence = f"User said: '{user_turns[0]}'" if user_turns else "No user utterance found"
+            has_turn = len(user_turns) > idx or len(user_turns) >= 2
+            kws = function_keywords.get(func_tag, ["the", "i"])
+            kw_found = any(k in user_words or k in all_user_text for k in kws)
+
+            status = "PASS" if (has_turn and kw_found and total_word_count >= 5) else "FAIL"
+            evidence = (
+                f"User said: '{user_turns[min(idx, len(user_turns) - 1)]}'"
+                if user_turns
+                else "No user utterance found"
+            )
             reason = (
-                "Successfully fulfilled communicative goal in character."
-                if has_sufficient_speech
-                else "Insufficient dialogue evidence to satisfy milestone."
+                "Fulfilled communicative goal using appropriate vocabulary."
+                if status == "PASS"
+                else "Chưa sử dụng đủ mẫu câu hoặc từ vựng yêu cầu cho nhiệm vụ này."
             )
             req_evals.append(
                 {
@@ -388,23 +418,40 @@ class FakeLlmProvider:
                 }
             )
 
-        functional_verdicts = {str(c.get("id", "")): True for c in chunks}
+        # Calibrated realistic scoring: no artificial 90+ inflation
+        pass_ratio = sum(1 for r in req_evals if r["status"] == "PASS") / max(len(req_evals), 1)
+        if total_word_count < 10:
+            rel = round(35.0 + pass_ratio * 15.0, 1)
+            comp = round(30.0 + pass_ratio * 20.0, 1)
+            ctx = round(35.0 + pass_ratio * 15.0, 1)
+        elif total_word_count < 25:
+            rel = round(45.0 + pass_ratio * 20.0, 1)
+            comp = round(40.0 + pass_ratio * 25.0, 1)
+            ctx = round(45.0 + pass_ratio * 20.0, 1)
+        elif total_word_count < 50:
+            rel = round(55.0 + pass_ratio * 20.0, 1)
+            comp = round(50.0 + pass_ratio * 25.0, 1)
+            ctx = round(55.0 + pass_ratio * 20.0, 1)
+        else:
+            rel = round(65.0 + pass_ratio * 20.0, 1)
+            comp = round(60.0 + pass_ratio * 25.0, 1)
+            ctx = round(65.0 + pass_ratio * 20.0, 1)
 
         return {
             "requirements_evaluation": req_evals,
             "functional_chunk_verdicts": functional_verdicts,
             "strengths": [
-                f"Phản xạ mở đầu tình huống và giao tiếp tự tin trong vai trò của tình huống '{scenario_title}'.",
-                "Sử dụng cụm từ chức năng tự nhiên, duy trì tốt tiến trình hội thoại.",
+                f"Tự tin bước vào tình huống hội thoại '{scenario_title}'.",
+                f"Đã hoàn thành {sum(1 for r in req_evals if r['status'] == 'PASS')}/{len(req_evals)} mục tiêu của tình huống.",
             ],
             "improvements": [
-                "Có thể chủ động đặt thêm câu hỏi làm rõ để cuộc trò chuyện có chiều sâu hơn.",
-                "Thực hành thêm các cách diễn đạt biến thể của mẫu câu chính.",
+                "Cần mở rộng vốn từ và nói câu hoàn chỉnh hơn thay vì chỉ dùng từ đơn lẻ.",
+                "Áp dụng chính xác các cụm từ (chunks) đã nạp để câu nói tự nhiên và chuẩn xác hơn.",
             ],
-            "next_practice": f"Luyện tập lại tình huống '{scenario_title}' ở tốc độ nói tự nhiên để củng cố phản xạ.",
-            "response_relevance": 88.0,
-            "task_completion": 85.0 if has_sufficient_speech else 20.0,
-            "context_relevance": 85.0,
+            "next_practice": f"Luyện tập lại tình huống '{scenario_title}' để củng cố các cụm từ còn thiếu.",
+            "response_relevance": rel,
+            "task_completion": comp,
+            "context_relevance": ctx,
         }
 
 

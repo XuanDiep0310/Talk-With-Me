@@ -443,6 +443,16 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
       // Load scenario details for context
       this.loadScenarioContext();
 
+      // Ensure AI speaks the opening roleplay message immediately
+      const initialOpening = history.state?.roleplaySession?.openingMessage;
+      if (initialOpening) {
+        setTimeout(() => {
+          if (this.voiceService.liveTranscripts().length === 0) {
+            this.voiceService.speakText(initialOpening);
+          }
+        }, 500);
+      }
+
       // Start timer
       this.timerInterval = setInterval(() => {
         this.timer.update((t) => t + 1);

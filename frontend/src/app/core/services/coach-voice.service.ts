@@ -201,6 +201,9 @@ export class CoachVoiceService {
             this.uxState.set('processing');
             // Auto-play user's recorded turn first time right after finishing
             this.playSegmentAudio(item);
+          } else if (msg.speaker === 'AI') {
+            // Auto-play initial AI greeting / roleplay opening greeting
+            this.scheduleAiAutoPlay(item);
           }
         }
         break;

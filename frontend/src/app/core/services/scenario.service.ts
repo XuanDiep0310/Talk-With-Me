@@ -301,6 +301,28 @@ export function getIpaPhonetic(text: string): string {
   return `/${ipaWords.join(' ')}/`;
 }
 
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (a[i - 1] === b[j - 1]) dp[i][j] = dp[i - 1][j - 1];
+      else dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function wordSimilarity(w1: string, w2: string): number {
+  if (w1 === w2) return 1.0;
+  const maxLen = Math.max(w1.length, w2.length);
+  if (maxLen === 0) return 1.0;
+  return Math.max(0, 1 - levenshtein(w1, w2) / maxLen);
+}
+
 export function evaluatePronunciation(targetText: string, spokenText: string): ChunkEvaluationResult {
   if (!targetText) {
     return { score: 0, words: [], isMatch: false };
@@ -316,6 +338,7 @@ export function evaluatePronunciation(targetText: string, spokenText: string): C
 
   const cleanSpoken = spokenText.toLowerCase().replace(/[^a-z0-9\s']/g, ' ');
   const spokenTokens = cleanSpoken.split(/\s+/).filter(Boolean);
+  const usedSpokenIndices = new Set<number>();
 
   let matchedScore = 0;
   const evaluatedWords: WordPronunciationScore[] = [];
@@ -328,26 +351,54 @@ export function evaluatePronunciation(targetText: string, spokenText: string): C
       continue;
     }
 
-    const exactIndex = spokenTokens.indexOf(cleanWord);
-    if (exactIndex !== -1) {
-      evaluatedWords.push({ word: rawWord, status: 'correct' });
-      matchedScore += 1;
-    } else {
-      const closeMatch = spokenTokens.some((st) => {
-        if (cleanWord === "i'm" && (st === 'i' || st === 'im' || st === 'am')) return true;
-        if (st.length >= 3 && (cleanWord.includes(st) || st.includes(cleanWord))) return true;
-        return false;
-      });
-      if (closeMatch) {
-        evaluatedWords.push({ word: rawWord, status: 'correct' });
-        matchedScore += 0.85;
-      } else {
-        evaluatedWords.push({ word: rawWord, status: 'imperfect' });
+    // 1. First look for exact unused match
+    let bestMatchIdx = -1;
+    for (let i = 0; i < spokenTokens.length; i++) {
+      if (!usedSpokenIndices.has(i) && spokenTokens[i] === cleanWord) {
+        bestMatchIdx = i;
+        break;
       }
+    }
+
+    if (bestMatchIdx !== -1) {
+      usedSpokenIndices.add(bestMatchIdx);
+      evaluatedWords.push({ word: rawWord, status: 'correct' });
+      matchedScore += 1.0;
+      continue;
+    }
+
+    // 2. Look for close match (similarity >= 0.72)
+    let bestSim = 0;
+    let bestCloseIdx = -1;
+    for (let i = 0; i < spokenTokens.length; i++) {
+      if (!usedSpokenIndices.has(i)) {
+        const sim = wordSimilarity(cleanWord, spokenTokens[i]);
+        if (sim > bestSim) {
+          bestSim = sim;
+          bestCloseIdx = i;
+        }
+      }
+    }
+
+    // Special contraction handling e.g. "I'm" vs "I am"
+    if (cleanWord === "i'm" && spokenTokens.some((t) => t === 'i' || t === 'im')) {
+      bestSim = 0.9;
+    }
+
+    if (bestSim >= 0.72 && bestCloseIdx !== -1) {
+      usedSpokenIndices.add(bestCloseIdx);
+      evaluatedWords.push({ word: rawWord, status: 'imperfect' });
+      matchedScore += 0.6;
+    } else {
+      evaluatedWords.push({ word: rawWord, status: 'missing' });
     }
   }
 
-  const score = Math.min(100, Math.round((matchedScore / targetWords.length) * 100));
+  // Realistic penalization: denominator includes extra spoken words to prevent gaming by rambling
+  const denom = Math.max(targetWords.length, Math.round(targetWords.length * 0.7 + spokenTokens.length * 0.3));
+  const rawScore = denom > 0 ? (matchedScore / denom) * 100 : 0;
+  const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+
   return {
     score,
     words: evaluatedWords,

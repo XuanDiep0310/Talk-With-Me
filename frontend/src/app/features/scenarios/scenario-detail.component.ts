@@ -198,7 +198,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
               </div>
 
               @if (currentChunk(); as chunk) {
-                <div class="flex-1 flex flex-col justify-between space-y-6">
+                <div class="flex-1 flex flex-col justify-between space-y-5">
 
                   <!-- ---------------------------------------------------- -->
                   <!-- PHASE 1: MCQ VI -> EN (Dịch cụm in đậm)               -->
@@ -241,13 +241,38 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                   <!-- PHASE 2: PRONOUNCE CHUNK (Hãy nói cụm sau)            -->
                   <!-- ---------------------------------------------------- -->
                   @if (currentPhase() === 'pronounce_chunk') {
-                    <div class="space-y-6 text-center">
+                    <div class="space-y-5 text-center">
                       <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
                         Hãy nói cụm sau
                       </div>
 
+                      <!-- Circular Pronunciation Score Meter -->
+                      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="8" fill="none" />
+                          <circle
+                            cx="50" cy="50" r="40"
+                            [attr.stroke]="scoreColor()"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            fill="none"
+                            [attr.stroke-dasharray]="circleCircumference"
+                            [attr.stroke-dashoffset]="circleDashOffset()"
+                            class="transition-all duration-700 ease-out"
+                          />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span class="text-2xl font-extrabold leading-none" [style.color]="scoreColor()">
+                            {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
+                          </span>
+                          <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
+                            {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
+                          </span>
+                        </div>
+                      </div>
+
                       <!-- Chunk Card -->
-                      <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs space-y-2">
+                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2">
                         <div class="text-2xl font-extrabold text-slate-900 leading-snug">
                           @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
                             <div class="flex flex-wrap gap-1.5 justify-center">
@@ -274,7 +299,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         </div>
 
                         <!-- Listen Sample Button -->
-                        <div class="pt-2">
+                        <div class="pt-1">
                           <button
                             type="button"
                             class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
@@ -288,8 +313,18 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         </div>
                       </div>
 
+                      <!-- Recognized Speech Transcript Display -->
+                      @if (recognizedSpeech()) {
+                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
+                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
+                          <div class="text-sm font-semibold text-slate-800">
+                            "{{ recognizedSpeech() }}"
+                          </div>
+                        </div>
+                      }
+
                       <!-- Center Microphone & Playback -->
-                      <div class="py-4 flex flex-col items-center justify-center space-y-3">
+                      <div class="py-2 flex flex-col items-center justify-center space-y-3">
                         <button
                           type="button"
                           class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
@@ -302,7 +337,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                             </svg>
                           } @else {
                             <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 02-3-3V5a3 3 0 116 0v6a3 3 0 02-3 3z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v7.5a3 3 0 0 1-3 3z" />
                             </svg>
                           }
                         </button>
@@ -310,15 +345,18 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           {{ isListening() ? 'Đang lắng nghe bạn nói...' : 'Nhấn vào micro để nói' }}
                         </span>
 
-                        <!-- User Audio Playback Pill -->
+                        <!-- User Audio Playback Button -->
                         @if (userAudioUrl()) {
                           <div class="pt-1">
                             <button
                               type="button"
-                              class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition cursor-pointer"
+                              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer shadow-xs"
                               (click)="playUserAudio()"
                             >
-                              <span>🔊</span> Nghe lại giọng của bạn
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                              </svg>
+                              Nghe lại giọng của bạn
                             </button>
                           </div>
                         }
@@ -365,12 +403,37 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                   <!-- PHASE 4: LISTEN & REPEAT FULL SENTENCE                -->
                   <!-- ---------------------------------------------------- -->
                   @if (currentPhase() === 'listen_repeat') {
-                    <div class="space-y-6 text-center">
+                    <div class="space-y-5 text-center">
                       <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
                         Nghe mình nói và đọc lại
                       </div>
 
-                      <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs space-y-2">
+                      <!-- Circular Pronunciation Score Meter -->
+                      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="8" fill="none" />
+                          <circle
+                            cx="50" cy="50" r="40"
+                            [attr.stroke]="scoreColor()"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            fill="none"
+                            [attr.stroke-dasharray]="circleCircumference"
+                            [attr.stroke-dashoffset]="circleDashOffset()"
+                            class="transition-all duration-700 ease-out"
+                          />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span class="text-2xl font-extrabold leading-none" [style.color]="scoreColor()">
+                            {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
+                          </span>
+                          <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
+                            {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2">
                         <div class="text-xl md:text-2xl font-extrabold text-slate-900 leading-snug">
                           @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
                             <div class="flex flex-wrap gap-1.5 justify-center">
@@ -392,7 +455,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           {{ chunk.meaningVi }}
                         </div>
 
-                        <div class="pt-2">
+                        <div class="pt-1">
                           <button
                             type="button"
                             class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
@@ -406,7 +469,16 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         </div>
                       </div>
 
-                      <div class="py-4 flex flex-col items-center justify-center space-y-3">
+                      @if (recognizedSpeech()) {
+                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
+                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
+                          <div class="text-sm font-semibold text-slate-800">
+                            "{{ recognizedSpeech() }}"
+                          </div>
+                        </div>
+                      }
+
+                      <div class="py-2 flex flex-col items-center justify-center space-y-3">
                         <button
                           type="button"
                           class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
@@ -419,7 +491,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                             </svg>
                           } @else {
                             <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 02-3-3V5a3 3 0 116 0v6a3 3 0 02-3 3z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v7.5a3 3 0 0 1-3 3z" />
                             </svg>
                           }
                         </button>
@@ -431,10 +503,13 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           <div class="pt-1">
                             <button
                               type="button"
-                              class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition cursor-pointer"
+                              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer shadow-xs"
                               (click)="playUserAudio()"
                             >
-                              <span>🔊</span> Nghe lại giọng của bạn
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                              </svg>
+                              Nghe lại giọng của bạn
                             </button>
                           </div>
                         }
@@ -446,12 +521,37 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                   <!-- PHASE 5: FILL IN THE BLANK                            -->
                   <!-- ---------------------------------------------------- -->
                   @if (currentPhase() === 'fill_blank') {
-                    <div class="space-y-6 text-center">
+                    <div class="space-y-5 text-center">
                       <div class="text-xs font-bold uppercase tracking-wider text-slate-400">
                         Nói cụm còn thiếu
                       </div>
 
-                      <div class="bg-white rounded-3xl p-6 border border-slate-200/90 shadow-xs space-y-3">
+                      <!-- Circular Pronunciation Score Meter -->
+                      <div class="relative w-28 h-28 mx-auto flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" stroke="#e2e8f0" stroke-width="8" fill="none" />
+                          <circle
+                            cx="50" cy="50" r="40"
+                            [attr.stroke]="scoreColor()"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            fill="none"
+                            [attr.stroke-dasharray]="circleCircumference"
+                            [attr.stroke-dashoffset]="circleDashOffset()"
+                            class="transition-all duration-700 ease-out"
+                          />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span class="text-2xl font-extrabold leading-none" [style.color]="scoreColor()">
+                            {{ pronunciationScore() !== null ? pronunciationScore() : '--' }}
+                          </span>
+                          <span class="text-[9px] uppercase font-bold text-slate-400 mt-1">
+                            {{ pronunciationScore() !== null ? 'Điểm phát âm' : 'Chưa nói' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-3">
                         <div class="text-lg md:text-xl font-extrabold text-slate-900 tracking-wide leading-relaxed">
                           @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
                             <div class="flex flex-wrap gap-1.5 justify-center">
@@ -474,7 +574,16 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         </div>
                       </div>
 
-                      <div class="py-4 flex flex-col items-center justify-center space-y-3">
+                      @if (recognizedSpeech()) {
+                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
+                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
+                          <div class="text-sm font-semibold text-slate-800">
+                            "{{ recognizedSpeech() }}"
+                          </div>
+                        </div>
+                      }
+
+                      <div class="py-2 flex flex-col items-center justify-center space-y-3">
                         <button
                           type="button"
                           class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
@@ -487,7 +596,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                             </svg>
                           } @else {
                             <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 02-3-3V5a3 3 0 116 0v6a3 3 0 02-3 3z" />
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v7.5a3 3 0 0 1-3 3z" />
                             </svg>
                           }
                         </button>
@@ -499,10 +608,13 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           <div class="pt-1">
                             <button
                               type="button"
-                              class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition cursor-pointer"
+                              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer shadow-xs"
                               (click)="playUserAudio()"
                             >
-                              <span>🔊</span> Nghe lại giọng của bạn
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                              </svg>
+                              Nghe lại giọng của bạn
                             </button>
                           </div>
                         }
@@ -633,8 +745,10 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   readonly selectedOption = signal<{ text: string; correct: boolean } | null>(null);
 
   // Pronunciation & Recording state
+  readonly circleCircumference = 2 * Math.PI * 40;
   readonly pronunciationScore = signal<number | null>(null);
   readonly evaluatedWordTokens = signal<WordPronunciationScore[]>([]);
+  readonly recognizedSpeech = signal('');
   readonly isListening = signal(false);
   readonly userAudioUrl = signal<string | null>(null);
 
@@ -678,6 +792,20 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     const totalSteps = s.chunks.length * PHASE_ORDER.length;
     const currentStep = this.drillChunkIdx() * PHASE_ORDER.length + PHASE_ORDER.indexOf(this.currentPhase());
     return Math.round((currentStep / totalSteps) * 100);
+  });
+
+  readonly scoreColor = computed(() => {
+    const score = this.pronunciationScore();
+    if (score === null) return '#94a3b8';
+    if (score >= 75) return '#16a34a';
+    if (score >= 50) return '#f59e0b';
+    return '#ef4444';
+  });
+
+  readonly circleDashOffset = computed(() => {
+    const score = this.pronunciationScore();
+    if (score === null) return this.circleCircumference;
+    return this.circleCircumference * (1 - score / 100);
   });
 
   readonly fillBlankSentence = computed(() => {
@@ -760,6 +888,7 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   private resetPhaseState(): void {
     this.pronunciationScore.set(null);
     this.evaluatedWordTokens.set([]);
+    this.recognizedSpeech.set('');
     this.isListening.set(false);
     this.mcqAnswered.set(false);
     this.selectedOption.set(null);
@@ -844,6 +973,7 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   }
 
   handleSpokenResult(spokenText: string): void {
+    this.recognizedSpeech.set(spokenText);
     this.isListening.set(false);
     const chunk = this.currentChunk();
     if (!chunk) return;
@@ -864,6 +994,7 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
       this.isListening.set(false);
       this.stopMediaRecorder();
     } else {
+      this.recognizedSpeech.set('');
       this.pronunciationScore.set(null);
       this.evaluatedWordTokens.set([]);
       if (this.userAudioUrl()) {
