@@ -301,7 +301,7 @@ class GamificationService:
         """
         # 1. Total completed sessions with FEEDBACK_READY and valid overall score
         sess_stmt = (
-            select(Session)
+            select(Session.id, SessionFeedback.overall_score)
             .join(SessionFeedback, Session.id == SessionFeedback.session_id)
             .where(
                 Session.user_id == user_id,
@@ -310,8 +310,8 @@ class GamificationService:
             )
             .order_by(Session.created_at.desc())
         )
-        res_sessions = (await self._session.execute(sess_stmt)).scalars().all()
-        total_sessions = len(res_sessions)
+        res_rows = (await self._session.execute(sess_stmt)).all()
+        total_sessions = len(res_rows)
 
         # 2. Total distinct completed scenarios
         scen_stmt = select(func.count(distinct(UserScenarioProgress.scenario_id))).where(
@@ -321,16 +321,12 @@ class GamificationService:
         total_scenarios = int((await self._session.execute(scen_stmt)).scalar_one() or 0)
 
         # 3. Overall score across last N sessions
-        recent_sessions = res_sessions[: self._recent_sessions_count]
-        overall_scores = [
-            s.feedback.overall_score
-            for s in recent_sessions
-            if s.feedback and s.feedback.overall_score is not None
-        ]
+        recent_rows = res_rows[: self._recent_sessions_count]
+        overall_scores = [float(score) for _, score in recent_rows if score is not None]
         avg_overall = round(sum(overall_scores) / len(overall_scores), 1) if overall_scores else 0.0
 
         # 4. Average score for each of the 5 core skills over recent sessions
-        recent_session_ids = [s.id for s in recent_sessions]
+        recent_session_ids = [sess_id for sess_id, _ in recent_rows]
         skill_scores_map: dict[str, list[float]] = {
             "fluency": [],
             "listening": [],
