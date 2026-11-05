@@ -58,7 +58,8 @@ async def test_rate_limit_blocks_at_or_above_threshold(test_settings: Settings) 
 
 async def test_increment_sets_expiry_pipeline(test_settings: Settings) -> None:
     mock_redis = AsyncMock()
-    mock_pipe = AsyncMock()
+    mock_pipe = MagicMock()
+    mock_pipe.execute = AsyncMock()
     mock_redis.pipeline = MagicMock(return_value=mock_pipe)
 
     service = AuthService(

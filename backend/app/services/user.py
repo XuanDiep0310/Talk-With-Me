@@ -167,6 +167,12 @@ class UserService:
         patch: dict[str, object],
     ) -> UserSettings:
         clean_patch = {k: v for k, v in patch.items() if v is not None}
+        tz = clean_patch.pop("timezone", None)
+        if tz is not None:
+            profile = await self._user_repo.get_profile(user_id)
+            if profile:
+                profile.timezone = str(tz)
+
         if not clean_patch:
             return await self.get_settings(user_id)
 

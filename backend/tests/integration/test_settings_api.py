@@ -181,10 +181,10 @@ async def test_timezone_is_returned_as_fixed_value_by_current_implementation(
 
 
 @pytest.mark.asyncio
-async def test_timezone_patch_schema_field_fails_against_settings_model(
+async def test_timezone_patch_schema_field_updates_profile_timezone(
     client: AsyncClient,
 ) -> None:
-    """The request schema accepts timezone, but UserSettings has no timezone column."""
+    """The request schema accepts timezone, and now updates user profile timezone (Sprint 6)."""
     token = await _register_user(client)
     headers = {"Authorization": f"Bearer {token}"}
 
@@ -194,8 +194,8 @@ async def test_timezone_patch_schema_field_fails_against_settings_model(
         json={"timezone": "America/New_York"},
     )
 
-    assert response.status_code == 500
-    assert response.json()["code"] == "INTERNAL_SERVER_ERROR"
+    assert response.status_code == 200
+    assert response.json()["timezone"] == "America/New_York"
     current = await client.get("/api/v1/me/settings", headers=headers)
     assert current.status_code == 200
-    assert current.json()["timezone"] == "Asia/Ho_Chi_Minh"
+    assert current.json()["timezone"] == "America/New_York"

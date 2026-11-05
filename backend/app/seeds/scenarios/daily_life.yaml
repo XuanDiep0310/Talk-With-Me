@@ -1,407 +1,614 @@
 scenarios:
-  - slug: "supermarket-shopping"
-    category: "DAILY_LIFE"
-    title_vi: "Mua sắm tại siêu thị"
-    title_en: "Supermarket Shopping"
-    level: "A2"
-    estimated_duration_minutes: 10
-    context: "Bạn đang đi mua sắm tại một siêu thị quốc tế. Bạn cần tìm các nguyên liệu tươi sống, hỏi giá một số mặt hàng và tiến hành thanh toán tại quầy thu ngân."
-    user_role: "Khách mua hàng"
-    ai_role: "Nhân viên hỗ trợ & Thu ngân siêu thị"
-    goals:
-      - "Hỏi thăm và xác định vị trí mặt hàng cần mua"
-      - "Hỏi giá và kiểm tra khuyến mãi"
-      - "Hỏi phương thức thanh toán và hoàn tất mua sắm"
+- slug: supermarket-shopping
+  category: DAILY_LIFE
+  title_vi: Mua sắm tại siêu thị
+  title_en: Supermarket Shopping
+  level: A2
+  estimated_duration_minutes: 10
+  context: Bạn đang đi mua sắm tại một siêu thị quốc tế. Bạn cần tìm các nguyên liệu
+    tươi sống, hỏi giá một số mặt hàng và tiến hành thanh toán tại quầy thu ngân.
+  user_role: Khách mua hàng
+  ai_role: Nhân viên hỗ trợ & Thu ngân siêu thị
+  goals:
+  - Hỏi thăm và xác định vị trí mặt hàng cần mua
+  - Hỏi giá và kiểm tra khuyến mãi
+  - Hỏi phương thức thanh toán và hoàn tất mua sắm
+  sort_order: 1
+  requirements:
+  - description: Chào hỏi và hỏi vị trí quầy hàng rau củ hoặc thực phẩm tươi
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
     sort_order: 1
-    requirements:
-      - description: "Chào hỏi và hỏi vị trí quầy hàng rau củ hoặc thực phẩm tươi"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Hỏi giá hoặc thông tin của một sản phẩm"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Hỏi làm rõ phương thức thanh toán hoặc thẻ tín dụng"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Cảm ơn nhân viên và nói lời chào kết thúc"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "Excuse me, where can I find...?"
-        meaning_vi: "Xin lỗi, tôi có thể tìm... ở đâu?"
-        example_sentence: "Excuse me, where can I find the organic vegetable section?"
-        accepted_variations:
-          - "Could you tell me where... is?"
-          - "Excuse me, which aisle has...?"
-          - "Where is the produce section, please?"
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "How much is this...?"
-        meaning_vi: "Cái này giá bao nhiêu?"
-        example_sentence: "How much is this bottle of olive oil?"
-        accepted_variations:
-          - "What's the price of this?"
-          - "Could you tell me how much this costs?"
-          - "How much does this cost?"
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Do you accept credit cards?"
-        meaning_vi: "Ở đây có chấp nhận thẻ tín dụng không?"
-        example_sentence: "Do you accept credit cards or mobile payments?"
-        accepted_variations:
-          - "Can I pay by card?"
-          - "Is card payment accepted here?"
-          - "Do you take contactless payment?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "That sounds good, I'll take it."
-        meaning_vi: "Nghe được đấy, tôi sẽ lấy món này."
-        example_sentence: "That sounds good, I'll take two cartons of milk."
-        accepted_variations:
-          - "Great, I'll take this one."
-          - "That works for me, I'll buy it."
-          - "Sounds good, please give me one."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "Thank you for your help!"
-        meaning_vi: "Cảm ơn bạn rất nhiều vì đã giúp đỡ!"
-        example_sentence: "Thank you for your help! Have a nice day."
-        accepted_variations:
-          - "Thanks a lot for your help!"
-          - "Thank you so much!"
-          - "Thanks for helping me out."
-        sort_order: 5
-
-  - slug: "restaurant-reservation"
-    category: "DAILY_LIFE"
-    title_vi: "Đặt bàn tại nhà hàng"
-    title_en: "Restaurant Table Reservation"
-    level: "A2"
-    estimated_duration_minutes: 12
-    context: "Bạn gọi điện thoại tới nhà hàng The Garden để đặt bàn ăn tối cho gia đình vào tối nay, kèm theo một số yêu cầu đặc biệt về chỗ ngồi."
-    user_role: "Khách đặt bàn"
-    ai_role: "Nhân viên tiếp tân nhà hàng"
-    goals:
-      - "Nêu rõ số người và thời gian muốn đặt bàn"
-      - "Yêu cầu vị trí ngồi cụ thể (gần cửa sổ hoặc khu vực yên tĩnh)"
-      - "Xác nhận lại thông tin đặt bàn"
+  - description: Hỏi giá hoặc thông tin của một sản phẩm
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
     sort_order: 2
-    requirements:
-      - description: "Nêu yêu cầu đặt bàn cho số người và thời gian mong muốn"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Đề xuất hoặc làm rõ yêu cầu vị trí bàn ăn"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Xác nhận và đồng ý với đề xuất của tiếp tân"
-        type: "TASK"
-        expected_chunk_function: "AGREE_DECLINE"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Chào tạm biệt và cảm ơn khi hoàn tất cuộc gọi"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "I'd like to book a table for..."
-        meaning_vi: "Tôi muốn đặt một bàn cho..."
-        example_sentence: "I'd like to book a table for four people tonight at seven."
-        accepted_variations:
-          - "Could I reserve a table for...?"
-          - "I want to make a reservation for..."
-          - "Can I book a table for...?"
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "Could we have a table near...?"
-        meaning_vi: "Chúng tôi có thể ngồi bàn gần... được không?"
-        example_sentence: "Could we have a table near the window, please?"
-        accepted_variations:
-          - "Is it possible to sit near the window?"
-          - "We would prefer a table near the window."
-          - "Can we get a table by the window?"
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "Could you confirm if...?"
-        meaning_vi: "Bạn có thể xác nhận liệu... được không?"
-        example_sentence: "Could you confirm if outdoor seating is available?"
-        accepted_variations:
-          - "Can you confirm that for me?"
-          - "Just to make sure, is that confirmed?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "That time works perfectly for us."
-        meaning_vi: "Khung giờ đó hoàn toàn phù hợp với chúng tôi."
-        example_sentence: "7:30 PM works perfectly for us, thank you."
-        accepted_variations:
-          - "That works great for me."
-          - "That time is fine."
-          - "That sounds perfect."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "See you tonight, thank you!"
-        meaning_vi: "Hẹn gặp vào tối nay, cảm ơn bạn!"
-        example_sentence: "See you tonight at seven, thank you very much!"
-        accepted_variations:
-          - "Thanks, see you later tonight!"
-          - "Thank you, see you then!"
-        sort_order: 5
-
-  - slug: "doctor-visit"
-    category: "DAILY_LIFE"
-    title_vi: "Đến gặp bác sĩ"
-    title_en: "Doctor's Appointment"
-    level: "B1"
-    estimated_duration_minutes: 15
-    context: "Bạn cảm thấy không khỏe trong 2 ngày qua với triệu chứng sốt nhẹ và đau họng. Bạn đến phòng khám đa khoa để bác sĩ kiểm tra và kê đơn thuốc."
-    user_role: "Bệnh nhân"
-    ai_role: "Bác sĩ khám bệnh"
-    goals:
-      - "Mô tả rõ các triệu chứng và thời gian bắt đầu bị"
-      - "Hỏi về cách dùng thuốc và lưu ý kiêng cữ"
-      - "Hỏi làm rõ thời gian tái khám nếu chưa đỡ"
+  - description: Hỏi làm rõ phương thức thanh toán hoặc thẻ tín dụng
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
     sort_order: 3
-    requirements:
-      - description: "Chào hỏi và mô tả triệu chứng bệnh chính"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Mô tả chi tiết tần suất hoặc mức độ đau"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Hỏi làm rõ liều lượng hoặc tác dụng phụ của thuốc"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Đồng ý tuân theo chỉ dẫn điều trị của bác sĩ"
-        type: "TASK"
-        expected_chunk_function: "AGREE_DECLINE"
-        is_mandatory: false
-        sort_order: 4
-      - description: "Cảm ơn bác sĩ trước khi rời phòng khám"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 5
-    chunks:
-      - function_tag: "OPENING"
-        text: "I haven't been feeling well since..."
-        meaning_vi: "Tôi cảm thấy không được khỏe từ..."
-        example_sentence: "I haven't been feeling well since yesterday morning."
-        accepted_variations:
-          - "I've been feeling sick since..."
-          - "I started feeling unwell two days ago."
-          - "I'm not feeling well."
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "I have a sore throat and..."
-        meaning_vi: "Tôi bị đau họng và..."
-        example_sentence: "I have a sore throat and a slight fever."
-        accepted_variations:
-          - "My throat hurts and I have a fever."
-          - "I suffer from a sore throat and headache."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "How often should I take this medication?"
-        meaning_vi: "Tôi nên uống loại thuốc này bao lâu một lần?"
-        example_sentence: "How often should I take this medication, and should I take it with food?"
-        accepted_variations:
-          - "How many times a day should I take this?"
-          - "Should I take this medicine before or after meals?"
-          - "What is the dosage for this medicine?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "I understand, I'll follow your instructions."
-        meaning_vi: "Tôi hiểu rồi, tôi sẽ làm theo chỉ dẫn của bác sĩ."
-        example_sentence: "I understand, I'll get plenty of rest and drink lots of water."
-        accepted_variations:
-          - "Got it, I will follow your advice."
-          - "I will make sure to do that."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "Thank you so much, Doctor."
-        meaning_vi: "Cảm ơn bác sĩ rất nhiều."
-        example_sentence: "Thank you so much, Doctor. I really appreciate your help."
-        accepted_variations:
-          - "Thanks a lot for your care, Doctor."
-          - "Thank you, have a good day Doctor."
-        sort_order: 5
-
-  - slug: "renting-apartment"
-    category: "DAILY_LIFE"
-    title_vi: "Thuê căn hộ"
-    title_en: "Renting an Apartment"
-    level: "B1"
-    estimated_duration_minutes: 15
-    context: "Bạn đang tìm thuê một căn hộ 1 phòng ngủ tại trung tâm thành phố. Bạn gặp chủ nhà hoặc nhân viên môi giới để xem nhà, hỏi về giá thuê, tiền cọc và tiện ích đi kèm."
-    user_role: "Người đi thuê nhà"
-    ai_role: "Chủ nhà / Môi giới bất động sản"
-    goals:
-      - "Hỏi giá thuê hàng tháng và tiền đặt cọc"
-      - "Hỏi về các chi phí tiện ích (điện, nước, internet)"
-      - "Đàm phán ngày chuyển vào và ký hợp đồng"
+  - description: Cảm ơn nhân viên và nói lời chào kết thúc
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
     sort_order: 4
-    requirements:
-      - description: "Mở đầu cuộc nói chuyện và hỏi tình trạng căn hộ"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Hỏi giá thuê và các chi phí tiện ích đi kèm"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Hỏi làm rõ các điều khoản trong hợp đồng thuê nhà"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Đồng ý hoặc đề xuất thỏa thuận về ngày dọn vào"
-        type: "TASK"
-        expected_chunk_function: "AGREE_DECLINE"
-        is_mandatory: false
-        sort_order: 4
-      - description: "Cảm ơn và hẹn ngày ký hợp đồng"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 5
-    chunks:
-      - function_tag: "OPENING"
-        text: "I'm calling about the apartment for rent on..."
-        meaning_vi: "Tôi gọi điện hỏi về căn hộ cho thuê ở..."
-        example_sentence: "I'm calling about the one-bedroom apartment for rent on Oak Street."
-        accepted_variations:
-          - "I'm interested in renting the apartment on..."
-          - "I saw your listing for the apartment and wanted to ask..."
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "Does the monthly rent include utilities?"
-        meaning_vi: "Giá thuê hàng tháng đã bao gồm chi phí điện nước chưa?"
-        example_sentence: "Does the monthly rent include utilities like water and high-speed internet?"
-        accepted_variations:
-          - "Are utilities included in the rent?"
-          - "What bills are included in the monthly rent?"
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "What is the minimum lease term?"
-        meaning_vi: "Thời hạn hợp đồng thuê tối thiểu là bao lâu?"
-        example_sentence: "What is the minimum lease term, and how much is the security deposit?"
-        accepted_variations:
-          - "How long is the lease agreement?"
-          - "Is there a minimum stay requirement?"
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "That terms work fine for me."
-        meaning_vi: "Các điều khoản đó phù hợp với tôi."
-        example_sentence: "A one-year lease works fine for me, I'm ready to move in next month."
-        accepted_variations:
-          - "That sounds reasonable to me."
-          - "I agree with those conditions."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "I look forward to hearing from you soon."
-        meaning_vi: "Tôi rất mong sớm nhận được phản hồi từ bạn."
-        example_sentence: "Thank you for the tour, I look forward to hearing from you soon."
-        accepted_variations:
-          - "Thanks for your time, talk to you soon."
-          - "I will send you my documents today. Thank you!"
-        sort_order: 5
-
-  - slug: "daily-coffee-order"
-    category: "DAILY_LIFE"
-    title_vi: "Gọi đồ uống tại quán cà phê"
-    title_en: "Ordering at a Coffee Shop"
-    level: "A1"
-    estimated_duration_minutes: 8
-    context: "Bạn ghé vào một quán cà phê địa phương vào buổi sáng. Bạn muốn gọi một ly cà phê theo sở thích và mang đi."
-    user_role: "Khách mua cà phê"
-    ai_role: "Nhân viên pha chế (Barista)"
-    goals:
-      - "Chào hỏi và gọi món đồ uống mong muốn"
-      - "Tùy chỉnh độ ngọt, loại sữa hoặc kích cỡ ly"
-      - "Xác nhận mang đi hoặc uống tại chỗ"
+  chunks:
+  - function_tag: OPENING
+    text: Excuse me, where can I find...?
+    meaning_vi: Xin lỗi, tôi có thể tìm... ở đâu?
+    example_sentence: Excuse me, where can I find the organic vegetable section?
+    accepted_variations:
+    - Could you tell me where... is?
+    - Excuse me, which aisle has...?
+    - Where is the produce section, please?
+    sort_order: 1
+    distractors_en:
+    - Sorry, do you have any...?
+    - Can I pay for this here?
+    - What time do you close?
+    distractors_vi:
+    - Xin lỗi, tôi có thể mua... ở đây không?
+    - Bạn có thể giúp tôi trả tiền không?
+    - Mấy giờ bạn đóng cửa?
+  - function_tag: REQUEST
+    text: How much is this...?
+    meaning_vi: Cái này giá bao nhiêu?
+    example_sentence: How much is this bottle of olive oil?
+    accepted_variations:
+    - What's the price of this?
+    - Could you tell me how much this costs?
+    - How much does this cost?
+    sort_order: 2
+    distractors_en:
+    - Where can I find this product?
+    - Do you have this in another size?
+    - Can I return this later?
+    distractors_vi:
+    - Sản phẩm này ở đâu vậy?
+    - Bạn có cái này cỡ khác không?
+    - Tôi có thể đổi trả sau không?
+  - function_tag: CLARIFY
+    text: Do you accept credit cards?
+    meaning_vi: Ở đây có chấp nhận thẻ tín dụng không?
+    example_sentence: Do you accept credit cards or mobile payments?
+    accepted_variations:
+    - Can I pay by card?
+    - Is card payment accepted here?
+    - Do you take contactless payment?
+    sort_order: 3
+    distractors_en:
+    - Where is the exit?
+    - How much is the discount?
+    - Do you have a loyalty card?
+    distractors_vi:
+    - Lối ra ở đâu?
+    - Giảm giá bao nhiêu phần trăm?
+    - Bạn có thẻ tích điểm không?
+  - function_tag: AGREE_DECLINE
+    text: That sounds good, I'll take it.
+    meaning_vi: Nghe được đấy, tôi sẽ lấy món này.
+    example_sentence: That sounds good, I'll take two cartons of milk.
+    accepted_variations:
+    - Great, I'll take this one.
+    - That works for me, I'll buy it.
+    - Sounds good, please give me one.
+    sort_order: 4
+    distractors_en:
+    - I'm not sure about this.
+    - Can I think about it?
+    - I'd like a refund, please.
+    distractors_vi:
+    - Tôi chưa chắc về điều này.
+    - Tôi có thể suy nghĩ thêm không?
+    - Tôi muốn hoàn tiền.
+  - function_tag: CLOSING
+    text: Thank you for your help!
+    meaning_vi: Cảm ơn bạn rất nhiều vì đã giúp đỡ!
+    example_sentence: Thank you for your help! Have a nice day.
+    accepted_variations:
+    - Thanks a lot for your help!
+    - Thank you so much!
+    - Thanks for helping me out.
     sort_order: 5
-    requirements:
-      - description: "Chào hỏi và gọi đồ uống chính"
-        type: "TASK"
-        expected_chunk_function: "OPENING"
-        is_mandatory: true
-        sort_order: 1
-      - description: "Nêu yêu cầu về kích cỡ hoặc loại sữa"
-        type: "TASK"
-        expected_chunk_function: "REQUEST"
-        is_mandatory: true
-        sort_order: 2
-      - description: "Xác nhận mang đi (to-go / takeaway)"
-        type: "TASK"
-        expected_chunk_function: "CLARIFY"
-        is_mandatory: true
-        sort_order: 3
-      - description: "Cảm ơn nhân viên phục vụ"
-        type: "TASK"
-        expected_chunk_function: "CLOSING"
-        is_mandatory: false
-        sort_order: 4
-    chunks:
-      - function_tag: "OPENING"
-        text: "Hi, could I get a...?"
-        meaning_vi: "Xin chào, cho tôi một ly... được không?"
-        example_sentence: "Hi, could I get a medium iced latte, please?"
-        accepted_variations:
-          - "Hello, I'd like to order a..."
-          - "Can I have a..., please?"
-          - "I'll take a..."
-        sort_order: 1
-      - function_tag: "REQUEST"
-        text: "Could you make it with oat milk?"
-        meaning_vi: "Bạn có thể pha bằng sữa yến mạch được không?"
-        example_sentence: "Could you make it with oat milk and less sugar, please?"
-        accepted_variations:
-          - "Can I get that with oat milk?"
-          - "With oat milk instead, please."
-        sort_order: 2
-      - function_tag: "CLARIFY"
-        text: "To go, please."
-        meaning_vi: "Mang đi, cảm ơn."
-        example_sentence: "Make that to go, please."
-        accepted_variations:
-          - "Takeaway, please."
-          - "For takeaway, thank you."
-          - "I'll have it to go."
-        sort_order: 3
-      - function_tag: "AGREE_DECLINE"
-        text: "No, that will be all."
-        meaning_vi: "Không, như vậy là đủ rồi."
-        example_sentence: "No, that will be all for today, thank you."
-        accepted_variations:
-          - "That's everything, thanks."
-          - "Nothing else for now."
-        sort_order: 4
-      - function_tag: "CLOSING"
-        text: "Have a great day!"
-        meaning_vi: "Chúc một ngày tốt lành!"
-        example_sentence: "Thank you, have a great day!"
-        accepted_variations:
-          - "Thanks, you too!"
-          - "Have a good one!"
-        sort_order: 5
+    distractors_en:
+    - Sorry, I need more time.
+    - I'll come back later.
+    - No, I don't need help.
+    distractors_vi:
+    - Xin lỗi, tôi cần thêm thời gian.
+    - Tôi sẽ quay lại sau.
+    - Không, tôi không cần giúp đỡ.
+- slug: restaurant-reservation
+  category: DAILY_LIFE
+  title_vi: Đặt bàn tại nhà hàng
+  title_en: Restaurant Table Reservation
+  level: A2
+  estimated_duration_minutes: 12
+  context: Bạn gọi điện thoại tới nhà hàng The Garden để đặt bàn ăn tối cho gia đình
+    vào tối nay, kèm theo một số yêu cầu đặc biệt về chỗ ngồi.
+  user_role: Khách đặt bàn
+  ai_role: Nhân viên tiếp tân nhà hàng
+  goals:
+  - Nêu rõ số người và thời gian muốn đặt bàn
+  - Yêu cầu vị trí ngồi cụ thể (gần cửa sổ hoặc khu vực yên tĩnh)
+  - Xác nhận lại thông tin đặt bàn
+  sort_order: 2
+  requirements:
+  - description: Nêu yêu cầu đặt bàn cho số người và thời gian mong muốn
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 1
+  - description: Đề xuất hoặc làm rõ yêu cầu vị trí bàn ăn
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 2
+  - description: Xác nhận và đồng ý với đề xuất của tiếp tân
+    type: TASK
+    expected_chunk_function: AGREE_DECLINE
+    is_mandatory: true
+    sort_order: 3
+  - description: Chào tạm biệt và cảm ơn khi hoàn tất cuộc gọi
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 4
+  chunks:
+  - function_tag: OPENING
+    text: I'd like to book a table for...
+    meaning_vi: Tôi muốn đặt một bàn cho...
+    example_sentence: I'd like to book a table for four people tonight at seven.
+    accepted_variations:
+    - Could I reserve a table for...?
+    - I want to make a reservation for...
+    - Can I book a table for...?
+    sort_order: 1
+    distractors_en:
+    - Can I order food to go?
+    - What time do you open?
+    - I want to cancel my order.
+    distractors_vi:
+    - Tôi có thể gọi đồ ăn mang về không?
+    - Nhà hàng mở lúc mấy giờ?
+    - Tôi muốn hủy đơn hàng.
+  - function_tag: REQUEST
+    text: Could we have a table near...?
+    meaning_vi: Chúng tôi có thể ngồi bàn gần... được không?
+    example_sentence: Could we have a table near the window, please?
+    accepted_variations:
+    - Is it possible to sit near the window?
+    - We would prefer a table near the window.
+    - Can we get a table by the window?
+    sort_order: 2
+    distractors_en:
+    - Can we get the bill, please?
+    - I'd like to see the menu.
+    - Do you have vegetarian options?
+    distractors_vi:
+    - Cho chúng tôi hóa đơn được không?
+    - Cho tôi xem thực đơn.
+    - Có món chay không?
+  - function_tag: CLARIFY
+    text: Could you confirm if...?
+    meaning_vi: Bạn có thể xác nhận liệu... được không?
+    example_sentence: Could you confirm if outdoor seating is available?
+    accepted_variations:
+    - Can you confirm that for me?
+    - Just to make sure, is that confirmed?
+    sort_order: 3
+    distractors_en:
+    - Can you bring another chair?
+    - We need more time to decide.
+    - May I speak to the manager?
+    distractors_vi:
+    - Bạn có thể mang thêm ghế không?
+    - Chúng tôi cần thêm thời gian.
+    - Tôi có thể gặp quản lý không?
+  - function_tag: AGREE_DECLINE
+    text: That time works perfectly for us.
+    meaning_vi: Khung giờ đó hoàn toàn phù hợp với chúng tôi.
+    example_sentence: 7:30 PM works perfectly for us, thank you.
+    accepted_variations:
+    - That works great for me.
+    - That time is fine.
+    - That sounds perfect.
+    sort_order: 4
+    distractors_en:
+    - We prefer a different time.
+    - Let me check my schedule.
+    - That time is too late for us.
+    distractors_vi:
+    - Chúng tôi muốn giờ khác.
+    - Để tôi kiểm tra lịch.
+    - Giờ đó quá muộn với chúng tôi.
+  - function_tag: CLOSING
+    text: See you tonight, thank you!
+    meaning_vi: Hẹn gặp vào tối nay, cảm ơn bạn!
+    example_sentence: See you tonight at seven, thank you very much!
+    accepted_variations:
+    - Thanks, see you later tonight!
+    - Thank you, see you then!
+    sort_order: 5
+    distractors_en:
+    - I'll call back later.
+    - See you next week.
+    - Sorry, I need to cancel.
+    distractors_vi:
+    - Tôi sẽ gọi lại sau.
+    - Hẹn gặp tuần sau.
+    - Xin lỗi, tôi cần hủy.
+- slug: doctor-visit
+  category: DAILY_LIFE
+  title_vi: Đến gặp bác sĩ
+  title_en: Doctor's Appointment
+  level: B1
+  estimated_duration_minutes: 15
+  context: Bạn cảm thấy không khỏe trong 2 ngày qua với triệu chứng sốt nhẹ và đau
+    họng. Bạn đến phòng khám đa khoa để bác sĩ kiểm tra và kê đơn thuốc.
+  user_role: Bệnh nhân
+  ai_role: Bác sĩ khám bệnh
+  goals:
+  - Mô tả rõ các triệu chứng và thời gian bắt đầu bị
+  - Hỏi về cách dùng thuốc và lưu ý kiêng cữ
+  - Hỏi làm rõ thời gian tái khám nếu chưa đỡ
+  sort_order: 3
+  requirements:
+  - description: Chào hỏi và mô tả triệu chứng bệnh chính
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Mô tả chi tiết tần suất hoặc mức độ đau
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Hỏi làm rõ liều lượng hoặc tác dụng phụ của thuốc
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Đồng ý tuân theo chỉ dẫn điều trị của bác sĩ
+    type: TASK
+    expected_chunk_function: AGREE_DECLINE
+    is_mandatory: false
+    sort_order: 4
+  - description: Cảm ơn bác sĩ trước khi rời phòng khám
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 5
+  chunks:
+  - function_tag: OPENING
+    text: I haven't been feeling well since...
+    meaning_vi: Tôi cảm thấy không được khỏe từ...
+    example_sentence: I haven't been feeling well since yesterday morning.
+    accepted_variations:
+    - I've been feeling sick since...
+    - I started feeling unwell two days ago.
+    - I'm not feeling well.
+    sort_order: 1
+    distractors_en:
+    - I want to schedule a check-up.
+    - I need a prescription refill.
+    - I'm looking for a specialist.
+    distractors_vi:
+    - Tôi muốn đặt lịch khám tổng quát.
+    - Tôi cần tái kê đơn thuốc.
+    - Tôi đang tìm bác sĩ chuyên khoa.
+  - function_tag: REQUEST
+    text: I have a sore throat and...
+    meaning_vi: Tôi bị đau họng và...
+    example_sentence: I have a sore throat and a slight fever.
+    accepted_variations:
+    - My throat hurts and I have a fever.
+    - I suffer from a sore throat and headache.
+    sort_order: 2
+    distractors_en:
+    - I broke my arm yesterday.
+    - I need a blood test.
+    - I feel dizzy when I stand up.
+    distractors_vi:
+    - Tôi bị gãy tay hôm qua.
+    - Tôi cần xét nghiệm máu.
+    - Tôi chóng mặt khi đứng dậy.
+  - function_tag: CLARIFY
+    text: How often should I take this medication?
+    meaning_vi: Tôi nên uống loại thuốc này bao lâu một lần?
+    example_sentence: How often should I take this medication, and should I take it
+      with food?
+    accepted_variations:
+    - How many times a day should I take this?
+    - Should I take this medicine before or after meals?
+    - What is the dosage for this medicine?
+    sort_order: 3
+    distractors_en:
+    - Where can I buy this medicine?
+    - What are the side effects of this?
+    - Should I take this for a week?
+    distractors_vi:
+    - Tôi mua thuốc này ở đâu?
+    - Tác dụng phụ của thuốc này là gì?
+    - Tôi uống thuốc này một tuần phải không?
+  - function_tag: AGREE_DECLINE
+    text: I understand, I'll follow your instructions.
+    meaning_vi: Tôi hiểu rồi, tôi sẽ làm theo chỉ dẫn của bác sĩ.
+    example_sentence: I understand, I'll get plenty of rest and drink lots of water.
+    accepted_variations:
+    - Got it, I will follow your advice.
+    - I will make sure to do that.
+    sort_order: 4
+    distractors_en:
+    - I disagree with this treatment.
+    - Can I get a second opinion?
+    - I prefer a different doctor.
+    distractors_vi:
+    - Tôi không đồng ý với phương pháp này.
+    - Tôi có thể nghe thêm ý kiến khác không?
+    - Tôi muốn gặp bác sĩ khác.
+  - function_tag: CLOSING
+    text: Thank you so much, Doctor.
+    meaning_vi: Cảm ơn bác sĩ rất nhiều.
+    example_sentence: Thank you so much, Doctor. I really appreciate your help.
+    accepted_variations:
+    - Thanks a lot for your care, Doctor.
+    - Thank you, have a good day Doctor.
+    sort_order: 5
+    distractors_en:
+    - I'll come back next month.
+    - Can I call you later?
+    - I need a sick note, please.
+    distractors_vi:
+    - Tôi sẽ quay lại tháng sau.
+    - Tôi có thể gọi cho bạn sau không?
+    - Tôi cần giấy nghỉ bệnh.
+- slug: renting-apartment
+  category: DAILY_LIFE
+  title_vi: Thuê căn hộ
+  title_en: Renting an Apartment
+  level: B1
+  estimated_duration_minutes: 15
+  context: Bạn đang tìm thuê một căn hộ 1 phòng ngủ tại trung tâm thành phố. Bạn gặp
+    chủ nhà hoặc nhân viên môi giới để xem nhà, hỏi về giá thuê, tiền cọc và tiện
+    ích đi kèm.
+  user_role: Người đi thuê nhà
+  ai_role: Chủ nhà / Môi giới bất động sản
+  goals:
+  - Hỏi giá thuê hàng tháng và tiền đặt cọc
+  - Hỏi về các chi phí tiện ích (điện, nước, internet)
+  - Đàm phán ngày chuyển vào và ký hợp đồng
+  sort_order: 4
+  requirements:
+  - description: Mở đầu cuộc nói chuyện và hỏi tình trạng căn hộ
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Hỏi giá thuê và các chi phí tiện ích đi kèm
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Hỏi làm rõ các điều khoản trong hợp đồng thuê nhà
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Đồng ý hoặc đề xuất thỏa thuận về ngày dọn vào
+    type: TASK
+    expected_chunk_function: AGREE_DECLINE
+    is_mandatory: false
+    sort_order: 4
+  - description: Cảm ơn và hẹn ngày ký hợp đồng
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 5
+  chunks:
+  - function_tag: OPENING
+    text: I'm calling about the apartment for rent on...
+    meaning_vi: Tôi gọi điện hỏi về căn hộ cho thuê ở...
+    example_sentence: I'm calling about the one-bedroom apartment for rent on Oak
+      Street.
+    accepted_variations:
+    - I'm interested in renting the apartment on...
+    - I saw your listing for the apartment and wanted to ask...
+    sort_order: 1
+    distractors_en:
+    - I want to report a maintenance issue.
+    - I'd like to cancel my lease.
+    - Can I extend my current contract?
+    distractors_vi:
+    - Tôi muốn báo cáo sự cố bảo trì.
+    - Tôi muốn hủy hợp đồng thuê.
+    - Tôi có thể gia hạn hợp đồng không?
+  - function_tag: REQUEST
+    text: Does the monthly rent include utilities?
+    meaning_vi: Giá thuê hàng tháng đã bao gồm chi phí điện nước chưa?
+    example_sentence: Does the monthly rent include utilities like water and high-speed
+      internet?
+    accepted_variations:
+    - Are utilities included in the rent?
+    - What bills are included in the monthly rent?
+    sort_order: 2
+    distractors_en:
+    - How many rooms does the apartment have?
+    - Is parking included?
+    - Can I have a pet in the apartment?
+    distractors_vi:
+    - Căn hộ có bao nhiêu phòng?
+    - Có chỗ đậu xe không?
+    - Tôi có thể nuôi thú cưng không?
+  - function_tag: CLARIFY
+    text: What is the minimum lease term?
+    meaning_vi: Thời hạn hợp đồng thuê tối thiểu là bao lâu?
+    example_sentence: What is the minimum lease term, and how much is the security
+      deposit?
+    accepted_variations:
+    - How long is the lease agreement?
+    - Is there a minimum stay requirement?
+    sort_order: 3
+    distractors_en:
+    - How old is this building?
+    - Is this apartment furnished?
+    - Who is responsible for repairs?
+    distractors_vi:
+    - Tòa nhà này bao nhiêu tuổi?
+    - Căn hộ có đồ nội thất chưa?
+    - Ai chịu trách nhiệm sửa chữa?
+  - function_tag: AGREE_DECLINE
+    text: That terms work fine for me.
+    meaning_vi: Các điều khoản đó phù hợp với tôi.
+    example_sentence: A one-year lease works fine for me, I'm ready to move in next
+      month.
+    accepted_variations:
+    - That sounds reasonable to me.
+    - I agree with those conditions.
+    sort_order: 4
+    distractors_en:
+    - I need more time to decide.
+    - Can we negotiate the price?
+    - I'll need to think it over.
+    distractors_vi:
+    - Tôi cần thêm thời gian suy nghĩ.
+    - Chúng ta có thể thương lượng giá không?
+    - Tôi cần suy nghĩ thêm.
+  - function_tag: CLOSING
+    text: I look forward to hearing from you soon.
+    meaning_vi: Tôi rất mong sớm nhận được phản hồi từ bạn.
+    example_sentence: Thank you for the tour, I look forward to hearing from you soon.
+    accepted_variations:
+    - Thanks for your time, talk to you soon.
+    - I will send you my documents today. Thank you!
+    sort_order: 5
+    distractors_en:
+    - I changed my mind about the apartment.
+    - I'll contact another agent.
+    - Let me know if the price drops.
+    distractors_vi:
+    - Tôi đổi ý về căn hộ rồi.
+    - Tôi sẽ liên hệ với môi giới khác.
+    - Hãy cho tôi biết nếu giá giảm.
+- slug: daily-coffee-order
+  category: DAILY_LIFE
+  title_vi: Gọi đồ uống tại quán cà phê
+  title_en: Ordering at a Coffee Shop
+  level: A1
+  estimated_duration_minutes: 8
+  context: Bạn ghé vào một quán cà phê địa phương vào buổi sáng. Bạn muốn gọi một
+    ly cà phê theo sở thích và mang đi.
+  user_role: Khách mua cà phê
+  ai_role: Nhân viên pha chế (Barista)
+  goals:
+  - Chào hỏi và gọi món đồ uống mong muốn
+  - Tùy chỉnh độ ngọt, loại sữa hoặc kích cỡ ly
+  - Xác nhận mang đi hoặc uống tại chỗ
+  sort_order: 5
+  requirements:
+  - description: Chào hỏi và gọi đồ uống chính
+    type: TASK
+    expected_chunk_function: OPENING
+    is_mandatory: true
+    sort_order: 1
+  - description: Nêu yêu cầu về kích cỡ hoặc loại sữa
+    type: TASK
+    expected_chunk_function: REQUEST
+    is_mandatory: true
+    sort_order: 2
+  - description: Xác nhận mang đi (to-go / takeaway)
+    type: TASK
+    expected_chunk_function: CLARIFY
+    is_mandatory: true
+    sort_order: 3
+  - description: Cảm ơn nhân viên phục vụ
+    type: TASK
+    expected_chunk_function: CLOSING
+    is_mandatory: false
+    sort_order: 4
+  chunks:
+  - function_tag: OPENING
+    text: Hi, could I get a...?
+    meaning_vi: Xin chào, cho tôi một ly... được không?
+    example_sentence: Hi, could I get a medium iced latte, please?
+    accepted_variations:
+    - Hello, I'd like to order a...
+    - Can I have a..., please?
+    - I'll take a...
+    sort_order: 1
+    distractors_en:
+    - Excuse me, where is the restroom?
+    - What time do you open?
+    - Do you have free Wi-Fi?
+    distractors_vi:
+    - Xin lỗi, nhà vệ sinh ở đâu?
+    - Bạn mở cửa lúc mấy giờ?
+    - Có Wi-Fi miễn phí không?
+  - function_tag: REQUEST
+    text: Could you make it with oat milk?
+    meaning_vi: Bạn có thể pha bằng sữa yến mạch được không?
+    example_sentence: Could you make it with oat milk and less sugar, please?
+    accepted_variations:
+    - Can I get that with oat milk?
+    - With oat milk instead, please.
+    sort_order: 2
+    distractors_en:
+    - Can I have extra sugar?
+    - Make it a large size, please.
+    - Can I get a loyalty card?
+    distractors_vi:
+    - Cho thêm đường được không?
+    - Cho tôi ly cỡ lớn.
+    - Tôi có thể lấy thẻ tích điểm không?
+  - function_tag: CLARIFY
+    text: To go, please.
+    meaning_vi: Mang đi, cảm ơn.
+    example_sentence: Make that to go, please.
+    accepted_variations:
+    - Takeaway, please.
+    - For takeaway, thank you.
+    - I'll have it to go.
+    sort_order: 3
+    distractors_en:
+    - I'll eat here, thank you.
+    - Can I have a bag?
+    - No ice, please.
+    distractors_vi:
+    - Tôi uống tại đây, cảm ơn.
+    - Cho tôi túi đựng được không?
+    - Không đá, cảm ơn.
+  - function_tag: AGREE_DECLINE
+    text: No, that will be all.
+    meaning_vi: Không, như vậy là đủ rồi.
+    example_sentence: No, that will be all for today, thank you.
+    accepted_variations:
+    - That's everything, thanks.
+    - Nothing else for now.
+    sort_order: 4
+    distractors_en:
+    - Yes, can I also get a muffin?
+    - Actually, I need one more.
+    - I'd like to add a sandwich.
+    distractors_vi:
+    - Vâng, cho tôi thêm bánh muffin.
+    - Thực ra tôi cần thêm một cái.
+    - Tôi muốn thêm bánh mì kẹp.
+  - function_tag: CLOSING
+    text: Have a great day!
+    meaning_vi: Chúc một ngày tốt lành!
+    example_sentence: Thank you, have a great day!
+    accepted_variations:
+    - Thanks, you too!
+    - Have a good one!
+    sort_order: 5
+    distractors_en:
+    - See you next time.
+    - I'll be back tomorrow.
+    - Thanks for nothing.
+    distractors_vi:
+    - Hẹn gặp lần sau.
+    - Tôi sẽ quay lại ngày mai.
+    - Không cảm ơn gì cả.

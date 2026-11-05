@@ -125,16 +125,35 @@ class FakeLlmProvider:
 
     async def evaluate_post_session(
         self,
-        history: list[dict[str, str]],  # noqa: ARG002
+        history: list[dict[str, str]],
         topic_title: str,
         user_level: str,
     ) -> PostSessionLlmEvaluation:
         from app.models.scoring_schemas import PostSessionLlmEvaluation
 
+        lvl = user_level.upper() if user_level else "A1"
+        user_texts = [
+            h.get("text", "") for h in history if (h.get("speaker") or "").upper() == "USER"
+        ]
+        total_words = sum(len(t.split()) for t in user_texts)
+        avg_w = total_words / max(len(user_texts), 1)
+
+        # Accurately reflect user's CEFR level benchmarks (SRS 3.4)
+        if lvl == "A1" or avg_w < 8:
+            rel, comp, ctx = 40.0, 38.0, 38.0
+        elif lvl == "A2" or avg_w < 18:
+            rel, comp, ctx = 50.0, 48.0, 48.0
+        elif lvl == "B1" or avg_w < 32:
+            rel, comp, ctx = 64.0, 62.0, 63.0
+        elif lvl == "B2" or avg_w < 50:
+            rel, comp, ctx = 76.0, 75.0, 74.0
+        else:
+            rel, comp, ctx = 88.0, 86.0, 86.0
+
         return PostSessionLlmEvaluation(
-            response_relevance=85.0,
-            task_completion=80.0,
-            context_relevance=82.0,
+            response_relevance=rel,
+            task_completion=comp,
+            context_relevance=ctx,
             strengths=[
                 f"Phản xạ trả lời tự nhiên và bám sát chủ đề '{topic_title}'.",
                 "Sử dụng các cấu trúc câu giao tiếp mở rộng tốt, không bị ngắt quãng giữa chừng.",
@@ -146,12 +165,42 @@ class FakeLlmProvider:
             next_practice=f"Tiếp tục thực hành chủ đề nâng cao liên quan tới '{topic_title}' ở cấp độ {user_level} để tăng cường phản xạ.",
         )
 
-    async def evaluate_placement(self, transcripts: list[str]) -> LlmLevelEvaluation:  # noqa: ARG002
+    async def evaluate_placement(self, transcripts: list[str]) -> LlmLevelEvaluation:
+        total_words = sum(len(t.split()) for t in transcripts)
+        avg_w = total_words / max(len(transcripts), 1)
+        all_text = " ".join(transcripts).lower()
+
+        # Check for intermediate/advanced vocabulary markers indicative of B1+
+        has_advanced_vocab = any(
+            w in all_text
+            for w in (
+                "perspective",
+                "transforming",
+                "specialized",
+                "industries",
+                "culture",
+                "incredible",
+                "career paths",
+                "artificial intelligence",
+                "foreign languages",
+            )
+        )
+
+        if avg_w < 12 and not has_advanced_vocab:
+            suggested = "A1"
+        elif avg_w < 18 and not has_advanced_vocab:
+            suggested = "A2"
+        elif avg_w < 35 or has_advanced_vocab:
+            suggested = "B2" if (has_advanced_vocab and avg_w >= 18) else "B1"
+        elif avg_w < 58:
+            suggested = "B2"
+        else:
+            suggested = "C1"
 
         return LlmLevelEvaluation(
-            suggested_level="B1",
-            confidence=0.75,
-            reasoning="Fake evaluation: vocabulary and sentence structure suggest B1.",
+            suggested_level=suggested,
+            confidence=0.85,
+            reasoning=f"Fake evaluation: average utterance of {avg_w:.1f} words indicates {suggested} level.",
         )
 
     async def generate_coach_reply(
@@ -177,31 +226,35 @@ class FakeLlmProvider:
         msg_lower = user_message.lower()
         level = user_level.upper()
 
-        if any(w in msg_lower for w in ("again", "hear", "clearly", "repeat", "pardon", "sorry")):
-            if level in ("A1", "A2"):
-                return f"No problem! What do you like about {topic_title.lower()}?"
-            return f"No worries at all! I was asking: what do you enjoy most when exploring {topic_title.lower()}?"
-
         if any(
-            w in msg_lower for w in ("travel", "beach", "city", "da nang", "hanoi", "trip", "visit")
+            w in msg_lower
+            for w in ("again", "hear", "clearly", "repeat", "pardon", "sorry", "what")
         ):
             if level in ("A1", "A2"):
-                return "That is nice! Do you like the beach or the food more?"
-            return "That sounds like a wonderful destination! What is your favorite activity or local food when you are there?"
+                return f"No problem! What do you like about {topic_title.lower()}?"
+            return f"No worries at all! I was asking: what do you think is most important about {topic_title.lower()}?"
 
-        if any(w in msg_lower for w in ("work", "job", "office", "company", "career")):
-            if level in ("A1", "A2"):
-                return "Great! Do you enjoy your daily work with colleagues?"
-            return "Working on that sounds challenging yet rewarding! What do you find most interesting about your daily tasks?"
+        # Topic-anchored and level-calibrated responses ensuring conversation NEVER drifts
+        if level in ("A1", "A2"):
+            anchored_replies = [
+                f"That sounds great! How does that help you with {topic_title.lower()}?",
+                f"I understand! What is most interesting to you about {topic_title.lower()}?",
+                f"Very nice! Do you often talk about {topic_title.lower()} with family or friends?",
+                f"Good point! Can you share one more detail about {topic_title.lower()}?",
+                f"Thanks for sharing! What else do you enjoy about {topic_title.lower()}?",
+            ]
+        else:
+            anchored_replies = [
+                f"That's an interesting perspective! How does that connect with your daily thoughts on {topic_title.lower()}?",
+                f"I appreciate that reflection. Coming back to our focus on {topic_title.lower()}, what major challenges do you face?",
+                f"That makes a lot of sense. In the context of {topic_title.lower()}, what outcome would you consider ideal?",
+                f"Compelling point! Could you elaborate further on how that influences {topic_title.lower()}?",
+                f"That's very insightful! What key lesson have you learned about {topic_title.lower()} from that experience?",
+            ]
 
-        if any(w in msg_lower for w in ("weekend", "free time", "hobby", "music", "sport", "game")):
-            if level in ("A1", "A2"):
-                return "Sounds fun! Do you do that on Saturdays?"
-            return "That's a fantastic way to recharge your energy! Do you usually do that alone or with friends?"
-
-        idx = FakeLlmProvider._counter % len(self._REPLIES)
+        idx = FakeLlmProvider._counter % len(anchored_replies)
         FakeLlmProvider._counter += 1
-        return self._REPLIES[idx]
+        return anchored_replies[idx]
 
     async def generate_suggested_replies(
         self,
@@ -327,23 +380,97 @@ class FakeLlmProvider:
         user_level: str,  # noqa: ARG002
     ) -> dict[str, Any]:
         user_turns = [h["content"] for h in history if h.get("role") == "user"]
-        has_sufficient_speech = (
-            len(user_turns) >= 1 and sum(len(t.split()) for t in user_turns) >= 3
+        all_user_text = " ".join(user_turns).lower()
+        user_words = set(
+            all_user_text.replace(",", " ").replace(".", " ").replace("?", " ").split()
         )
+        total_word_count = sum(len(t.split()) for t in user_turns)
 
+        # Strictly check which target chunks were genuinely used in conversation
+        functional_verdicts: dict[str, bool] = {}
+        for c in chunks:
+            c_id = str(c.get("id", ""))
+            c_text = c.get("text", "").lower()
+            kw = [w.strip(".,!?;:'\"") for w in c_text.split() if len(w.strip(".,!?;:'\"")) >= 3]
+            if not kw:
+                functional_verdicts[c_id] = False
+                continue
+            kw_matches = sum(1 for w in kw if w in user_words or w in all_user_text)
+            is_matched = (kw_matches / len(kw)) >= 0.5
+            functional_verdicts[c_id] = is_matched
+
+        # Strict requirement evaluation based on actual evidence
         req_evals: list[dict[str, Any]] = []
-        for req in requirements:
+        function_keywords: dict[str, list[str]] = {
+            "OPENING": [
+                "hi",
+                "hello",
+                "excuse",
+                "morning",
+                "afternoon",
+                "evening",
+                "could",
+                "would",
+            ],
+            "REQUEST": [
+                "where",
+                "how",
+                "much",
+                "want",
+                "like",
+                "need",
+                "can",
+                "could",
+                "table",
+                "book",
+                "order",
+            ],
+            "CLARIFY": [
+                "what",
+                "when",
+                "how",
+                "confirm",
+                "include",
+                "card",
+                "time",
+                "if",
+                "available",
+            ],
+            "AGREE_DECLINE": [
+                "sounds",
+                "good",
+                "great",
+                "perfect",
+                "fine",
+                "work",
+                "works",
+                "take",
+                "yes",
+                "no",
+            ],
+            "CLOSING": ["thank", "thanks", "bye", "goodbye", "see", "later", "night", "appreciate"],
+        }
+
+        for idx, req in enumerate(requirements):
             r_id = str(req.get("id", ""))
             desc = req.get("description", "")
             is_mand = req.get("is_mandatory", True)
+            func_tag = req.get("expected_chunk_function", "")
 
-            # If user spoke sufficiently, pass mandatory requirements
-            status = "PASS" if has_sufficient_speech else "FAIL"
-            evidence = f"User said: '{user_turns[0]}'" if user_turns else "No user utterance found"
+            has_turn = len(user_turns) > idx or len(user_turns) >= 2
+            kws = function_keywords.get(func_tag, ["the", "i"])
+            kw_found = any(k in user_words or k in all_user_text for k in kws)
+
+            status = "PASS" if (has_turn and kw_found and total_word_count >= 5) else "FAIL"
+            evidence = (
+                f"User said: '{user_turns[min(idx, len(user_turns) - 1)]}'"
+                if user_turns
+                else "No user utterance found"
+            )
             reason = (
-                "Successfully fulfilled communicative goal in character."
-                if has_sufficient_speech
-                else "Insufficient dialogue evidence to satisfy milestone."
+                "Fulfilled communicative goal using appropriate vocabulary."
+                if status == "PASS"
+                else "Chưa sử dụng đủ mẫu câu hoặc từ vựng yêu cầu cho nhiệm vụ này."
             )
             req_evals.append(
                 {
@@ -356,23 +483,40 @@ class FakeLlmProvider:
                 }
             )
 
-        functional_verdicts = {str(c.get("id", "")): True for c in chunks}
+        # Calibrated realistic scoring: no artificial 90+ inflation
+        pass_ratio = sum(1 for r in req_evals if r["status"] == "PASS") / max(len(req_evals), 1)
+        if total_word_count < 10:
+            rel = round(35.0 + pass_ratio * 15.0, 1)
+            comp = round(30.0 + pass_ratio * 20.0, 1)
+            ctx = round(35.0 + pass_ratio * 15.0, 1)
+        elif total_word_count < 25:
+            rel = round(45.0 + pass_ratio * 20.0, 1)
+            comp = round(40.0 + pass_ratio * 25.0, 1)
+            ctx = round(45.0 + pass_ratio * 20.0, 1)
+        elif total_word_count < 50:
+            rel = round(55.0 + pass_ratio * 20.0, 1)
+            comp = round(50.0 + pass_ratio * 25.0, 1)
+            ctx = round(55.0 + pass_ratio * 20.0, 1)
+        else:
+            rel = round(65.0 + pass_ratio * 20.0, 1)
+            comp = round(60.0 + pass_ratio * 25.0, 1)
+            ctx = round(65.0 + pass_ratio * 20.0, 1)
 
         return {
             "requirements_evaluation": req_evals,
             "functional_chunk_verdicts": functional_verdicts,
             "strengths": [
-                f"Phản xạ mở đầu tình huống và giao tiếp tự tin trong vai trò của tình huống '{scenario_title}'.",
-                "Sử dụng cụm từ chức năng tự nhiên, duy trì tốt tiến trình hội thoại.",
+                f"Tự tin bước vào tình huống hội thoại '{scenario_title}'.",
+                f"Đã hoàn thành {sum(1 for r in req_evals if r['status'] == 'PASS')}/{len(req_evals)} mục tiêu của tình huống.",
             ],
             "improvements": [
-                "Có thể chủ động đặt thêm câu hỏi làm rõ để cuộc trò chuyện có chiều sâu hơn.",
-                "Thực hành thêm các cách diễn đạt biến thể của mẫu câu chính.",
+                "Cần mở rộng vốn từ và nói câu hoàn chỉnh hơn thay vì chỉ dùng từ đơn lẻ.",
+                "Áp dụng chính xác các cụm từ (chunks) đã nạp để câu nói tự nhiên và chuẩn xác hơn.",
             ],
-            "next_practice": f"Luyện tập lại tình huống '{scenario_title}' ở tốc độ nói tự nhiên để củng cố phản xạ.",
-            "response_relevance": 88.0,
-            "task_completion": 85.0 if has_sufficient_speech else 20.0,
-            "context_relevance": 85.0,
+            "next_practice": f"Luyện tập lại tình huống '{scenario_title}' để củng cố các cụm từ còn thiếu.",
+            "response_relevance": rel,
+            "task_completion": comp,
+            "context_relevance": ctx,
         }
 
 
@@ -423,20 +567,26 @@ class GeminiLlmProvider:
         topic_min_level: str = "A1",
     ) -> str:
         system_instruction = (
-            f"You are Alex, an encouraging English Communication Coach at TalkWithMe. "
-            f"The user is at CEFR Level {user_level}, discussing the topic '{topic_title}' (Topic min level: {topic_min_level}). "
+            f"You are Alex, an encouraging English Communication Coach at TalkWithMe.\n"
+            f"The user is at CEFR Level {user_level}, discussing the specific lesson topic: '{topic_title}' (Topic min level: {topic_min_level}).\n\n"
             f"Rules:\n"
-            f"1. Keep responses short and conversational (1 to 2 sentences max).\n"
-            f"2. Always end with one friendly, open-ended question to keep the conversation flowing.\n"
-            f"3. Do NOT interrupt or criticize grammar mid-conversation.\n"
-            f"4. CEFR CALIBRATION: Strictly adapt your vocabulary and sentence length to level {user_level}."
+            f"1. TOPIC GROUNDING (STRICT): The conversation must stay focused on '{topic_title}'. If the user wanders off-topic, acknowledge warmly in one brief phrase and smoothly guide the conversation back to '{topic_title}'.\n"
+            f"2. Keep responses short and conversational (1 to 2 sentences max).\n"
+            f"3. Always end with one friendly, open-ended question strictly about '{topic_title}' to keep the conversation flowing.\n"
+            f"4. Do NOT interrupt or criticize grammar mid-conversation.\n"
+            f"5. CEFR CALIBRATION: Strictly adapt your vocabulary and sentence length to level {user_level}."
         )
 
         contents: list[dict[str, Any]] = []
         for h in history[-6:]:  # Context window: last 6 turns
             role = "user" if h.get("role") == "user" else "model"
+            if contents and contents[-1]["role"] == role:
+                continue
             contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
-        contents.append({"role": "user", "parts": [{"text": user_message}]})
+        if contents and contents[-1]["role"] == "user":
+            contents[-1]["parts"][0]["text"] += f" {user_message}"
+        else:
+            contents.append({"role": "user", "parts": [{"text": user_message}]})
 
         payload = {
             "system_instruction": {"parts": [{"text": system_instruction}]},
@@ -590,25 +740,39 @@ class GeminiLlmProvider:
         goals: list[str],
         target_chunks: list[str],
     ) -> str:
-        prompt = (
-            f"Roleplay scenario: {scenario_context}\n"
-            f"You are: {ai_role}. The user is: {user_role}. Learner level: {user_level}.\n"
-            f"Goals: {', '.join(goals)}.\n"
-            f"Rules:\n"
-            f"1. Stay strictly in character as {ai_role}.\n"
-            f"2. Keep replies natural, concise (1-2 sentences), adapted to CEFR level {user_level}.\n"
-            f"3. Guide the conversation forward towards the scenario goals.\n"
-            f"4. Never break character, never critique grammar mid-dialogue."
+        system_instruction = (
+            f"You are roleplaying as {ai_role} in an English speaking practice session at TalkWithMe.\n"
+            f"Scenario context: {scenario_context}\n"
+            f"User role: {user_role}. User CEFR level: {user_level}.\n"
+            f"Goals to accomplish: {', '.join(goals)}.\n"
+            f"Recommended target chunks: {', '.join(target_chunks)}.\n\n"
+            f"CRITICAL RULES:\n"
+            f"1. TOPIC ANCHORING (STRICT): You must stay 100% in character as {ai_role} and strictly focused on this scenario. If the user drifts or speaks off-topic, warmly acknowledge in a few words and gracefully bring them back to the scenario!\n"
+            f"2. Keep responses brief and conversational (1 to 2 sentences max), adapted to CEFR {user_level}.\n"
+            f"3. Do NOT break character or critique grammar mid-dialogue.\n"
+            f"4. Proactively guide the conversation forward toward accomplishing the scenario goals."
         )
-        contents: list[dict[str, Any]] = [{"role": "user", "parts": [{"text": prompt}]}]
+
+        contents: list[dict[str, Any]] = []
         for h in history[-6:]:
             role = "user" if h.get("role") == "user" else "model"
+            if contents and contents[-1]["role"] == role:
+                continue
             contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
-        contents.append({"role": "user", "parts": [{"text": user_message}]})
+        if contents and contents[-1]["role"] == "user":
+            contents[-1]["parts"][0]["text"] += f" {user_message}"
+        else:
+            contents.append({"role": "user", "parts": [{"text": user_message}]})
+
+        payload = {
+            "system_instruction": {"parts": [{"text": system_instruction}]},
+            "contents": contents,
+            "generationConfig": {"temperature": 0.4, "maxOutputTokens": 150},
+        }
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.post(self.endpoint, json={"contents": contents})
+                res = await client.post(self.endpoint, json=payload)
                 res.raise_for_status()
                 data = res.json()
                 gemini_reply: str = data["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -695,15 +859,16 @@ class GroqLlmProvider:
         topic_min_level: str = "A1",
     ) -> str:
         system_instruction = (
-            f"You are Alex, an encouraging and empathetic English Communication Coach at TalkWithMe. "
-            f"The user is at CEFR Level {user_level}, discussing the topic '{topic_title}' (Topic min level: {topic_min_level}).\n"
-            f"Rules (Communication-First):\n"
-            f"1. Directly respond to and acknowledge what the learner just said!\n"
-            f"2. Keep responses short and natural (1 to 2 sentences max).\n"
-            f"3. Always conclude with exactly ONE friendly, open-ended question to invite the user to speak more.\n"
-            f"4. Do NOT criticize grammar or interrupt the flow.\n"
-            f"5. CEFR CALIBRATION: Strictly adapt your vocabulary, sentence length, and syntax to CEFR level {user_level}. "
-            f"For A1/A2, use simple, common words and keep questions under 12 words. For B1/B2, speak naturally. For C1, use richer vocabulary."
+            f"You are Alex, an encouraging and empathetic English Communication Coach at TalkWithMe.\n"
+            f"The user is at CEFR Level {user_level}, discussing the specific lesson topic: '{topic_title}' (Topic min level: {topic_min_level}).\n\n"
+            f"MANDATORY COMMUNICATION-FIRST RULES:\n"
+            f"1. TOPIC GROUNDING (STRICT): The conversation must stay focused on '{topic_title}'. Do NOT let the conversation drift away to unrelated subjects.\n"
+            f"2. SKILLFUL REDIRECTION (AGENTS.md Rule 9): If the user wanders off-topic or talks about something else, warmly acknowledge their point in 1 brief phrase, then smoothly steer the conversation back to '{topic_title}' with your follow-up question.\n"
+            f"3. Directly acknowledge what the learner just said!\n"
+            f"4. Keep responses short and natural (1 to 2 sentences max).\n"
+            f"5. Always conclude with exactly ONE friendly, open-ended question strictly related to '{topic_title}' to invite the user to speak more.\n"
+            f"6. Do NOT criticize grammar or interrupt the conversational flow.\n"
+            f"7. CEFR CALIBRATION: Strictly adapt your vocabulary, sentence length, and syntax to CEFR level {user_level}. For A1/A2, use simple, common words and keep questions under 12 words. For B1/B2, speak naturally. For C1, use richer vocabulary."
         )
 
         messages: list[dict[str, str]] = [{"role": "system", "content": system_instruction}]
@@ -898,7 +1063,7 @@ class GroqLlmProvider:
             f"CRITICAL RULES:\n"
             f"1. Stay strictly in character as {ai_role}.\n"
             f"2. Keep responses brief and conversational (1 to 2 sentences), adapted to CEFR {user_level}.\n"
-            f"3. Guide the dialogue naturally towards the goals.\n"
+            f"3. Guide the dialogue naturally towards the goals. If the user drifts away from the scenario, bring them back in character!\n"
             f"4. Do NOT break character or correct grammar mid-dialogue."
         )
         messages = [{"role": "system", "content": system_msg}]

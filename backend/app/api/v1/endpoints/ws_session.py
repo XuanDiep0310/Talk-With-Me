@@ -19,6 +19,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from sqlalchemy import select
 
 from app.core.config import get_settings
 from app.core.database import async_session_factory
@@ -26,6 +27,7 @@ from app.core.providers.llm_provider import get_llm_provider
 from app.core.providers.stt_provider import get_stt_provider
 from app.core.redis import get_redis_client
 from app.core.ws_manager import session_ws_manager
+from app.models.auth import UserSettings
 from app.models.session import TranscriptSegment
 from app.repositories.scenario import ScenarioRepository
 from app.repositories.session import SessionRepository, TranscriptRepository
@@ -155,8 +157,24 @@ async def session_websocket_endpoint(
     # Register active websocket for session notifications
     session_ws_manager.register(session_id, websocket)
 
-    # Notify client of active session
-    await websocket.send_json({"type": "session.state", "state": SessionState.ACTIVE.value})
+    # Notify client of active session and current AI voice settings
+    voice_pref = "female"
+    speed_pref = "normal"
+    async with async_session_factory() as db:
+        settings_res = await db.execute(select(UserSettings).where(UserSettings.user_id == user_id))
+        u_settings = settings_res.scalar_one_or_none()
+        if u_settings:
+            voice_pref = u_settings.ai_voice or "female"
+            speed_pref = u_settings.speech_speed or "normal"
+
+    await websocket.send_json(
+        {
+            "type": "session.state",
+            "state": SessionState.ACTIVE.value,
+            "aiVoice": voice_pref,
+            "speechSpeed": speed_pref,
+        }
+    )
 
     # Resync missing transcripts if client provided lastSeq or reconnected
     async with async_session_factory() as db:
@@ -368,12 +386,13 @@ async def session_websocket_endpoint(
                             all_transcripts = await TranscriptRepository(db).list_by_session(
                                 session_id
                             )
+                            # Exclude current user_text which was already saved to DB at line 331
                             history = [
                                 {
                                     "role": "user" if t.speaker == "USER" else "model",
                                     "content": t.text,
                                 }
-                                for t in all_transcripts[-6:]
+                                for t in all_transcripts[:-1][-6:]
                             ]
 
                             # Distinguish Roleplay vs Coach session
