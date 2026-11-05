@@ -323,6 +323,21 @@ function wordSimilarity(w1: string, w2: string): number {
   return Math.max(0, 1 - levenshtein(w1, w2) / maxLen);
 }
 
+const CONTRACTION_MAP: Record<string, string[]> = {
+  "i'm": ["i", "am", "im"],
+  "don't": ["do", "not", "dont"],
+  "can't": ["can", "not", "cannot", "cant"],
+  "won't": ["will", "not", "wont"],
+  "it's": ["it", "is", "its"],
+  "that's": ["that", "is", "thats"],
+  "you're": ["you", "are", "youre"],
+  "we're": ["we", "are", "were"],
+  "they're": ["they", "are", "theyre"],
+  "i've": ["i", "have", "ive"],
+  "i'll": ["i", "will", "ill"],
+  "i'd": ["i", "would", "i", "had", "id"],
+};
+
 export function evaluatePronunciation(targetText: string, spokenText: string): ChunkEvaluationResult {
   if (!targetText) {
     return { score: 0, words: [], isMatch: false };
@@ -351,7 +366,7 @@ export function evaluatePronunciation(targetText: string, spokenText: string): C
       continue;
     }
 
-    // 1. First look for exact unused match
+    // 1. Exact match
     let bestMatchIdx = -1;
     for (let i = 0; i < spokenTokens.length; i++) {
       if (!usedSpokenIndices.has(i) && spokenTokens[i] === cleanWord) {
@@ -367,7 +382,46 @@ export function evaluatePronunciation(targetText: string, spokenText: string): C
       continue;
     }
 
-    // 2. Look for close match (similarity >= 0.72)
+    // 2. Contraction match (e.g. "I'm" matching "I am" or "im")
+    const contractionEquivalents = CONTRACTION_MAP[cleanWord];
+    if (contractionEquivalents) {
+      let contractionMatched = false;
+      // Check multi-token or single token expansion
+      for (let i = 0; i < spokenTokens.length; i++) {
+        if (!usedSpokenIndices.has(i)) {
+          const t1 = spokenTokens[i];
+          const t2 = spokenTokens[i + 1];
+          if (t1 && t2 && !usedSpokenIndices.has(i + 1)) {
+            const combined = `${t1} ${t2}`;
+            if (
+              (cleanWord === "i'm" && combined === "i am") ||
+              (cleanWord === "don't" && combined === "do not") ||
+              (cleanWord === "can't" && (combined === "can not" || t1 === "cannot")) ||
+              (cleanWord === "it's" && combined === "it is") ||
+              (cleanWord === "that's" && combined === "that is") ||
+              (cleanWord === "you're" && combined === "you are")
+            ) {
+              usedSpokenIndices.add(i);
+              usedSpokenIndices.add(i + 1);
+              evaluatedWords.push({ word: rawWord, status: 'correct' });
+              matchedScore += 1.0;
+              contractionMatched = true;
+              break;
+            }
+          }
+          if (contractionEquivalents.includes(t1)) {
+            usedSpokenIndices.add(i);
+            evaluatedWords.push({ word: rawWord, status: 'correct' });
+            matchedScore += 1.0;
+            contractionMatched = true;
+            break;
+          }
+        }
+      }
+      if (contractionMatched) continue;
+    }
+
+    // 3. Close fuzzy match (similarity >= 0.72)
     let bestSim = 0;
     let bestCloseIdx = -1;
     for (let i = 0; i < spokenTokens.length; i++) {
@@ -380,24 +434,20 @@ export function evaluatePronunciation(targetText: string, spokenText: string): C
       }
     }
 
-    // Special contraction handling e.g. "I'm" vs "I am"
-    if (cleanWord === "i'm" && spokenTokens.some((t) => t === 'i' || t === 'im')) {
-      bestSim = 0.9;
-    }
-
     if (bestSim >= 0.72 && bestCloseIdx !== -1) {
       usedSpokenIndices.add(bestCloseIdx);
       evaluatedWords.push({ word: rawWord, status: 'imperfect' });
-      matchedScore += 0.6;
+      matchedScore += 0.75;
     } else {
       evaluatedWords.push({ word: rawWord, status: 'missing' });
     }
   }
 
-  // Realistic penalization: denominator includes extra spoken words to prevent gaming by rambling
-  const denom = Math.max(targetWords.length, Math.round(targetWords.length * 0.7 + spokenTokens.length * 0.3));
-  const rawScore = denom > 0 ? (matchedScore / denom) * 100 : 0;
-  const score = Math.max(0, Math.min(100, Math.round(rawScore)));
+  // Realistic scoring: chunk words coverage is primary; slight penalty only if rambling with excessive extra words
+  const targetCoverage = targetWords.length > 0 ? (matchedScore / targetWords.length) * 100 : 0;
+  const excessTokens = Math.max(0, spokenTokens.length - (targetWords.length + 3));
+  const penalty = excessTokens * 4;
+  const score = Math.max(0, Math.min(100, Math.round(targetCoverage - penalty)));
 
   return {
     score,

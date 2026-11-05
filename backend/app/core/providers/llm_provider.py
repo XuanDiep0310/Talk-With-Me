@@ -208,7 +208,10 @@ class FakeLlmProvider:
         msg_lower = user_message.lower()
         level = user_level.upper()
 
-        if any(w in msg_lower for w in ("again", "hear", "clearly", "repeat", "pardon", "sorry", "what")):
+        if any(
+            w in msg_lower
+            for w in ("again", "hear", "clearly", "repeat", "pardon", "sorry", "what")
+        ):
             if level in ("A1", "A2"):
                 return f"No problem! What do you like about {topic_title.lower()}?"
             return f"No worries at all! I was asking: what do you think is most important about {topic_title.lower()}?"
@@ -360,7 +363,9 @@ class FakeLlmProvider:
     ) -> dict[str, Any]:
         user_turns = [h["content"] for h in history if h.get("role") == "user"]
         all_user_text = " ".join(user_turns).lower()
-        user_words = set(all_user_text.replace(",", " ").replace(".", " ").replace("?", " ").split())
+        user_words = set(
+            all_user_text.replace(",", " ").replace(".", " ").replace("?", " ").split()
+        )
         total_word_count = sum(len(t.split()) for t in user_turns)
 
         # Strictly check which target chunks were genuinely used in conversation
@@ -379,10 +384,52 @@ class FakeLlmProvider:
         # Strict requirement evaluation based on actual evidence
         req_evals: list[dict[str, Any]] = []
         function_keywords: dict[str, list[str]] = {
-            "OPENING": ["hi", "hello", "excuse", "morning", "afternoon", "evening", "could", "would"],
-            "REQUEST": ["where", "how", "much", "want", "like", "need", "can", "could", "table", "book", "order"],
-            "CLARIFY": ["what", "when", "how", "confirm", "include", "card", "time", "if", "available"],
-            "AGREE_DECLINE": ["sounds", "good", "great", "perfect", "fine", "work", "works", "take", "yes", "no"],
+            "OPENING": [
+                "hi",
+                "hello",
+                "excuse",
+                "morning",
+                "afternoon",
+                "evening",
+                "could",
+                "would",
+            ],
+            "REQUEST": [
+                "where",
+                "how",
+                "much",
+                "want",
+                "like",
+                "need",
+                "can",
+                "could",
+                "table",
+                "book",
+                "order",
+            ],
+            "CLARIFY": [
+                "what",
+                "when",
+                "how",
+                "confirm",
+                "include",
+                "card",
+                "time",
+                "if",
+                "available",
+            ],
+            "AGREE_DECLINE": [
+                "sounds",
+                "good",
+                "great",
+                "perfect",
+                "fine",
+                "work",
+                "works",
+                "take",
+                "yes",
+                "no",
+            ],
             "CLOSING": ["thank", "thanks", "bye", "goodbye", "see", "later", "night", "appreciate"],
         }
 
@@ -515,8 +562,13 @@ class GeminiLlmProvider:
         contents: list[dict[str, Any]] = []
         for h in history[-6:]:  # Context window: last 6 turns
             role = "user" if h.get("role") == "user" else "model"
+            if contents and contents[-1]["role"] == role:
+                continue
             contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
-        contents.append({"role": "user", "parts": [{"text": user_message}]})
+        if contents and contents[-1]["role"] == "user":
+            contents[-1]["parts"][0]["text"] += f" {user_message}"
+        else:
+            contents.append({"role": "user", "parts": [{"text": user_message}]})
 
         payload = {
             "system_instruction": {"parts": [{"text": system_instruction}]},
@@ -670,25 +722,39 @@ class GeminiLlmProvider:
         goals: list[str],
         target_chunks: list[str],
     ) -> str:
-        prompt = (
-            f"Roleplay scenario: {scenario_context}\n"
-            f"You are: {ai_role}. The user is: {user_role}. Learner level: {user_level}.\n"
-            f"Goals: {', '.join(goals)}.\n"
-            f"Rules:\n"
-            f"1. Stay strictly in character as {ai_role}.\n"
-            f"2. Keep replies natural, concise (1-2 sentences), adapted to CEFR level {user_level}.\n"
-            f"3. Guide the conversation forward towards the scenario goals.\n"
-            f"4. Never break character, never critique grammar mid-dialogue."
+        system_instruction = (
+            f"You are roleplaying as {ai_role} in an English speaking practice session at TalkWithMe.\n"
+            f"Scenario context: {scenario_context}\n"
+            f"User role: {user_role}. User CEFR level: {user_level}.\n"
+            f"Goals to accomplish: {', '.join(goals)}.\n"
+            f"Recommended target chunks: {', '.join(target_chunks)}.\n\n"
+            f"CRITICAL RULES:\n"
+            f"1. TOPIC ANCHORING (STRICT): You must stay 100% in character as {ai_role} and strictly focused on this scenario. If the user drifts or speaks off-topic, warmly acknowledge in a few words and gracefully bring them back to the scenario!\n"
+            f"2. Keep responses brief and conversational (1 to 2 sentences max), adapted to CEFR {user_level}.\n"
+            f"3. Do NOT break character or critique grammar mid-dialogue.\n"
+            f"4. Proactively guide the conversation forward toward accomplishing the scenario goals."
         )
-        contents: list[dict[str, Any]] = [{"role": "user", "parts": [{"text": prompt}]}]
+
+        contents: list[dict[str, Any]] = []
         for h in history[-6:]:
             role = "user" if h.get("role") == "user" else "model"
+            if contents and contents[-1]["role"] == role:
+                continue
             contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
-        contents.append({"role": "user", "parts": [{"text": user_message}]})
+        if contents and contents[-1]["role"] == "user":
+            contents[-1]["parts"][0]["text"] += f" {user_message}"
+        else:
+            contents.append({"role": "user", "parts": [{"text": user_message}]})
+
+        payload = {
+            "system_instruction": {"parts": [{"text": system_instruction}]},
+            "contents": contents,
+            "generationConfig": {"temperature": 0.4, "maxOutputTokens": 150},
+        }
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.post(self.endpoint, json={"contents": contents})
+                res = await client.post(self.endpoint, json=payload)
                 res.raise_for_status()
                 data = res.json()
                 gemini_reply: str = data["candidates"][0]["content"]["parts"][0]["text"].strip()

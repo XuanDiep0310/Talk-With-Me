@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserService } from '../../core/services/user.service';
 import { AppStateService } from '../../core/services/app-state.service';
 import { ToastService } from '../../core/services/toast.service';
+import { GamificationService } from '../../core/services/gamification.service';
 import { signal, WritableSignal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 import type { MeResponse } from '../../core/services/auth.service';
@@ -14,14 +15,19 @@ describe('ProfileComponent', () => {
   let fixture: ComponentFixture<ProfileComponent>;
   let mockAuthService: {
     currentUser: WritableSignal<MeResponse | null>;
+    isAuthenticated: jasmine.Spy;
     loadCurrentUser: jasmine.Spy;
     logout: jasmine.Spy;
   };
   let mockUserService: jasmine.SpyObj<UserService>;
+  let mockGamificationService: {
+    getGamificationSummary: jasmine.Spy;
+  };
   let mockAppState: {
     appUser: WritableSignal<{ name: string; email: string; level: string }>;
     totalXp: WritableSignal<number>;
     currentStreak: WritableSignal<number>;
+    updateGamification: jasmine.Spy;
   };
   let mockToast: jasmine.SpyObj<ToastService>;
 
@@ -36,6 +42,7 @@ describe('ProfileComponent', () => {
   beforeEach(async () => {
     mockAuthService = {
       currentUser: signal(initialUser),
+      isAuthenticated: jasmine.createSpy('isAuthenticated').and.returnValue(true),
       loadCurrentUser: jasmine.createSpy('loadCurrentUser').and.returnValue(Promise.resolve()),
       logout: jasmine.createSpy('logout').and.returnValue(Promise.resolve()),
     };
@@ -46,10 +53,19 @@ describe('ProfileComponent', () => {
       'changePassword',
     ]);
 
+    mockGamificationService = {
+      getGamificationSummary: jasmine.createSpy('getGamificationSummary').and.returnValue(of({
+        totalXp: 1250,
+        currentStreak: 5,
+        currentLevel: 'B1',
+      })),
+    };
+
     mockAppState = {
       appUser: signal({ name: 'Nguyen Van A', email: 'test@example.com', level: 'B1' }),
       totalXp: signal(1250),
       currentStreak: signal(5),
+      updateGamification: jasmine.createSpy('updateGamification'),
     };
 
     mockToast = jasmine.createSpyObj<ToastService>('ToastService', ['success', 'error', 'info']);
@@ -59,6 +75,7 @@ describe('ProfileComponent', () => {
       providers: [
         { provide: AuthService, useValue: mockAuthService },
         { provide: UserService, useValue: mockUserService },
+        { provide: GamificationService, useValue: mockGamificationService },
         { provide: AppStateService, useValue: mockAppState },
         { provide: ToastService, useValue: mockToast },
       ],

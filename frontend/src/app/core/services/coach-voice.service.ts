@@ -162,6 +162,8 @@ export class CoachVoiceService {
     isSpeaking?: boolean;
     code?: string;
     message?: string;
+    aiVoice?: 'female' | 'male';
+    speechSpeed?: 'slow' | 'normal' | 'fast';
   }): void {
     switch (msg.type) {
       case 'session.state':
@@ -169,6 +171,12 @@ export class CoachVoiceService {
           if (this.uxState() === 'connecting' || this.uxState() === 'reconnecting') {
             this.uxState.set('ready');
           }
+        }
+        if (msg.aiVoice || msg.speechSpeed) {
+          this.appState.updateSettings({
+            ...(msg.aiVoice ? { aiVoice: msg.aiVoice } : {}),
+            ...(msg.speechSpeed ? { aiSpeed: msg.speechSpeed } : {}),
+          });
         }
         break;
 
@@ -459,8 +467,8 @@ export class CoachVoiceService {
     const speed = this.appState.settings().aiSpeed || 'normal';
     switch (speed) {
       case 'slow': return 0.78;
-      case 'fast': return 1.2;
-      default: return 0.95;
+      case 'fast': return 1.25;
+      default: return 0.98;
     }
   }
 
@@ -470,13 +478,14 @@ export class CoachVoiceService {
     const voicePref = this.appState.settings().aiVoice || 'female';
     const rate = this.getSpeechRate();
     utterance.rate = rate;
+    utterance.lang = 'en-US';
 
     // Filter for English voices
-    const enVoices = voices.filter((v) => v.lang.startsWith('en'));
+    const enVoices = voices.filter((v) => v.lang.toLowerCase().startsWith('en'));
     const pool = enVoices.length > 0 ? enVoices : voices;
 
     if (voicePref === 'male') {
-      utterance.pitch = 0.92;
+      utterance.pitch = 0.82;
       const maleVoice = pool.find((v) => {
         const name = v.name.toLowerCase();
         return (
@@ -485,12 +494,17 @@ export class CoachVoiceService {
           name.includes('george') ||
           name.includes('daniel') ||
           name.includes('guy') ||
-          name.includes('mark')
+          name.includes('mark') ||
+          name.includes('james') ||
+          name.includes('richard') ||
+          name.includes('tom') ||
+          name.includes('alex') ||
+          name.includes('oliver')
         );
       });
       if (maleVoice) utterance.voice = maleVoice;
     } else {
-      utterance.pitch = 1.05;
+      utterance.pitch = 1.15;
       const femaleVoice = pool.find((v) => {
         const name = v.name.toLowerCase();
         return (
@@ -501,7 +515,10 @@ export class CoachVoiceService {
           name.includes('victoria') ||
           name.includes('jenny') ||
           name.includes('aria') ||
-          name.includes('eva')
+          name.includes('eva') ||
+          name.includes('susan') ||
+          name.includes('hazel') ||
+          name.includes('catherine')
         );
       });
       if (femaleVoice) utterance.voice = femaleVoice;
@@ -753,12 +770,25 @@ export class CoachVoiceService {
     this.turnAudioUrls.clear();
 
     if (this.ws) {
+      const oldWs = this.ws;
+      this.ws = null;
+      oldWs.onopen = null;
+      oldWs.onmessage = null;
+      oldWs.onerror = null;
+      oldWs.onclose = null;
       try {
-        this.ws.close();
+        oldWs.close();
       } catch (e) {
         console.warn('Error closing WebSocket:', e);
       }
-      this.ws = null;
+    }
+
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* ignore cancel error */
+      }
     }
 
     this.uxState.set('ready');

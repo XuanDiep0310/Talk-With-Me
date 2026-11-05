@@ -29,6 +29,7 @@ from app.core.ws_manager import session_ws_manager
 from app.models.session import TranscriptSegment
 from app.repositories.scenario import ScenarioRepository
 from app.repositories.session import SessionRepository, TranscriptRepository
+from app.repositories.user import UserRepository
 from app.services.session_state_machine import (
     InvalidSessionStateTransitionError,
     SessionState,
@@ -155,8 +156,24 @@ async def session_websocket_endpoint(
     # Register active websocket for session notifications
     session_ws_manager.register(session_id, websocket)
 
-    # Notify client of active session
-    await websocket.send_json({"type": "session.state", "state": SessionState.ACTIVE.value})
+    # Notify client of active session and current AI voice settings
+    voice_pref = "female"
+    speed_pref = "normal"
+    async with async_session_factory() as db:
+        user_repo = UserRepository(db)
+        u_obj = await user_repo.get_by_id(user_id)
+        if u_obj and u_obj.settings:
+            voice_pref = u_obj.settings.ai_voice or "female"
+            speed_pref = u_obj.settings.speech_speed or "normal"
+
+    await websocket.send_json(
+        {
+            "type": "session.state",
+            "state": SessionState.ACTIVE.value,
+            "aiVoice": voice_pref,
+            "speechSpeed": speed_pref,
+        }
+    )
 
     # Resync missing transcripts if client provided lastSeq or reconnected
     async with async_session_factory() as db:
@@ -368,12 +385,13 @@ async def session_websocket_endpoint(
                             all_transcripts = await TranscriptRepository(db).list_by_session(
                                 session_id
                             )
+                            # Exclude current user_text which was already saved to DB at line 331
                             history = [
                                 {
                                     "role": "user" if t.speaker == "USER" else "model",
                                     "content": t.text,
                                 }
-                                for t in all_transcripts[-6:]
+                                for t in all_transcripts[:-1][-6:]
                             ]
 
                             # Distinguish Roleplay vs Coach session

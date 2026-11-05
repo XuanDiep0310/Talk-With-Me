@@ -61,14 +61,15 @@ import { THEME_OPTIONS } from '../../core/data/mock-data';
       <div class="card p-6">
         <h2 class="font-700 text-base mb-5" style="font-weight: 700; color: #1e293b">🎙️ AI Coach Settings</h2>
         <div class="space-y-4">
-          <div class="flex items-center justify-between gap-4">
-            <div class="min-w-0 flex-1">
+          <div class="flex flex-row items-center justify-between gap-4">
+            <div class="min-w-0 flex-1 pr-4">
               <div class="text-sm font-600" style="font-weight: 600; color: #374151">Giọng AI</div>
               <div class="text-xs mt-0.5" style="color: #94a3b8">Chất giọng đàm thoại tiếng Anh của AI Coach</div>
             </div>
             <select
               aria-label="AI voice"
-              class="input-field text-sm !w-44 sm:!w-48 shrink-0 cursor-pointer"
+              class="input-field text-sm cursor-pointer"
+              style="width: 190px; max-width: 190px; flex: 0 0 190px;"
               [value]="aiVoice()"
               (change)="updateAiVoice($event)"
             >
@@ -77,14 +78,15 @@ import { THEME_OPTIONS } from '../../core/data/mock-data';
             </select>
           </div>
 
-          <div class="flex items-center justify-between gap-4">
-            <div class="min-w-0 flex-1">
+          <div class="flex flex-row items-center justify-between gap-4">
+            <div class="min-w-0 flex-1 pr-4">
               <div class="text-sm font-600" style="font-weight: 600; color: #374151">Tốc độ nói của AI</div>
               <div class="text-xs mt-0.5" style="color: #94a3b8">Ảnh hưởng đến độ khó khi nghe</div>
             </div>
             <select
               aria-label="AI speech speed"
-              class="input-field text-sm !w-44 sm:!w-48 shrink-0 cursor-pointer"
+              class="input-field text-sm cursor-pointer"
+              style="width: 190px; max-width: 190px; flex: 0 0 190px;"
               [value]="aiSpeed()"
               (change)="updateAiSpeed($event)"
             >

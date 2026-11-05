@@ -457,6 +457,30 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
       this.timerInterval = setInterval(() => {
         this.timer.update((t) => t + 1);
       }, 1000);
+    } else {
+      // No session id in route — initialize fresh roleplay session to prevent any session bleed
+      const queryScenId = this.route.snapshot.queryParamMap.get('scenarioId') || 'supermarket-shopping';
+      this.scenarioService.startRoleplay(queryScenId).subscribe({
+        next: (res) => {
+          this.sessionId.set(res.sessionId);
+          this.voiceService.cleanup();
+          void this.voiceService.startVoiceSession(res.sessionId);
+          this.loadScenarioContext();
+          if (res.openingMessage) {
+            setTimeout(() => {
+              if (this.voiceService.liveTranscripts().length === 0) {
+                this.voiceService.speakText(res.openingMessage);
+              }
+            }, 500);
+          }
+          this.timerInterval = setInterval(() => {
+            this.timer.update((t) => t + 1);
+          }, 1000);
+        },
+        error: () => {
+          void this.router.navigate(['/scenarios']);
+        },
+      });
     }
   }
 
