@@ -88,61 +88,61 @@ import {
         </button>
       </div>
 
-      <!-- Badges Tab (Zombie Tsunami Trophy Hall Style) -->
+      <!-- Badges Tab: Clean & Engaging Trophy Collection -->
       @if (tab() === 'badges') {
         <div class="space-y-6">
-          <!-- Trophy Showcase Header -->
-          <div class="card p-6 border shadow-sm relative overflow-hidden" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #fff; border-color: #334155">
-            <div class="flex items-center justify-between flex-wrap gap-4 relative z-10">
-              <div class="flex items-center gap-4">
-                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-lg border border-amber-400/40" style="background: radial-gradient(circle, #f59e0b 0%, #b45309 100%)">
+          <!-- Trophy Showcase Header (Clean & Refined) -->
+          <div class="card p-6 border shadow-2xs bg-white" style="border-color: #E2E8F0">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-amber-50 border border-amber-200">
                   🏆
                 </div>
                 <div>
                   <div class="flex items-center gap-2">
-                    <h2 class="text-xl font-800" style="font-weight: 800; color: #fbbf24">PHÒNG TRUYỀN THỐNG HUY HIỆU</h2>
-                    <span class="text-xs px-2.5 py-0.5 rounded-full font-700 bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    <h2 class="text-lg font-700 text-slate-900" style="font-weight: 700">Bộ Sưu Tập Huy Hiệu</h2>
+                    <span class="text-xs px-2 py-0.5 rounded-full font-600 bg-sky-50 text-sky-800 border border-sky-200">
                       {{ collectorRank() }}
                     </span>
                   </div>
-                  <p class="text-xs text-slate-300 mt-1 max-w-lg">
-                    Săn các danh hiệu huyền thoại bằng cách hoàn thành các thử thách hội thoại, chuỗi streak và cột mốc CEFR!
+                  <p class="text-xs text-slate-500 mt-0.5">
+                    Mở khóa danh hiệu bằng cách rèn luyện đều đặn, hoàn thành tình huống và thăng hạng CEFR.
                   </p>
                 </div>
               </div>
 
               <!-- Badges Collector Bar -->
-              <div class="bg-slate-800/80 px-4 py-3 rounded-xl border border-slate-700 min-w-48 text-right">
-                <div class="text-xs text-slate-400 font-500 mb-1">Bộ sưu tập huy hiệu</div>
-                <div class="text-lg font-800 text-amber-400 mb-1.5">{{ earnedBadgesCount() }}/{{ badges().length }} ĐÃ MỞ</div>
-                <div class="progress-bar h-2 bg-slate-700 rounded-full overflow-hidden">
-                  <div class="progress-bar-fill h-2 rounded-full transition-all duration-500" [style.width.%]="collectorPct()" style="background: linear-gradient(90deg, #f59e0b, #eab308)"></div>
+              <div class="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 min-w-44 text-right">
+                <div class="text-[11px] text-slate-500 font-500 mb-1">Tiến độ bộ sưu tập</div>
+                <div class="text-base font-700 text-slate-800 mb-1">{{ earnedBadgesCount() }} / {{ badges().length }} ĐÃ ĐẠT</div>
+                <div class="progress-bar h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div class="progress-bar-fill h-2 rounded-full transition-all duration-500" [style.width.%]="collectorPct()" style="background: #286FB4"></div>
                 </div>
               </div>
             </div>
 
             <!-- Filter chips -->
-            <div class="flex gap-2 mt-5 pt-4 border-t border-slate-700/80 text-xs font-600">
+            <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100 text-xs font-600">
               <button
                 class="px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all"
-                [style.background]="badgeFilter() === 'all' ? '#f59e0b' : '#334155'"
-                [style.color]="badgeFilter() === 'all' ? '#000' : '#cbd5e1'"
+                [style.background]="badgeFilter() === 'all' ? '#286FB4' : '#F1F5F9'"
+                [style.color]="badgeFilter() === 'all' ? '#FFFFFF' : '#475569'"
                 (click)="badgeFilter.set('all')"
               >
                 Tất cả ({{ badges().length }})
               </button>
               <button
                 class="px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all"
-                [style.background]="badgeFilter() === 'unlocked' ? '#f59e0b' : '#334155'"
-                [style.color]="badgeFilter() === 'unlocked' ? '#000' : '#cbd5e1'"
+                [style.background]="badgeFilter() === 'unlocked' ? '#286FB4' : '#F1F5F9'"
+                [style.color]="badgeFilter() === 'unlocked' ? '#FFFFFF' : '#475569'"
                 (click)="badgeFilter.set('unlocked')"
               >
-                🏆 Đã mở khóa ({{ earnedBadgesCount() }})
+                ✓ Đã mở khóa ({{ earnedBadgesCount() }})
               </button>
               <button
                 class="px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all"
-                [style.background]="badgeFilter() === 'locked' ? '#f59e0b' : '#334155'"
-                [style.color]="badgeFilter() === 'locked' ? '#000' : '#cbd5e1'"
+                [style.background]="badgeFilter() === 'locked' ? '#286FB4' : '#F1F5F9'"
+                [style.color]="badgeFilter() === 'locked' ? '#FFFFFF' : '#475569'"
                 (click)="badgeFilter.set('locked')"
               >
                 🔒 Đang săn tìm ({{ badges().length - earnedBadgesCount() }})
@@ -150,19 +150,19 @@ import {
             </div>
           </div>
 
-          <!-- Zombie Tsunami Trophy Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Trophy Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @for (b of filteredBadges(); track b.id) {
               <div
-                class="card p-5 relative overflow-hidden transition-all duration-200 cursor-pointer hover:shadow-lg hover:-translate-y-1"
-                [style.border]="b.earned ? '2px solid #F59E0B' : '2px dashed #CBD5E1'"
-                [style.background]="b.earned ? 'radial-gradient(circle at 50% 20%, #FFFBEB 0%, #FFFFFF 100%)' : '#F8FAFC'"
+                class="card p-5 relative transition-all duration-150 cursor-pointer border hover:border-sky-400 hover:shadow-xs"
+                [style.borderColor]="b.earned ? '#CBD5E1' : '#E2E8F0'"
+                [style.background]="b.earned ? '#FFFFFF' : '#FAFAFA'"
                 (click)="selectedBadge.set(b)"
               >
                 <!-- Rarity Banner / Stamp -->
                 <div class="flex items-center justify-between mb-3">
                   <span
-                    class="text-[11px] font-800 px-2 py-0.5 rounded-full uppercase tracking-wider"
+                    class="text-[10px] font-700 px-2 py-0.5 rounded-md uppercase tracking-wider"
                     [style.background]="getRarityMeta(b.key).badgeBg"
                     [style.color]="getRarityMeta(b.key).badgeColor"
                   >
@@ -170,59 +170,55 @@ import {
                   </span>
 
                   @if (b.earned) {
-                    <span class="text-xs font-800 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      ✓ ĐÃ MỞ
+                    <span class="text-[11px] font-700 text-emerald-700 flex items-center gap-1">
+                      <span>✓ Đã đạt</span>
                     </span>
                   } @else {
-                    <span class="text-xs font-700 text-slate-400 flex items-center gap-1">
+                    <span class="text-[11px] font-500 text-slate-400 flex items-center gap-1">
                       <span>🔒</span>
                       <span>Chưa đạt</span>
                     </span>
                   }
                 </div>
 
-                <!-- Medal Emblem with 3D feel -->
-                <div class="flex flex-col items-center text-center my-2">
+                <!-- Medal Emblem -->
+                <div class="flex items-start gap-3.5 mb-3">
                   <div
-                    class="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl mb-3 shadow-md relative transition-transform"
-                    [style.background]="b.earned ? getRarityMeta(b.key).emblemBg : '#E2E8F0'"
-                    [style.boxShadow]="b.earned ? ('0 8px 20px -3px ' + getRarityMeta(b.key).glowColor) : 'none'"
+                    class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                    [style.background]="b.earned ? getRarityMeta(b.key).emblemBg : '#F1F5F9'"
                   >
-                    <span [class.grayscale]="!b.earned" [class.opacity-40]="!b.earned">{{ b.icon }}</span>
-                    @if (!b.earned) {
-                      <div class="absolute inset-0 flex items-center justify-center bg-slate-900/40 rounded-2xl">
-                        <span class="text-xl">🔒</span>
-                      </div>
-                    }
+                    <span [class.opacity-40]="!b.earned">{{ b.icon }}</span>
                   </div>
 
-                  <h3 class="font-800 text-base mb-1" style="font-weight: 800; color: #1e293b">
-                    {{ b.name }}
-                  </h3>
-                  <p class="text-xs text-slate-500 mb-3 px-2 line-clamp-2 min-h-8">
-                    {{ b.description }}
-                  </p>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-700 text-sm text-slate-800 truncate" style="font-weight: 700">
+                      {{ b.name }}
+                    </h3>
+                    <p class="text-xs text-slate-500 line-clamp-2 mt-0.5">
+                      {{ b.description }}
+                    </p>
+                  </div>
                 </div>
 
                 <!-- Footer Status & XP Reward Bounty -->
-                <div class="pt-3 border-t border-slate-100 mt-auto">
+                <div class="pt-3 border-t border-slate-100">
                   @if (b.earned) {
                     <div class="flex items-center justify-between text-xs">
-                      <span class="text-slate-400">Đạt: {{ formatDate(b.awardedAt) }}</span>
-                      <span class="font-800 text-amber-600">+{{ getRarityMeta(b.key).rewardXp }} XP ⭐</span>
+                      <span class="text-slate-400 text-[11px]">{{ formatDate(b.awardedAt) }}</span>
+                      <span class="font-700 text-amber-600">+{{ getRarityMeta(b.key).rewardXp }} XP ⭐</span>
                     </div>
                   } @else {
                     <div>
-                      <div class="flex justify-between text-xs mb-1">
-                        <span class="text-slate-500 font-500">Tiến độ mở khóa</span>
-                        <span class="font-700 text-sky-700">{{ b.progress }}/{{ b.target }}</span>
+                      <div class="flex justify-between text-[11px] mb-1">
+                        <span class="text-slate-500">Tiến độ</span>
+                        <span class="font-600 text-slate-700">{{ b.progress }}/{{ b.target }}</span>
                       </div>
-                      <div class="progress-bar h-2 bg-slate-200 rounded-full overflow-hidden mb-2">
-                        <div class="progress-bar-fill h-2 bg-sky-500 rounded-full transition-all duration-500" [style.width.%]="getBadgeProgressPct(b)"></div>
+                      <div class="progress-bar h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1.5">
+                        <div class="progress-bar-fill h-1.5 bg-[#286FB4] rounded-full" [style.width.%]="getBadgeProgressPct(b)"></div>
                       </div>
-                      <div class="flex justify-between items-center text-xs">
-                        <span class="text-slate-400 text-[11px]">Thưởng mở khóa:</span>
-                        <span class="font-800 text-amber-600">+{{ getRarityMeta(b.key).rewardXp }} XP ⭐</span>
+                      <div class="flex justify-between items-center text-[11px]">
+                        <span class="text-slate-400">Thưởng mở khóa:</span>
+                        <span class="font-700 text-amber-600">+{{ getRarityMeta(b.key).rewardXp }} XP</span>
                       </div>
                     </div>
                   }
@@ -233,30 +229,30 @@ import {
         </div>
       }
 
-      <!-- Missions Tab (RPG Daily Quest Chest) -->
+      <!-- Missions Tab: Clean Daily Tasks -->
       @if (tab() === 'missions') {
         <div class="space-y-5">
-          <!-- Daily Quest Chest Banner -->
-          <div class="card p-6 border shadow-sm relative overflow-hidden" style="background: linear-gradient(135deg, #286FB4 0%, #1d5a94 100%); color: #fff">
-            <div class="flex items-center justify-between flex-wrap gap-4 relative z-10">
-              <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-3xl border border-white/20">
-                  🎁
+          <!-- Daily Quest Banner (Clean & Modern) -->
+          <div class="card p-5 border shadow-2xs bg-white" style="border-color: #B0DDE4">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center text-xl border border-sky-100">
+                  🎯
                 </div>
                 <div>
-                  <h3 class="text-lg font-800" style="font-weight: 800">RƯƠNG THƯỞNG NHIỆM VỤ NGÀY</h3>
-                  <p class="text-xs text-white/80 mt-0.5">
-                    Hoàn thành tất cả 4 thử thách mỗi ngày để nhận thưởng thêm +100 XP từ Rương Kho Báu!
+                  <h3 class="text-base font-700 text-slate-900" style="font-weight: 700">Nhiệm Vụ Hàng Ngày</h3>
+                  <p class="text-xs text-slate-500 mt-0.5">
+                    Hoàn thành cả 4 nhiệm vụ mỗi ngày để nhận thưởng thêm +50 XP từ hệ thống.
                   </p>
                 </div>
               </div>
               <div class="text-right">
-                <div class="text-sm font-800 text-amber-300 mb-1">
-                  {{ dailyDoneCount() }}/{{ missions().length }} HOÀN THÀNH
+                <div class="text-xs font-700 text-slate-700 mb-1">
+                  {{ dailyDoneCount() }}/{{ missions().length }} hoàn tất
                 </div>
-                <div class="w-48 progress-bar h-2.5 bg-white/20 rounded-full overflow-hidden">
+                <div class="w-40 progress-bar h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
-                    class="progress-bar-fill h-2.5 bg-amber-400 rounded-full transition-all duration-500"
+                    class="progress-bar-fill h-2 bg-[#286FB4] rounded-full transition-all duration-300"
                     [style.width.%]="missions().length ? Math.round((dailyDoneCount() / missions().length) * 100) : 0"
                   ></div>
                 </div>
@@ -268,61 +264,53 @@ import {
           <div class="space-y-3">
             @for (m of missions(); track m.id) {
               <div
-                class="card p-5 border transition-all flex items-center gap-4"
-                [style.borderColor]="m.status === 'CLAIMED' ? '#DCFCE7' : m.status === 'COMPLETED' ? '#FDE68A' : '#E2E8F0'"
-                [style.background]="m.status === 'CLAIMED' ? '#F0FDF4' : m.status === 'COMPLETED' ? '#FFFBEB' : '#FFFFFF'"
+                class="card p-4 border transition-all flex items-center gap-3.5 bg-white"
+                [style.borderColor]="m.status === 'CLAIMED' ? '#E2E8F0' : m.status === 'COMPLETED' ? '#FDE68A' : '#E2E8F0'"
               >
                 <div
-                  class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-xs"
-                  [style.background]="m.status === 'CLAIMED' ? '#DCFCE7' : m.status === 'COMPLETED' ? '#FEF3C7' : '#E2F0F9'"
+                  class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+                  [style.background]="m.status === 'CLAIMED' ? '#F0FDF4' : m.status === 'COMPLETED' ? '#FEF3C7' : '#F8FAFC'"
                 >
                   @if (m.status === 'CLAIMED') {
-                    <span class="text-emerald-600 font-800">✓</span>
+                    <span class="text-emerald-600 font-700 text-sm">✓</span>
                   } @else {
                     <span>{{ getMissionIcon(m.conditionType) }}</span>
                   }
                 </div>
 
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1 flex-wrap">
-                    <span
-                      class="text-xs font-700 px-2 py-0.5 rounded"
-                      [style.background]="m.conditionType === 'COACH' ? '#E2F0F9' : m.conditionType === 'SCENARIO' ? '#FFF0F3' : m.conditionType === 'ROOM' ? '#F5F3FF' : '#FEF3C7'"
-                      [style.color]="m.conditionType === 'COACH' ? '#286FB4' : m.conditionType === 'SCENARIO' ? '#DF4C73' : m.conditionType === 'ROOM' ? '#7c3aed' : '#b45309'"
-                    >
-                      {{ m.conditionType === 'COACH' ? '🎙️ AI Coach 1-1' : m.conditionType === 'SCENARIO' ? '🎭 Nhập vai tình huống' : m.conditionType === 'ROOM' ? '👥 Phòng cộng đồng' : '🔥 Chuỗi học Streak' }}
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <span class="text-[11px] font-600 text-slate-500">
+                      {{ m.conditionType === 'COACH' ? 'AI Coach' : m.conditionType === 'SCENARIO' ? 'Tình huống' : m.conditionType === 'ROOM' ? 'Phòng nhóm' : 'Streak' }}
                     </span>
-                    <span class="text-xs font-700 text-amber-600">⭐ +{{ m.xp }} XP</span>
+                    <span class="text-xs font-700 text-amber-600">+{{ m.xp }} XP</span>
                   </div>
                   <h4
-                    class="text-sm font-700 text-slate-800 mb-0.5"
+                    class="text-sm font-600 text-slate-800 truncate"
                     [style.textDecoration]="m.status === 'CLAIMED' ? 'line-through' : 'none'"
                     [style.color]="m.status === 'CLAIMED' ? '#94a3b8' : '#1e293b'"
                   >
                     {{ m.title }}
                   </h4>
-                  <p class="text-xs text-slate-500">
-                    {{ getMissionDescription(m.conditionType) }}
-                  </p>
                 </div>
 
                 <div class="shrink-0">
                   @if (m.status === 'COMPLETED') {
                     <button
-                      class="px-4 py-2 rounded-xl text-xs font-700 text-white cursor-pointer border-0 shadow-md animate-pulse"
-                      style="background: #22c55e"
+                      class="px-3.5 py-1.5 rounded-lg text-xs font-700 text-white cursor-pointer border-0 shadow-xs"
+                      style="background: #16a34a"
                       (click)="claimMission(m)"
                     >
-                      Nhận thưởng 🎁
+                      Nhận thưởng
                     </button>
                   } @else if (m.status === 'CLAIMED') {
-                    <span class="text-xs font-700 text-emerald-600 px-3 py-1.5 rounded-lg bg-emerald-50">✓ Đã nhận</span>
+                    <span class="text-xs font-600 text-emerald-600 px-2 py-1 rounded bg-emerald-50">✓ Đã nhận</span>
                   } @else {
                     <button
-                      class="btn-primary text-xs px-4 py-2 rounded-xl cursor-pointer border-0 shadow-sm"
+                      class="btn-secondary text-xs px-3.5 py-1.5 rounded-lg cursor-pointer border border-slate-200"
                       (click)="goToMissionAction(m.conditionType)"
                     >
-                      Bắt đầu ➔
+                      Bắt đầu
                     </button>
                   }
                 </div>
@@ -332,7 +320,7 @@ import {
         </div>
       }
 
-      <!-- Zombie Tsunami Badge Detail Modal -->
+      <!-- Badge Detail Modal -->
       @if (selectedBadge(); as badge) {
         <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in" (click)="selectedBadge.set(null)">
           <div

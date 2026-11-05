@@ -444,9 +444,7 @@ class ProgressService:
             int(round(summary.overall_score))
             if summary.overall_score is not None
             else (
-                int(round(sum(valid_skill_vals) / len(valid_skill_vals)))
-                if valid_skill_vals
-                else 0
+                int(round(sum(valid_skill_vals) / len(valid_skill_vals))) if valid_skill_vals else 0
             )
         )
 

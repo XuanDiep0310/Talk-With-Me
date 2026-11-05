@@ -10,26 +10,20 @@ import {
   GamificationSummaryResponse,
 } from '../../core/models/gamification.models';
 
-interface LevelRoadmapItem {
-  level: string;
-  name: string;
-  campName: string;
-  altitude: string;
-  campEmoji: string;
+export interface MilestoneItem {
+  id: number;
+  title: string;
   description: string;
-  minOverall: number;
-  minSessions: number;
-  minScenarios: number;
-  minSkill?: { name: string; score: number };
+  type: 'COACH' | 'SCENARIO' | 'COMMUNITY' | 'CHALLENGE';
 }
 
-const ROADMAP_LEVELS: LevelRoadmapItem[] = [
-  { level: 'A1', name: 'Người mới bắt đầu', campName: 'Trại Chân Núi', altitude: '1,000m', campEmoji: '🏕️', description: 'Giao tiếp cơ bản với các câu đơn giản và phản xạ sinh tồn', minOverall: 0, minSessions: 0, minScenarios: 0 },
-  { level: 'A2', name: 'Sơ cấp', campName: 'Vách Đá Sơ Cấp', altitude: '2,500m', campEmoji: '🧗', description: 'Giao tiếp tình huống hàng ngày quen thuộc, sinh hoạt và mua sắm', minOverall: 40, minSessions: 5, minScenarios: 3 },
-  { level: 'B1', name: 'Trung cấp độc lập', campName: 'Cao Nguyên Độc Lập', altitude: '4,500m', campEmoji: '🌲', description: 'Diễn đạt ý kiến, thảo luận sở thích và công việc chủ động', minOverall: 55, minSessions: 10, minScenarios: 5 },
-  { level: 'B2', name: 'Trung cấp nâng cao', campName: 'Trạm Dừng Gió Tuyết', altitude: '6,800m', campEmoji: '🏔️', description: 'Giao tiếp tự nhiên, lưu loát, phản biện sắc bén và đàm phán', minOverall: 70, minSessions: 20, minScenarios: 5, minSkill: { name: 'Mọi kỹ năng', score: 60 } },
-  { level: 'C1', name: 'Thành thạo chuyên nghiệp', campName: 'Đỉnh Everest CEFR', altitude: '8,848m', campEmoji: '🚩', description: 'Lưu loát linh hoạt, dùng ngữ điệu và từ vựng phức tạp như người bản xứ', minOverall: 85, minSessions: 30, minScenarios: 5, minSkill: { name: 'Mọi kỹ năng', score: 75 } },
-];
+export interface StageItem {
+  level: string;
+  name: string;
+  description: string;
+  minScore: number;
+  milestones: MilestoneItem[];
+}
 
 @Component({
   selector: 'app-progress',
@@ -43,29 +37,30 @@ const ROADMAP_LEVELS: LevelRoadmapItem[] = [
         <p class="text-sm mt-1" style="color: #64748b">Theo dõi kỹ năng giao tiếp và hành trình thăng hạng level của bạn.</p>
       </div>
 
-      <!-- Overall Score Banner -->
-      <div class="card p-6" style="background: linear-gradient(135deg, #286FB4, #1d5a94)">
-        <div class="flex items-center justify-between flex-wrap gap-4">
-          <div class="text-white">
-            <div class="text-sm opacity-80 mb-1">Điểm giao tiếp tổng hợp</div>
-            <div class="text-5xl font-800" style="font-weight: 800">
-              {{ overallDisplay() }}<span class="text-2xl">{{ overallDisplay() !== 'N/A' ? '/100' : '' }}</span>
+      <!-- Overall Score Banner (Clean & Modern) -->
+      <div class="card p-6 border shadow-2xs bg-white" style="border-color: #E2E8F0">
+        <div class="flex items-center justify-between flex-wrap gap-6">
+          <div>
+            <div class="text-xs text-slate-500 font-500 mb-1">Điểm giao tiếp tổng hợp</div>
+            <div class="text-4xl font-800 text-[#286FB4]" style="font-weight: 800">
+              {{ overallDisplay() }}<span class="text-xl text-slate-400 font-600">{{ overallDisplay() !== 'N/A' ? ' / 100' : '' }}</span>
             </div>
-            <div class="flex items-center gap-2 mt-2">
+            <div class="flex items-center gap-2 mt-1.5">
               @if (scoreChange30d() !== null) {
-                <span class="text-green-300 text-sm font-600">
+                <span class="text-xs font-600" [style.color]="scoreChange30d()! >= 0 ? '#16a34a' : '#dc2626'">
                   {{ scoreChange30d()! >= 0 ? '↑ +' + scoreChange30d() : '↓ ' + scoreChange30d() }} trong 30 ngày qua
                 </span>
               } @else {
-                <span class="text-white/70 text-xs">Cần thêm session để tính thay đổi 30 ngày</span>
+                <span class="text-slate-400 text-xs">Cần thêm buổi luyện để tính xu hướng</span>
               }
             </div>
           </div>
-          <div class="grid grid-cols-3 gap-4 text-white text-center">
+
+          <div class="grid grid-cols-3 gap-6 text-center border-l border-slate-100 pl-6">
             @for (m of metrics(); track m.label) {
               <div>
-                <div class="text-xl font-700" style="font-weight: 700">{{ m.val }}</div>
-                <div class="text-xs opacity-70">{{ m.label }}</div>
+                <div class="text-lg font-700 text-slate-800" style="font-weight: 700">{{ m.val }}</div>
+                <div class="text-xs text-slate-400 mt-0.5">{{ m.label }}</div>
               </div>
             }
           </div>
@@ -303,157 +298,133 @@ const ROADMAP_LEVELS: LevelRoadmapItem[] = [
         </div>
       }
 
-      <!-- Mountain Climbing Adventure Roadmap (SRS 3.4 & D-02) -->
+      <!-- 25-Milestone CEFR Learning Journey (Clean & Structured) -->
       @if (tab() === 'roadmap') {
         <div class="space-y-6">
-          <!-- Mountain Expedition Summit Banner -->
-          <div class="card p-6 border shadow-md relative overflow-hidden text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #286FB4 100%); border-color: #334155">
-            <div class="relative z-10 flex items-center justify-between flex-wrap gap-4">
-              <div class="flex items-center gap-4">
-                <div class="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-4xl border border-white/20 shadow-lg">
-                  🏔️
+          <!-- Journey Overview Header -->
+          <div class="card p-5 border shadow-2xs bg-white" style="border-color: #E2E8F0">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-base font-700 text-slate-900" style="font-weight: 700">Lộ Trình 25 Cột Mốc Chinh Phục Tiếng Anh</h2>
+                  <span class="text-xs px-2 py-0.5 rounded-full font-600 bg-sky-50 text-sky-800 border border-sky-200">
+                    Trình độ hiện tại: Level {{ currentLevel() }}
+                  </span>
                 </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h2 class="text-xl font-800 tracking-wide text-amber-300">HÀNH TRÌNH CHINH PHỤC ĐỈNH CEFR</h2>
-                    <span class="text-xs px-2.5 py-0.5 rounded-full font-700 bg-amber-400/20 text-amber-200 border border-amber-300/30">
-                      0m → 8,848m
-                    </span>
-                  </div>
-                  <p class="text-xs text-slate-200 mt-1 max-w-lg">
-                    Leo từ Trại Chân Núi (A1) vượt qua các cao nguyên thử thách để cắm cờ tại Đỉnh Everest CEFR (C1)!
-                  </p>
-                </div>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Mỗi cấp độ CEFR gồm 5 mốc thử thách thực tế từ cơ bản đến nâng cao.
+                </p>
               </div>
 
-              <!-- Climber Elevation Meter -->
-              <div class="bg-black/40 px-5 py-3 rounded-2xl border border-white/15 min-w-48 text-right">
-                <div class="text-xs text-slate-300 font-500 mb-0.5">Độ cao hiện tại</div>
-                <div class="text-2xl font-800 text-amber-400 mb-1">{{ currentAltitude() }}</div>
-                <div class="text-xs text-white/80 font-600">Trạm cắm trại: Level {{ currentLevel() }}</div>
+              <!-- Active Milestone Progress Badge -->
+              <div class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-right">
+                <div class="text-[11px] text-slate-500 font-500">Tiến độ lộ trình</div>
+                <div class="text-sm font-700 text-slate-800">{{ completedMilestonesCount() }} / 25 mốc hoàn thành</div>
               </div>
             </div>
           </div>
 
-          <!-- Active Mountain Camp Advancement Checklist -->
+          <!-- Active Advancement Checklist -->
           @if (advancementInfo(); as adv) {
-            <div class="card p-6 border-2 shadow-sm" style="border-color: #286FB4; background: #F8FBFE">
+            <div class="card p-5 border shadow-2xs bg-white" style="border-color: #B0DDE4">
               <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <div class="flex items-center gap-2">
-                  <span class="text-2xl">🧗‍♂️</span>
-                  <h3 class="font-800 text-base text-slate-900" style="font-weight: 800">
-                    Chặng leo tiếp theo: Lên {{ adv.targetLevel || 'C1 (Đỉnh Cao)' }}
+                  <span class="text-lg">🎯</span>
+                  <h3 class="font-700 text-sm text-slate-900" style="font-weight: 700">
+                    Điều kiện để bứt phá lên Level {{ adv.targetLevel || 'C1' }}
                   </h3>
                 </div>
                 <span
-                  class="badge font-700 px-3 py-1 text-xs"
+                  class="text-xs px-2.5 py-0.5 rounded-full font-600"
                   [style.background]="adv.allMet ? '#DCFCE7' : '#FEF3C7'"
                   [style.color]="adv.allMet ? '#166534' : '#92400e'"
                 >
-                  {{ adv.allMet ? '🎉 ĐỦ ĐIỀU KIỆN THĂNG HẠNG!' : '⏳ ĐANG LEO DỐC' }}
+                  {{ adv.allMet ? '✓ Đủ điều kiện thăng cấp' : 'Đang phấn đấu' }}
                 </span>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 @for (cond of adv.conditions; track cond.label) {
-                  <div class="p-3.5 rounded-xl border bg-white flex items-center justify-between shadow-2xs" style="border-color: #E2F0F9">
+                  <div class="p-3 rounded-lg border bg-slate-50 flex items-center justify-between" style="border-color: #E2E8F0">
                     <div>
-                      <div class="text-xs text-slate-500 font-500">{{ cond.label }}</div>
-                      <div class="text-sm font-800 mt-0.5 text-slate-800">
+                      <div class="text-[11px] text-slate-500 font-500">{{ cond.label }}</div>
+                      <div class="text-xs font-700 text-slate-800 mt-0.5">
                         {{ cond.current }} / {{ cond.target }} {{ cond.unit }}
                       </div>
                     </div>
-                    <span class="text-lg">
-                      {{ cond.met ? '✅' : '⏳' }}
-                    </span>
+                    <span class="text-sm">{{ cond.met ? '✅' : '⏳' }}</span>
                   </div>
                 }
               </div>
             </div>
           }
 
-          <!-- Winding Mountain Climbing Trail (Top to Bottom Expedition) -->
-          <div class="relative pl-6 sm:pl-10 space-y-8 before:absolute before:left-8 sm:before:left-12 before:top-4 before:bottom-4 before:w-1.5 before:bg-gradient-to-b before:from-amber-400 before:via-sky-400 before:to-slate-300 before:rounded-full">
-            @for (camp of mountainCamps; track camp.level) {
-              <div class="relative flex items-start gap-4 sm:gap-6">
-                <!-- Mountain Camp Node Icon -->
-                <div
-                  class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 z-10 shadow-md transition-transform"
-                  [style.background]="getCampStatus(camp.level) === 'conquered' ? '#DCFCE7' : getCampStatus(camp.level) === 'current' ? '#286FB4' : '#F1F5F9'"
-                  [style.border]="getCampStatus(camp.level) === 'current' ? '3px solid #F59E0B' : '2px solid #CBD5E1'"
-                  [style.boxShadow]="getCampStatus(camp.level) === 'current' ? '0 0 20px rgba(40, 111, 180, 0.5)' : 'none'"
-                >
-                  @if (getCampStatus(camp.level) === 'conquered') {
-                    <span class="text-emerald-700 font-800 text-xl">✓</span>
-                  } @else if (getCampStatus(camp.level) === 'current') {
-                    <span class="text-white text-2xl animate-bounce">🧗‍♂️</span>
-                  } @else {
-                    <span class="text-slate-400 text-xl">🔒</span>
-                  }
+          <!-- 5 CEFR Stages with 5 Checkpoints Each (25 Total) -->
+          <div class="space-y-6">
+            @for (stage of stages; track stage.level) {
+              <div class="card p-5 border shadow-2xs bg-white" style="border-color: #E2E8F0">
+                <!-- Stage Header -->
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 flex-wrap gap-2">
+                  <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg flex items-center justify-center font-700 text-xs text-white" style="background: #286FB4">
+                      {{ stage.level }}
+                    </span>
+                    <div>
+                      <h3 class="font-700 text-sm text-slate-900">{{ stage.name }}</h3>
+                      <p class="text-xs text-slate-500">{{ stage.description }} · Yêu cầu điểm TB: ≥ {{ stage.minScore }}</p>
+                    </div>
+                  </div>
+                  <span
+                    class="text-xs px-2.5 py-0.5 rounded-full font-600"
+                    [style.background]="isLevelAchieved(stage.level) ? '#DCFCE7' : isCurrentLevel(stage.level) ? '#E2F0F9' : '#F1F5F9'"
+                    [style.color]="isLevelAchieved(stage.level) ? '#166534' : isCurrentLevel(stage.level) ? '#286FB4' : '#64748b'"
+                  >
+                    {{ isLevelAchieved(stage.level) ? '✓ Đã chinh phục' : isCurrentLevel(stage.level) ? 'Đang thực hiện' : 'Chưa mở khóa' }}
+                  </span>
                 </div>
 
-                <!-- Camp Details Card -->
-                <div
-                  class="flex-1 card p-5 sm:p-6 transition-all duration-200 border-2"
-                  [style.borderColor]="getCampStatus(camp.level) === 'current' ? '#286FB4' : getCampStatus(camp.level) === 'conquered' ? '#86EFAC' : '#E2E8F0'"
-                  [style.background]="getCampStatus(camp.level) === 'current' ? 'radial-gradient(circle at 50% 10%, #F0F9FF 0%, #FFFFFF 100%)' : '#FFFFFF'"
-                >
-                  <div class="flex items-center justify-between flex-wrap gap-2 mb-2">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-lg">{{ camp.campEmoji }}</span>
-                      <h3 class="font-800 text-base sm:text-lg text-slate-800" style="font-weight: 800">
-                        {{ camp.campName }} · Level {{ camp.level }}
-                      </h3>
-                      <span class="text-xs font-700 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        Độ cao: {{ camp.altitude }}
-                      </span>
-                    </div>
-
-                    <!-- Status Stamp -->
-                    @if (getCampStatus(camp.level) === 'conquered') {
-                      <span class="badge bg-emerald-100 text-emerald-800 font-800 text-xs px-2.5 py-1 border border-emerald-300">
-                        ✓ ĐÃ CHINH PHỤC
-                      </span>
-                    } @else if (getCampStatus(camp.level) === 'current') {
-                      <span class="badge bg-sky-100 text-sky-800 font-800 text-xs px-2.5 py-1 border border-sky-300 animate-pulse">
-                        ⛺ TRẠM CỦA BẠN
-                      </span>
-                    } @else {
-                      <span class="badge bg-slate-100 text-slate-500 font-700 text-xs px-2.5 py-1">
-                        ☁️ ĐỈNH CAO PHÍA TRƯỚC
-                      </span>
-                    }
-                  </div>
-
-                  <p class="text-xs sm:text-sm text-slate-600 mb-3">{{ camp.description }}</p>
-
-                  <!-- Expedition Prerequisites -->
-                  <div class="flex flex-wrap gap-2 text-xs font-600 text-slate-600 mb-3">
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-                      🎯 Điểm TB: ≥ {{ camp.minOverall }}
-                    </span>
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-                      🎙️ {{ camp.minSessions }} buổi luyện nói
-                    </span>
-                    <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-                      🎭 {{ camp.minScenarios }} tình huống khác nhau
-                    </span>
-                    @if (camp.minSkill) {
-                      <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200">
-                        ⚡ {{ camp.minSkill.name }} ≥ {{ camp.minSkill.score }}
-                      </span>
-                    }
-                  </div>
-
-                  <!-- Direct Action CTA for Current Camp -->
-                  @if (getCampStatus(camp.level) === 'current') {
-                    <div class="pt-3 border-t border-sky-100 flex items-center justify-between flex-wrap gap-2">
-                      <span class="text-xs text-sky-900 font-600">Đang chuẩn bị trang bị và rèn luyện để bứt phá lên trạm tiếp theo!</span>
-                      <button
-                        class="btn-primary text-xs px-4 py-2 rounded-xl cursor-pointer border-0 shadow-sm font-700"
-                        (click)="appState.go('ai-coach')"
+                <!-- 5 Granular Checkpoints List -->
+                <div class="space-y-2.5">
+                  @for (m of stage.milestones; track m.id) {
+                    <div
+                      class="p-3.5 rounded-xl border flex items-center gap-3 transition-all"
+                      [style.borderColor]="getMilestoneStatus(m.id) === 'current' ? '#286FB4' : '#E2E8F0'"
+                      [style.background]="getMilestoneStatus(m.id) === 'current' ? '#F8FBFE' : getMilestoneStatus(m.id) === 'conquered' ? '#FFFFFF' : '#FAFAFA'"
+                    >
+                      <!-- Milestone Number Circle -->
+                      <div
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-700 shrink-0"
+                        [style.background]="getMilestoneStatus(m.id) === 'conquered' ? '#DCFCE7' : getMilestoneStatus(m.id) === 'current' ? '#286FB4' : '#E2E8F0'"
+                        [style.color]="getMilestoneStatus(m.id) === 'conquered' ? '#166534' : getMilestoneStatus(m.id) === 'current' ? '#FFFFFF' : '#64748b'"
                       >
-                        🧗‍♂️ Leo tiếp: Luyện nói ngay!
-                      </button>
+                        {{ getMilestoneStatus(m.id) === 'conquered' ? '✓' : m.id }}
+                      </div>
+
+                      <!-- Details -->
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm font-600 text-slate-800">{{ m.title }}</span>
+                          <span class="text-[10px] px-1.5 py-0.2 rounded font-500 bg-slate-100 text-slate-500">
+                            {{ m.type === 'COACH' ? '🎙️ AI Coach' : m.type === 'SCENARIO' ? '🎭 Tình huống' : m.type === 'COMMUNITY' ? '👥 Phòng nhóm' : '🎯 Thử thách' }}
+                          </span>
+                        </div>
+                        <p class="text-xs text-slate-500 truncate mt-0.5">{{ m.description }}</p>
+                      </div>
+
+                      <!-- Status & CTA -->
+                      <div class="shrink-0 text-right">
+                        @if (getMilestoneStatus(m.id) === 'conquered') {
+                          <span class="text-xs text-emerald-600 font-600">⭐⭐⭐ Đạt</span>
+                        } @else if (getMilestoneStatus(m.id) === 'current') {
+                          <button
+                            class="btn-primary text-xs px-3 py-1.5 rounded-lg cursor-pointer border-0 shadow-xs"
+                            (click)="practiceMilestone(m)"
+                          >
+                            Luyện ngay ➔
+                          </button>
+                        } @else {
+                          <span class="text-xs text-slate-400">🔒 Khóa</span>
+                        }
+                      </div>
                     </div>
                   }
                 </div>
@@ -471,8 +442,74 @@ export class ProgressComponent implements OnInit {
   private readonly gamificationService = inject(GamificationService);
 
   readonly tab = signal<"skills" | "history" | "roadmap">("skills");
-  readonly roadmapLevels = ROADMAP_LEVELS;
-  readonly mountainCamps = [...ROADMAP_LEVELS].reverse();
+
+  readonly stages: StageItem[] = [
+    {
+      level: 'A1',
+      name: 'Nhập Môn & Giao Tiếp Sinh Tồn',
+      description: 'Cụm từ cơ bản, chào hỏi và phản xạ hàng ngày',
+      minScore: 0,
+      milestones: [
+        { id: 1, title: 'Chào hỏi & Làm quen', description: 'Làm chủ các câu chào, hỏi thăm và giới thiệu bản thân cơ bản.', type: 'COACH' },
+        { id: 2, title: 'Nghề nghiệp & Gia đình', description: 'Nói về công việc, sở thích đơn giản và người thân trong gia đình.', type: 'COACH' },
+        { id: 3, title: 'Mua sắm & Hỏi giá tiền', description: 'Hỏi giá, kích cỡ và cách thanh toán trong cửa hàng tiện lợi.', type: 'SCENARIO' },
+        { id: 4, title: 'Gọi món tại nhà hàng', description: 'Xem menu, gọi món ăn, đồ uống và yêu cầu thanh toán hóa đơn.', type: 'SCENARIO' },
+        { id: 5, title: 'Thử thách: Vượt ải A1', description: 'Hội thoại tổng hợp 5 lượt nói liên tục không ngắt quãng.', type: 'CHALLENGE' },
+      ],
+    },
+    {
+      level: 'A2',
+      name: 'Giao Tiếp Đời Sống Thường Nhật',
+      description: 'Hỏi đường, du lịch, sinh hoạt và cảm xúc quen thuộc',
+      minScore: 40,
+      milestones: [
+        { id: 6, title: 'Hỏi đường & Di chuyển', description: 'Hỏi đường đến ga tàu, bắt taxi và mô tả vị trí trong thành phố.', type: 'SCENARIO' },
+        { id: 7, title: 'Đặt phòng khách sạn', description: 'Thực hiện thủ tục check-in, hỏi tiện ích và đổi phòng khi cần.', type: 'SCENARIO' },
+        { id: 8, title: 'Sở thích & Hoạt động cuối tuần', description: 'Kể về kế hoạch cuối tuần, phim ảnh và các hoạt động giải trí.', type: 'COACH' },
+        { id: 9, title: 'Thời tiết & Dự định du lịch', description: 'Miêu tả thời tiết các mùa và thảo luận điểm đến kỳ nghỉ.', type: 'COACH' },
+        { id: 10, title: 'Thử thách: Vượt ải A2', description: 'Bài test phản xạ tình huống bất ngờ với phản hồi dưới 3 giây.', type: 'CHALLENGE' },
+      ],
+    },
+    {
+      level: 'B1',
+      name: 'Giao Tiếp Độc Lập & Công Sở',
+      description: 'Diễn đạt ý kiến, thảo luận công việc và quan điểm cá nhân',
+      minScore: 55,
+      milestones: [
+        { id: 11, title: 'Họp nhóm & Báo cáo công việc', description: 'Cập nhật tiến độ dự án và trao đổi ý kiến với đồng nghiệp.', type: 'COACH' },
+        { id: 12, title: 'Diễn đạt ý kiến & Thuyết phục', description: 'Nêu quan điểm đồng tình hoặc phản bác một cách lịch thiệp.', type: 'COMMUNITY' },
+        { id: 13, title: 'Xử lý khiếu nại khách hàng', description: 'Lắng nghe, xoa dịu và đưa ra giải pháp thỏa đáng cho đối tác.', type: 'SCENARIO' },
+        { id: 14, title: 'Thuyết trình ngắn 3 phút', description: 'Trình bày ý tưởng giải pháp mới một cách có cấu trúc rõ ràng.', type: 'COACH' },
+        { id: 15, title: 'Thử thách: Chinh phục B1', description: 'Hội thoại độc lập 10 lượt nói với vốn từ vựng phong phú.', type: 'CHALLENGE' },
+      ],
+    },
+    {
+      level: 'B2',
+      name: 'Lưu Loát & Tranh Biện Chuyên Sâu',
+      description: 'Đàm phán kinh doanh, giải quyết vấn đề và phỏng vấn',
+      minScore: 70,
+      milestones: [
+        { id: 16, title: 'Đàm phán & Thương lượng hợp đồng', description: 'Thương lượng giá cả, điều khoản giao hàng và thời hạn thanh toán.', type: 'SCENARIO' },
+        { id: 17, title: 'Phân tích & Đề xuất giải pháp', description: 'Đào sâu nguyên nhân gốc rễ và bảo vệ giải pháp trước ban quản lý.', type: 'COMMUNITY' },
+        { id: 18, title: 'Tranh luận chủ đề công nghệ & Xã hội', description: 'Tranh biện về tác động của công nghệ và xu hướng làm việc linh hoạt.', type: 'COACH' },
+        { id: 19, title: 'Phỏng vấn tuyển dụng chuyên sâu', description: 'Trả lời các câu hỏi hành vi theo mô hình STAR chuyên nghiệp.', type: 'COACH' },
+        { id: 20, title: 'Thử thách: Làm chủ B2', description: 'Nói lưu loát tự nhiên trên 120 từ/phút không dùng từ đệm.', type: 'CHALLENGE' },
+      ],
+    },
+    {
+      level: 'C1',
+      name: 'Bậc Thầy Ngôn Ngữ & Bản Ngữ',
+      description: 'Diễn đạt tinh tế, sắc thái thành ngữ và lãnh đạo thảo luận',
+      minScore: 85,
+      milestones: [
+        { id: 21, title: 'Sắc thái & Thành ngữ nâng cao', description: 'Áp dụng thành ngữ, lối nói ẩn dụ và sắc thái từ vựng tinh tế.', type: 'COACH' },
+        { id: 22, title: 'Diễn thuyết truyền cảm hứng', description: 'Nghệ thuật sử dụng ngữ điệu và kết nối cảm xúc với người nghe.', type: 'COACH' },
+        { id: 23, title: 'Quản trị xung đột đa văn hóa', description: 'Hòa giải bất đồng và gắn kết các quan điểm đa quốc gia.', type: 'COMMUNITY' },
+        { id: 24, title: 'Tư duy phản biện sắc bén', description: 'Nhận diện ngụy biện và phản biện logic trong các vấn đề trừu tượng.', type: 'COMMUNITY' },
+        { id: 25, title: 'Đỉnh Vinh Quang C1', description: 'Chạm mốc hoàn thiện mọi tiêu chuẩn CEFR Bậc thầy giao tiếp.', type: 'CHALLENGE' },
+      ],
+    },
+  ];
 
   readonly summaryData = signal<ProgressSummaryResponse | null>(null);
   readonly skills = signal<ProgressSkillItem[]>([]);
@@ -502,11 +539,7 @@ export class ProgressComponent implements OnInit {
     return Math.max(50, Math.round(100 - diff));
   });
 
-  readonly currentAltitude = computed(() => {
-    const lvl = this.currentLevel().toUpperCase();
-    const camp = ROADMAP_LEVELS.find(c => c.level === lvl);
-    return camp ? camp.altitude : '1,000m';
-  });
+
 
   readonly overallDisplay = computed(() => {
     const s = this.summaryData()?.overallScore;
@@ -638,10 +671,35 @@ export class ProgressComponent implements OnInit {
     }
   }
 
-  getCampStatus(lvl: string): 'conquered' | 'current' | 'locked' {
-    if (this.isCurrentLevel(lvl)) return 'current';
-    if (this.isLevelAchieved(lvl)) return 'conquered';
+  readonly currentMilestoneId = computed(() => {
+    const lvl = this.currentLevel().toUpperCase();
+    const sessions = this.summaryData()?.totalSessions ?? 0;
+    if (lvl === 'A1') return Math.min(5, Math.max(1, 1 + sessions));
+    if (lvl === 'A2') return Math.min(10, Math.max(6, 6 + Math.floor(sessions / 2)));
+    if (lvl === 'B1') return Math.min(15, Math.max(11, 11 + Math.floor(sessions / 3)));
+    if (lvl === 'B2') return Math.min(20, Math.max(16, 16 + Math.floor(sessions / 4)));
+    return Math.min(25, Math.max(21, 21 + Math.floor(sessions / 5)));
+  });
+
+  readonly completedMilestonesCount = computed(() => {
+    return Math.max(0, this.currentMilestoneId() - 1);
+  });
+
+  getMilestoneStatus(id: number): 'conquered' | 'current' | 'locked' {
+    const cur = this.currentMilestoneId();
+    if (id < cur) return 'conquered';
+    if (id === cur) return 'current';
     return 'locked';
+  }
+
+  practiceMilestone(m: MilestoneItem): void {
+    if (m.type === 'SCENARIO') {
+      this.appState.go('scenarios');
+    } else if (m.type === 'COMMUNITY') {
+      this.appState.go('community');
+    } else {
+      this.appState.go('ai-coach');
+    }
   }
 
   practiceSkill(key: string): void {

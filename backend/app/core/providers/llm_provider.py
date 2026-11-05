@@ -125,16 +125,35 @@ class FakeLlmProvider:
 
     async def evaluate_post_session(
         self,
-        history: list[dict[str, str]],  # noqa: ARG002
+        history: list[dict[str, str]],
         topic_title: str,
         user_level: str,
     ) -> PostSessionLlmEvaluation:
         from app.models.scoring_schemas import PostSessionLlmEvaluation
 
+        lvl = user_level.upper() if user_level else "A1"
+        user_texts = [
+            h.get("text", "") for h in history if (h.get("speaker") or "").upper() == "USER"
+        ]
+        total_words = sum(len(t.split()) for t in user_texts)
+        avg_w = total_words / max(len(user_texts), 1)
+
+        # Accurately reflect user's CEFR level benchmarks (SRS 3.4)
+        if lvl == "A1" or avg_w < 8:
+            rel, comp, ctx = 40.0, 38.0, 38.0
+        elif lvl == "A2" or avg_w < 18:
+            rel, comp, ctx = 50.0, 48.0, 48.0
+        elif lvl == "B1" or avg_w < 32:
+            rel, comp, ctx = 64.0, 62.0, 63.0
+        elif lvl == "B2" or avg_w < 50:
+            rel, comp, ctx = 76.0, 75.0, 74.0
+        else:
+            rel, comp, ctx = 88.0, 86.0, 86.0
+
         return PostSessionLlmEvaluation(
-            response_relevance=85.0,
-            task_completion=80.0,
-            context_relevance=82.0,
+            response_relevance=rel,
+            task_completion=comp,
+            context_relevance=ctx,
             strengths=[
                 f"Phản xạ trả lời tự nhiên và bám sát chủ đề '{topic_title}'.",
                 "Sử dụng các cấu trúc câu giao tiếp mở rộng tốt, không bị ngắt quãng giữa chừng.",
@@ -146,12 +165,24 @@ class FakeLlmProvider:
             next_practice=f"Tiếp tục thực hành chủ đề nâng cao liên quan tới '{topic_title}' ở cấp độ {user_level} để tăng cường phản xạ.",
         )
 
-    async def evaluate_placement(self, transcripts: list[str]) -> LlmLevelEvaluation:  # noqa: ARG002
+    async def evaluate_placement(self, transcripts: list[str]) -> LlmLevelEvaluation:
+        total_words = sum(len(t.split()) for t in transcripts)
+        avg_w = total_words / max(len(transcripts), 1)
+        if avg_w < 12:
+            suggested = "A1"
+        elif avg_w < 22:
+            suggested = "A2"
+        elif avg_w < 38:
+            suggested = "B1"
+        elif avg_w < 58:
+            suggested = "B2"
+        else:
+            suggested = "C1"
 
         return LlmLevelEvaluation(
-            suggested_level="B1",
-            confidence=0.75,
-            reasoning="Fake evaluation: vocabulary and sentence structure suggest B1.",
+            suggested_level=suggested,
+            confidence=0.85,
+            reasoning=f"Fake evaluation: average utterance of {avg_w:.1f} words indicates {suggested} level.",
         )
 
     async def generate_coach_reply(

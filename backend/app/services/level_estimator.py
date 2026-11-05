@@ -90,20 +90,31 @@ def compute_features(
 
 def _feature_score(features: PlacementFeatures) -> float:
     """
-    Compute a normalized [0, 1] score from features.
-
-    Sub-scores:
-      - Fluency (avg words/answer):  target 100 words = score 1.0
-      - Confidence (STT score):      direct, already 0–1
-      - Speed (response latency):    ≤1 s = 1.0, ≥8 s = 0.0 (inverted)
-    Weights:
-      - Fluency: 50%, Confidence: 30%, Speed: 20%
+    Compute a normalized [0, 1] score from features adhering to CEFR utterance benchmarks:
+      - A1 (< 12 words/answer):     0.05 – 0.19
+      - A2 (12 – 24 words/answer):   0.20 – 0.39
+      - B1 (25 – 54 words/answer):   0.40 – 0.59
+      - B2 (55 – 99 words/answer):   0.60 – 0.79
+      - C1 (100+ words/answer):      0.80 – 1.00
     """
-    fluency = min(features.avg_words_per_answer / 100.0, 1.0)
-    confidence = min(features.avg_stt_confidence, 1.0)
-    # Lower latency is better; 1 s = 1.0, 8 s = 0.0
-    latency = max(0.0, 1.0 - (features.avg_response_latency - 1.0) / 7.0)
-    return 0.50 * fluency + 0.30 * confidence + 0.20 * latency
+    avg_words = features.avg_words_per_answer
+
+    if avg_words < 12.0:
+        base = 0.05 + (avg_words / 12.0) * 0.14
+    elif avg_words < 25.0:
+        base = 0.20 + ((avg_words - 12.0) / 13.0) * 0.18
+    elif avg_words < 55.0:
+        base = 0.40 + ((avg_words - 25.0) / 30.0) * 0.18
+    elif avg_words < 100.0:
+        base = 0.60 + ((avg_words - 55.0) / 45.0) * 0.18
+    else:
+        base = min(1.0, 0.80 + ((avg_words - 100.0) / 50.0) * 0.20)
+
+    conf_mod = (min(max(features.avg_stt_confidence, 0.0), 1.0) - 0.75) * 0.04
+    latency = features.avg_response_latency
+    latency_mod = 0.02 if latency <= 2.0 else max(-0.04, 0.02 - (latency - 2.0) * 0.015)
+
+    return round(min(1.0, max(0.0, base + conf_mod + latency_mod)), 3)
 
 
 def _score_to_level(

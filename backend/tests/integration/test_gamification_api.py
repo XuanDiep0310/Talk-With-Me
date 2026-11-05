@@ -288,8 +288,8 @@ async def test_dashboard_and_gamification_endpoints(
     resp_b = await client.get("/api/v1/badges", headers=headers)
     assert resp_b.status_code == 200
     data_b = resp_b.json()
-    assert data_b["totalCount"] == 6
-    assert len(data_b["badges"]) == 6
+    assert data_b["totalCount"] >= 6
+    assert len(data_b["badges"]) >= 6
 
 
 @pytest.mark.asyncio

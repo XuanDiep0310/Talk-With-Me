@@ -450,23 +450,52 @@ class GamificationService:
         )
         rooms_count = int((await self._session.execute(room_stmt)).scalar_one() or 0)
 
+        max_speed = float(stats.get("avg_skills", {}).get("response_speed", 0.0))
+
         awarded: list[UserBadge] = []
         badge_defs = await self._repo.list_badge_definitions()
+        cur_streak = max(profile.current_streak, profile.best_streak)
         for b in badge_defs:
             should_award = False
             if (
                 b.key == "first_speaker"
                 and stats["total_sessions"] >= 1
+                or b.key == "coach_5"
+                and stats["total_sessions"] >= 5
+                or b.key == "coach_20"
+                and stats["total_sessions"] >= 20
+                or b.key == "coach_50"
+                and stats["total_sessions"] >= 50
+                or b.key == "streak_3"
+                and cur_streak >= 3
                 or b.key == "streak_7"
-                and (profile.current_streak >= 7 or profile.best_streak >= 7)
-                or b.key == "b1_achiever"
-                and level in ("B1", "B2", "C1")
-                or b.key == "fluency_master"
-                and max_fluency >= 85
+                and cur_streak >= 7
+                or b.key == "streak_14"
+                and cur_streak >= 14
+                or b.key == "streak_30"
+                and cur_streak >= 30
+                or b.key == "actor_1"
+                and stats["total_scenarios"] >= 1
+                or b.key == "actor_5"
+                and stats["total_scenarios"] >= 5
                 or b.key == "master_actor"
                 and stats["total_scenarios"] >= 20
+                or b.key == "community_first"
+                and rooms_count >= 1
                 or b.key == "community_star"
                 and rooms_count >= 10
+                or b.key == "fluency_master"
+                and max_fluency >= 75
+                or b.key == "speed_demon"
+                and max_speed >= 85
+                or b.key == "a2_achiever"
+                and level in ("A2", "B1", "B2", "C1")
+                or b.key == "b1_achiever"
+                and level in ("B1", "B2", "C1")
+                or b.key == "b2_conqueror"
+                and level in ("B2", "C1")
+                or b.key == "c1_legend"
+                and level == "C1"
             ):
                 should_award = True
 
@@ -624,18 +653,17 @@ class GamificationService:
 
             # Calculate progress for display
             curr_progress = 0
-            if b.key == "first_speaker":
+            cur_streak = max(profile.current_streak, profile.best_streak)
+            if b.criteria_type == "SESSIONS_COUNT":
                 curr_progress = min(b.target_value, stats["total_sessions"])
-            elif b.key == "streak_7":
-                curr_progress = min(
-                    b.target_value, max(profile.current_streak, profile.best_streak)
-                )
-            elif b.key == "b1_achiever" or b.key == "fluency_master":
-                curr_progress = 1 if is_earned else 0
-            elif b.key == "master_actor":
+            elif b.criteria_type == "STREAK_DAYS":
+                curr_progress = min(b.target_value, cur_streak)
+            elif b.criteria_type == "SCENARIOS_COMPLETED":
                 curr_progress = min(b.target_value, stats["total_scenarios"])
-            elif b.key == "community_star":
+            elif b.criteria_type == "ROOMS_COUNT":
                 curr_progress = 1 if is_earned else 0
+            else:
+                curr_progress = b.target_value if is_earned else 0
 
             items.append(
                 BadgeItem(
@@ -666,6 +694,7 @@ class GamificationService:
         """List user's XP transactions."""
         txs = await self._repo.list_xp_transactions(user_id, limit, offset)
         profile = await self._repo.get_or_create_profile(user_id)
+
         def _format_xp_tx(t: XpTransaction) -> tuple[str, str, str]:
             desc = t.description or ""
             if t.rule_key == "COACH_SESSION" or t.source_type == "COACH_SESSION":
@@ -674,7 +703,11 @@ class GamificationService:
                 return desc or "Hoàn thành tình huống thực tế", "Tình huống", "🎭"
             elif t.rule_key == "STREAK_BONUS" or t.source_type == "STREAK":
                 return desc or "Thưởng duy trì chuỗi Streak", "Streak", "🔥"
-            elif t.rule_key == "DAILY_MISSION" or t.source_type == "DAILY_MISSION" or t.source_type == "MISSION":
+            elif (
+                t.rule_key == "DAILY_MISSION"
+                or t.source_type == "DAILY_MISSION"
+                or t.source_type == "MISSION"
+            ):
                 return desc or "Thưởng hoàn thành nhiệm vụ ngày", "Nhiệm vụ", "🎯"
             elif t.rule_key == "ROOM_SESSION" or t.source_type == "ROOM_SESSION":
                 return desc or "Luyện nói phòng cộng đồng", "Cộng đồng", "👥"
