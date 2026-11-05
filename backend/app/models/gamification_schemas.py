@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
 
 
@@ -99,6 +99,26 @@ class BadgeItem(BaseSchema):
     progress: int = 0
     total: int = 1
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def id(self) -> str:
+        return self.key
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def icon(self) -> str:
+        return self.icon_emoji
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def target(self) -> int:
+        return self.target_value
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def awarded_at(self) -> datetime | None:
+        return self.earned_at
+
 
 class BadgesListResponse(BaseSchema):
     badges: list[BadgeItem]
@@ -116,6 +136,16 @@ class NotificationItem(BaseSchema):
     content: str
     is_read: bool
     created_at: datetime
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def read(self) -> bool:
+        return self.is_read
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def message(self) -> str:
+        return self.content
 
 
 class NotificationsListResponse(BaseSchema):

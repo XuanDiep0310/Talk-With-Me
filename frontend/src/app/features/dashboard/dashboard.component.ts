@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, computed, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { formatDDMMYYYY } from '../../core/utils/date.utils';
 import { AppStateService } from '../../core/services/app-state.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GamificationService } from '../../core/services/gamification.service';
@@ -390,13 +391,7 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  formatDate(dateStr: string): string {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric' });
-    } catch {
-      return dateStr;
-    }
+  formatDate(dateStr: string | null | undefined): string {
+    return formatDDMMYYYY(dateStr);
   }
 }

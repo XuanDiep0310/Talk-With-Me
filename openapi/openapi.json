@@ -2497,9 +2497,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "additionalProperties": {
-                    "type": "boolean"
-                  },
+                  "additionalProperties": true,
                   "title": "Response Mark Notification Read Api V1 Notifications  Notification Id  Read Patch"
                 }
               }
@@ -2531,9 +2529,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "integer"
-                  },
+                  "additionalProperties": true,
                   "type": "object",
                   "title": "Response Mark All Notifications Read Api V1 Notifications Read All Patch"
                 }
@@ -2878,6 +2874,34 @@
             "type": "integer",
             "title": "Total",
             "default": 1
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "readOnly": true
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon",
+            "readOnly": true
+          },
+          "target": {
+            "type": "integer",
+            "title": "Target",
+            "readOnly": true
+          },
+          "awardedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Awardedat",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -2889,7 +2913,11 @@
           "category",
           "criteriaType",
           "targetValue",
-          "sortOrder"
+          "sortOrder",
+          "id",
+          "icon",
+          "target",
+          "awardedAt"
         ],
         "title": "BadgeItem"
       },
@@ -4207,6 +4235,16 @@
             "type": "string",
             "format": "date-time",
             "title": "Createdat"
+          },
+          "read": {
+            "type": "boolean",
+            "title": "Read",
+            "readOnly": true
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -4216,7 +4254,9 @@
           "title",
           "content",
           "isRead",
-          "createdAt"
+          "createdAt",
+          "read",
+          "message"
         ],
         "title": "NotificationItem"
       },

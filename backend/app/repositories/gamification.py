@@ -332,7 +332,7 @@ class GamificationRepository:
             .values(is_read=True)
         )
         res = await self._session.execute(stmt)
-        await self._session.flush()
+        await self._session.commit()
         count = getattr(res, "rowcount", 0) or 0
         return int(count) > 0
 
@@ -344,7 +344,7 @@ class GamificationRepository:
             .values(is_read=True)
         )
         res = await self._session.execute(stmt)
-        await self._session.flush()
+        await self._session.commit()
         count = getattr(res, "rowcount", 0) or 0
         return int(count)
 

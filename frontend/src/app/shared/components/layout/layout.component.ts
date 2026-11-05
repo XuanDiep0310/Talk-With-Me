@@ -6,6 +6,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { GamificationService } from '../../../core/services/gamification.service';
 import { GamificationSummaryResponse, NotificationItem } from '../../../core/models/gamification.models';
 import { AppPage } from '../../../core/models/app.models';
+import { formatDateTimeDDMMYYYY } from '../../../core/utils/date.utils';
 
 interface NavItem {
   id: AppPage;
@@ -220,13 +221,13 @@ interface NavItem {
                       <button
                         type="button"
                         class="w-full text-left p-3 hover:bg-slate-50 transition cursor-pointer flex gap-3 items-start border-0 bg-transparent"
-                        [class.bg-blue-50]="!item.read"
+                        [class.bg-blue-50]="!(item.read ?? item.isRead)"
                         (click)="markNotificationRead(item)"
                       >
-                        <div class="w-2 h-2 rounded-full mt-1.5 shrink-0" [style.background]="item.read ? 'transparent' : '#DF4C73'"></div>
+                        <div class="w-2 h-2 rounded-full mt-1.5 shrink-0" [style.background]="(item.read ?? item.isRead) ? 'transparent' : '#DF4C73'"></div>
                         <div class="flex-1 min-w-0">
                           <div class="text-xs font-600 truncate" style="color: #1e293b">{{ item.title }}</div>
-                          <div class="text-xs mt-0.5 text-slate-600 leading-snug line-clamp-2">{{ item.message }}</div>
+                          <div class="text-xs mt-0.5 text-slate-600 leading-snug line-clamp-2">{{ item.message || item.content }}</div>
                           <div class="text-[10px] mt-1 text-slate-400">{{ formatNotificationTime(item.createdAt) }}</div>
                         </div>
                       </button>
@@ -316,7 +317,7 @@ export class LayoutComponent implements OnInit {
   });
 
   readonly unreadCount = computed(() => {
-    return this.notifications().filter(n => !n.read).length;
+    return this.notifications().filter(n => !(n.read ?? n.isRead)).length;
   });
 
   readonly advancementConditionsTotal = computed(() => {
@@ -410,7 +411,14 @@ export class LayoutComponent implements OnInit {
 
     this.gamificationService.getNotifications().subscribe({
       next: (res) => {
-        this.notifications.set(res.notifications);
+        const mapped = (res.notifications || []).map(n => ({
+          ...n,
+          read: n.read ?? n.isRead ?? false,
+          isRead: n.read ?? n.isRead ?? false,
+          message: n.message || n.content || '',
+          content: n.message || n.content || '',
+        }));
+        this.notifications.set(mapped);
       }
     });
   }
@@ -424,10 +432,12 @@ export class LayoutComponent implements OnInit {
   }
 
   markNotificationRead(item: NotificationItem): void {
-    if (item.read) return;
+    if (item.read || item.isRead) return;
     this.gamificationService.markNotificationRead(item.id).subscribe({
       next: () => {
-        this.notifications.update(list => list.map(n => n.id === item.id ? { ...n, read: true } : n));
+        this.notifications.update(list =>
+          list.map(n => n.id === item.id ? { ...n, read: true, isRead: true } : n)
+        );
       }
     });
   }
@@ -435,19 +445,13 @@ export class LayoutComponent implements OnInit {
   markAllNotificationsRead(): void {
     this.gamificationService.markAllNotificationsRead().subscribe({
       next: () => {
-        this.notifications.update(list => list.map(n => ({ ...n, read: true })));
+        this.notifications.update(list => list.map(n => ({ ...n, read: true, isRead: true })));
       }
     });
   }
 
   formatNotificationTime(dateStr: string): string {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return dateStr;
-    }
+    return formatDateTimeDDMMYYYY(dateStr);
   }
 
   @HostListener('document:keydown.escape')

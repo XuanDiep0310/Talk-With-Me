@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { formatDDMMYYYY } from '../../core/utils/date.utils';
 import { AppStateService } from '../../core/services/app-state.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GamificationService } from '../../core/services/gamification.service';
@@ -152,7 +153,7 @@ import {
 
           <!-- Trophy Grid -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            @for (b of filteredBadges(); track b.id) {
+            @for (b of filteredBadges(); track b.id || b.key) {
               <div
                 class="card p-5 relative transition-all duration-150 cursor-pointer border hover:border-sky-400 hover:shadow-xs"
                 [style.borderColor]="b.earned ? '#CBD5E1' : '#E2E8F0'"
@@ -187,7 +188,7 @@ import {
                     class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
                     [style.background]="b.earned ? getRarityMeta(b.key).emblemBg : '#F1F5F9'"
                   >
-                    <span [class.opacity-40]="!b.earned">{{ b.icon }}</span>
+                    <span [class.opacity-40]="!b.earned">{{ b.icon || b.iconEmoji || '🏆' }}</span>
                   </div>
 
                   <div class="flex-1 min-w-0">
@@ -211,7 +212,7 @@ import {
                     <div>
                       <div class="flex justify-between text-[11px] mb-1">
                         <span class="text-slate-500">Tiến độ</span>
-                        <span class="font-600 text-slate-700">{{ b.progress }}/{{ b.target }}</span>
+                        <span class="font-600 text-slate-700">{{ b.progress }}/{{ b.target || b.targetValue || b.total || 1 }}</span>
                       </div>
                       <div class="progress-bar h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1.5">
                         <div class="progress-bar-fill h-1.5 bg-[#286FB4] rounded-full" [style.width.%]="getBadgeProgressPct(b)"></div>
@@ -338,7 +339,7 @@ import {
               [style.background]="badge.earned ? getRarityMeta(badge.key).emblemBg : '#E2E8F0'"
               [style.boxShadow]="badge.earned ? ('0 12px 25px -4px ' + getRarityMeta(badge.key).glowColor) : 'none'"
             >
-              <span [class.grayscale]="!badge.earned" [class.opacity-50]="!badge.earned">{{ badge.icon }}</span>
+              <span [class.grayscale]="!badge.earned" [class.opacity-50]="!badge.earned">{{ badge.icon || badge.iconEmoji || '🏆' }}</span>
               @if (!badge.earned) {
                 <div class="absolute inset-0 flex items-center justify-center bg-slate-900/40 rounded-3xl">
                   <span class="text-3xl">🔒</span>
@@ -377,7 +378,7 @@ import {
               <div class="mb-4 text-left">
                 <div class="flex justify-between text-xs mb-1 font-600 text-slate-700">
                   <span>Tiến độ mở khóa</span>
-                  <span class="text-sky-700 font-700">{{ badge.progress }} / {{ badge.target }}</span>
+                  <span class="text-sky-700 font-700">{{ badge.progress }} / {{ badge.target || badge.targetValue || badge.total || 1 }}</span>
                 </div>
                 <div class="progress-bar h-2.5 bg-slate-200 rounded-full overflow-hidden">
                   <div class="progress-bar-fill h-2.5 bg-sky-500 rounded-full" [style.width.%]="getBadgeProgressPct(badge)"></div>
@@ -528,7 +529,19 @@ export class AchievementsComponent implements OnInit {
     });
 
     this.gamificationService.getBadges().subscribe({
-      next: (res) => this.badges.set(res.badges)
+      next: (res) => {
+        const mapped = (res.badges || []).map(b => ({
+          ...b,
+          id: b.id || b.key,
+          icon: b.icon || b.iconEmoji || '🏆',
+          iconEmoji: b.iconEmoji || b.icon || '🏆',
+          target: b.target ?? b.targetValue ?? b.total ?? 1,
+          targetValue: b.targetValue ?? b.target ?? b.total ?? 1,
+          awardedAt: b.awardedAt || b.earnedAt || null,
+          earnedAt: b.earnedAt || b.awardedAt || null,
+        }));
+        this.badges.set(mapped);
+      }
     });
 
     this.gamificationService.getTodayMissions().subscribe({
@@ -599,8 +612,8 @@ export class AchievementsComponent implements OnInit {
   }
 
   getBadgeProgressPct(badge: BadgeItem): number {
-    if (!badge.target) return 0;
-    return Math.min(100, Math.round((badge.progress / badge.target) * 100));
+    const target = badge.target || badge.targetValue || badge.total || 1;
+    return Math.min(100, Math.round(((badge.progress || 0) / target) * 100));
   }
 
   getMissionIcon(type: string): string {
@@ -702,13 +715,7 @@ export class AchievementsComponent implements OnInit {
     }
   }
 
-  formatDate(dateStr: string | null): string {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('vi-VN', { year: 'numeric', month: 'numeric', day: 'numeric' });
-    } catch {
-      return dateStr;
-    }
+  formatDate(dateStr: string | null | undefined): string {
+    return formatDDMMYYYY(dateStr);
   }
 }

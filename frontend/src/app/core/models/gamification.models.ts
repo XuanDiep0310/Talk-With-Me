@@ -130,16 +130,20 @@ export interface GamificationSummaryResponse {
 }
 
 export interface BadgeItem {
-  id: string;
+  id?: string;
   key: string;
   name: string;
   description: string;
-  icon: string;
+  icon?: string;
+  iconEmoji?: string;
   category?: string;
   criteriaType: string;
-  target: number;
+  target?: number;
+  targetValue?: number;
+  total?: number;
   earned: boolean;
-  awardedAt: string | null;
+  awardedAt?: string | null;
+  earnedAt?: string | null;
   progress: number;
 }
 
@@ -160,7 +164,9 @@ export interface NotificationItem {
   id: string;
   type: string;
   title: string;
-  message: string;
-  read: boolean;
+  content?: string;
+  message?: string;
+  read?: boolean;
+  isRead?: boolean;
   createdAt: string;
 }

@@ -5,6 +5,7 @@ UI Screen 25 and Header/Sidebar real-time indicators.
 """
 
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -154,7 +155,7 @@ async def mark_notification_read(
     notification_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     gamification_service: GamificationService = Depends(get_gamification_service),
-) -> dict[str, bool]:
+) -> dict[str, Any]:
     success = await gamification_service.mark_notification_read(notification_id, current_user.id)
     if not success:
         raise HTTPException(
@@ -165,7 +166,7 @@ async def mark_notification_read(
                 "details": {},
             },
         )
-    return {"success": True}
+    return {"success": True, "id": str(notification_id), "read": True}
 
 
 @router.patch(
@@ -176,6 +177,6 @@ async def mark_notification_read(
 async def mark_all_notifications_read(
     current_user: User = Depends(get_current_user),
     gamification_service: GamificationService = Depends(get_gamification_service),
-) -> dict[str, int]:
+) -> dict[str, Any]:
     count = await gamification_service.mark_all_notifications_read(current_user.id)
-    return {"updatedCount": count}
+    return {"success": True, "updatedCount": count}
