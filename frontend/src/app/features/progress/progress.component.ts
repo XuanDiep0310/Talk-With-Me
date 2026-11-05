@@ -333,7 +333,13 @@ export class ProgressComponent implements OnInit {
     });
 
     this.gamificationService.getGamificationSummary().subscribe({
-      next: (sum) => this.gamificationSummary.set(sum)
+      next: (sum) => {
+        this.gamificationSummary.set(sum);
+        const xp = sum.totalXp ?? sum.xp ?? 0;
+        const streak = sum.currentStreak ?? 0;
+        const level = sum.currentLevel ?? sum.level ?? 'A1';
+        this.appState.updateGamification(xp, streak, level);
+      }
     });
   }
 

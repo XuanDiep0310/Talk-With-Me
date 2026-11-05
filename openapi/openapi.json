@@ -3491,9 +3491,19 @@
             "type": "integer",
             "title": "Xp"
           },
+          "totalXp": {
+            "type": "integer",
+            "title": "Totalxp",
+            "default": 0
+          },
           "streak": {
             "type": "integer",
             "title": "Streak"
+          },
+          "currentStreak": {
+            "type": "integer",
+            "title": "Currentstreak",
+            "default": 0
           },
           "level": {
             "type": "string",
@@ -3681,9 +3691,19 @@
             "type": "integer",
             "title": "Xp"
           },
+          "totalXp": {
+            "type": "integer",
+            "title": "Totalxp",
+            "default": 0
+          },
           "level": {
             "type": "string",
             "title": "Level"
+          },
+          "currentLevel": {
+            "type": "string",
+            "title": "Currentlevel",
+            "default": "A1"
           },
           "nextLevel": {
             "anyOf": [
@@ -3698,48 +3718,67 @@
           },
           "currentStreak": {
             "type": "integer",
-            "title": "Currentstreak"
+            "title": "Currentstreak",
+            "default": 0
           },
           "bestStreak": {
             "type": "integer",
-            "title": "Beststreak"
+            "title": "Beststreak",
+            "default": 0
           },
           "badgesEarned": {
             "type": "integer",
-            "title": "Badgesearned"
+            "title": "Badgesearned",
+            "default": 0
+          },
+          "badgesEarnedCount": {
+            "type": "integer",
+            "title": "Badgesearnedcount",
+            "default": 0
           },
           "badgesTotal": {
             "type": "integer",
-            "title": "Badgestotal"
+            "title": "Badgestotal",
+            "default": 6
+          },
+          "badgesTotalCount": {
+            "type": "integer",
+            "title": "Badgestotalcount",
+            "default": 6
           },
           "levelConditions": {
             "items": {
               "$ref": "#/components/schemas/LevelConditionProgress"
             },
             "type": "array",
-            "title": "Levelconditions"
+            "title": "Levelconditions",
+            "default": []
           },
           "levelProgressPct": {
             "type": "integer",
-            "title": "Levelprogresspct"
+            "title": "Levelprogresspct",
+            "default": 0
           },
           "isReadyForPromotion": {
             "type": "boolean",
-            "title": "Isreadyforpromotion"
+            "title": "Isreadyforpromotion",
+            "default": false
+          },
+          "advancement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LevelAdvancementInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
         "required": [
           "xp",
-          "level",
-          "nextLevel",
-          "currentStreak",
-          "bestStreak",
-          "badgesEarned",
-          "badgesTotal",
-          "levelConditions",
-          "levelProgressPct",
-          "isReadyForPromotion"
+          "level"
         ],
         "title": "GamificationSummaryResponse"
       },
@@ -3768,6 +3807,88 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LevelAdvancementCondition": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "condition"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "title": "Target"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "title": "Current"
+          },
+          "met": {
+            "type": "boolean",
+            "title": "Met"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "target",
+          "current",
+          "met",
+          "unit"
+        ],
+        "title": "LevelAdvancementCondition"
+      },
+      "LevelAdvancementInfo": {
+        "properties": {
+          "targetLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetlevel"
+          },
+          "conditions": {
+            "items": {
+              "$ref": "#/components/schemas/LevelAdvancementCondition"
+            },
+            "type": "array",
+            "title": "Conditions",
+            "default": []
+          },
+          "allMet": {
+            "type": "boolean",
+            "title": "Allmet",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "LevelAdvancementInfo"
       },
       "LevelConditionProgress": {
         "properties": {
@@ -6308,6 +6429,27 @@
               }
             ],
             "title": "Description"
+          },
+          "sourceDisplay": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcedisplay"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "default": "Học tập"
+          },
+          "icon": {
+            "type": "string",
+            "title": "Icon",
+            "default": "⭐"
           },
           "createdAt": {
             "type": "string",

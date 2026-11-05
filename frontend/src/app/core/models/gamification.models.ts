@@ -39,9 +39,12 @@ export interface MotivationalCard {
 export interface DashboardResponse {
   greeting: string;
   overallScore: number | null;
+  xp?: number;
   totalXp: number;
+  streak?: number;
   currentStreak: number;
   level: string;
+  nextLevel?: string | null;
   todayMissions: DailyMissionItem[];
   missionsCompletedCount: number;
   missionsTotalCount: number;
@@ -111,11 +114,15 @@ export interface LevelAdvancementInfo {
 }
 
 export interface GamificationSummaryResponse {
+  xp?: number;
   totalXp: number;
+  level?: string;
   currentLevel: string;
   currentStreak: number;
   bestStreak: number;
+  badgesEarned?: number;
   badgesEarnedCount: number;
+  badgesTotal?: number;
   badgesTotalCount: number;
   advancement: LevelAdvancementInfo;
 }
@@ -140,7 +147,10 @@ export interface XpHistoryItem {
   sourceType: string;
   sourceId: string;
   createdAt: string;
+  description?: string;
   sourceDisplay: string;
+  category?: string;
+  icon?: string;
 }
 
 export interface NotificationItem {

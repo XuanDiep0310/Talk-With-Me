@@ -1,10 +1,11 @@
-import { Component, ChangeDetectionStrategy, signal, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppStateService } from '../../core/services/app-state.service';
 import { AuthService, mapApiError } from '../../core/services/auth.service';
 import { UserService } from '../../core/services/user.service';
 import { ToastService } from '../../core/services/toast.service';
+import { GamificationService } from '../../core/services/gamification.service';
 
 @Component({
   selector: 'app-profile',
@@ -233,11 +234,25 @@ import { ToastService } from '../../core/services/toast.service';
     </div>
   `
 })
-export class ProfileComponent {
+export class ProfileComponent implements OnInit {
   readonly appState = inject(AppStateService);
   readonly authService = inject(AuthService);
   readonly userService = inject(UserService);
   private readonly toast = inject(ToastService);
+  private readonly gamificationService = inject(GamificationService);
+
+  ngOnInit(): void {
+    if (this.authService.isAuthenticated()) {
+      this.gamificationService.getGamificationSummary().subscribe({
+        next: (summary) => {
+          const xp = summary.totalXp ?? summary.xp ?? 0;
+          const streak = summary.currentStreak ?? 0;
+          const level = summary.currentLevel ?? summary.level ?? 'A1';
+          this.appState.updateGamification(xp, streak, level);
+        }
+      });
+    }
+  }
 
   readonly editing = signal(false);
   readonly saving = signal(false);

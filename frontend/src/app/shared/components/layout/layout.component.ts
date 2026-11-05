@@ -401,7 +401,10 @@ export class LayoutComponent implements OnInit {
     this.gamificationService.getGamificationSummary().subscribe({
       next: (summary) => {
         this.gamificationSummary.set(summary);
-        this.appState.updateGamification(summary.totalXp, summary.currentStreak, summary.currentLevel);
+        const xp = summary.totalXp ?? summary.xp ?? 0;
+        const streak = summary.currentStreak ?? summary.currentStreak ?? 0;
+        const level = summary.currentLevel ?? summary.level ?? 'A1';
+        this.appState.updateGamification(xp, streak, level);
       }
     });
 

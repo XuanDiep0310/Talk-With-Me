@@ -29,7 +29,11 @@ interface Shortcut {
             {{ dashboardData()?.greeting || ('Xin chào, ' + displayName() + '! 👋') }}
           </h1>
           <p class="text-sm mt-1" style="color: #64748b">
-            Hôm nay là ngày streak thứ <strong style="color: #ea580c">{{ currentStreak() }}</strong> — hãy giữ vững phong độ nhé!
+            @if (currentStreak() > 0) {
+              Hôm nay là ngày streak thứ <strong style="color: #ea580c">{{ currentStreak() }}</strong> — hãy giữ vững phong độ nhé! 🔥
+            } @else {
+              Bắt đầu chuỗi học liên tiếp (Streak) của bạn ngay hôm nay bằng một buổi luyện nói! 🔥
+            }
           </p>
         </div>
         <button class="btn-primary cursor-pointer" (click)="appState.go('ai-coach')">
@@ -238,7 +242,7 @@ export class DashboardComponent implements OnInit {
   });
 
   readonly currentStreak = computed(() => {
-    return this.dashboardData()?.currentStreak ?? this.appState.currentStreak() ?? 0;
+    return this.dashboardData()?.currentStreak ?? this.dashboardData()?.streak ?? this.appState.currentStreak() ?? 0;
   });
 
   readonly missions = computed(() => {
@@ -283,9 +287,10 @@ export class DashboardComponent implements OnInit {
   readonly statsList = computed(() => {
     const data = this.dashboardData();
     const overall = data?.overallScore !== null && data?.overallScore !== undefined ? String(data.overallScore) : "N/A";
-    const xpVal = data?.totalXp ?? this.appState.totalXp() ?? 0;
+    const xpVal = data?.totalXp ?? data?.xp ?? this.appState.totalXp() ?? 0;
     const totalXp = Number(xpVal).toLocaleString();
-    const streak = data?.currentStreak !== undefined ? String(data.currentStreak) : String(this.appState.currentStreak() ?? 0);
+    const streakVal = data?.currentStreak ?? data?.streak ?? this.appState.currentStreak() ?? 0;
+    const streak = String(streakVal);
     const level = data?.level || this.appState.appUser().level || "A1";
 
     return [
@@ -305,7 +310,9 @@ export class DashboardComponent implements OnInit {
     this.gamificationService.getDashboard().subscribe({
       next: (data) => {
         this.dashboardData.set(data);
-        this.appState.updateGamification(data.totalXp, data.currentStreak, data.level);
+        const xp = data.totalXp ?? data.xp ?? 0;
+        const streak = data.currentStreak ?? data.streak ?? 0;
+        this.appState.updateGamification(xp, streak, data.level);
       }
     });
   }

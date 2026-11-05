@@ -12,6 +12,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
 import { CoachService, SessionFeedback, CoachSession } from '../../core/services/coach.service';
+import { GamificationService } from '../../core/services/gamification.service';
 
 interface SkillDisplay {
   name: string;
@@ -165,6 +166,23 @@ interface SkillDisplay {
 
       <!-- 4. FEEDBACK_READY STATE -->
       @else if (feedbackStatus() === 'FEEDBACK_READY') {
+        <!-- XP Reward Banner -->
+        <div class="px-5 py-4 rounded-2xl flex items-center justify-between gap-4 border shadow-sm" style="background: #FFF9ED; border-color: #FDE68A">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🎉</span>
+            <div>
+              <p class="text-sm font-700 text-amber-900">
+                Chúc mừng! Bạn đã nhận <span class="text-amber-600 font-800">+100 XP</span> cho bài học này ⭐
+              </p>
+              <p class="text-xs text-amber-700 mt-0.5">
+                Điểm XP và chuỗi streak đã được cập nhật thành công vào sổ cái học tập của bạn.
+              </p>
+            </div>
+          </div>
+          <span class="px-3.5 py-1.5 rounded-full text-xs font-700 bg-amber-500 text-white shadow-sm shrink-0">
+            +100 XP Đã cộng
+          </span>
+        </div>
         <!-- Overall Score Card -->
         <section
           class="card p-6 md:p-8 text-white rounded-2xl shadow-xl relative overflow-hidden"
@@ -217,6 +235,12 @@ interface SkillDisplay {
                 <p class="text-xs text-sky-200 font-500">Trình độ</p>
                 <p class="text-lg md:text-xl font-700 text-amber-300 mt-0.5">
                   {{ sessionLevel() }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-sky-200 font-500">Thưởng XP</p>
+                <p class="text-lg md:text-xl font-800 text-amber-300 mt-0.5">
+                  +100 XP ⭐
                 </p>
               </div>
             </div>
@@ -387,6 +411,7 @@ interface SkillDisplay {
 export class AiCoachReportComponent implements OnInit, OnDestroy {
   readonly appState = inject(AppStateService);
   private readonly coachService = inject(CoachService);
+  private readonly gamificationService = inject(GamificationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -512,6 +537,8 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
 
         if (res.status === 'PENDING') {
           this.startPolling(sessionId);
+        } else if (res.status === 'FEEDBACK_READY') {
+          this.syncGamificationAfterSession();
         }
       },
       error: (err) => {
@@ -538,6 +565,9 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
           this.feedback.set(res);
           if (res.status !== 'PENDING') {
             this.stopPolling();
+            if (res.status === 'FEEDBACK_READY') {
+              this.syncGamificationAfterSession();
+            }
           }
         },
         error: (err) => {
@@ -569,6 +599,18 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
         this.isRetrying.set(false);
         console.error('Retry feedback failed:', err);
       },
+    });
+  }
+
+  private syncGamificationAfterSession(): void {
+    this.gamificationService.getGamificationSummary().subscribe({
+      next: (summary) => {
+        const xp = summary.totalXp ?? summary.xp ?? 0;
+        const streak = summary.currentStreak ?? 0;
+        const level = summary.currentLevel ?? summary.level ?? 'A1';
+        this.appState.updateGamification(xp, streak, level);
+      },
+      error: (err) => console.warn('Could not sync gamification after session:', err),
     });
   }
 

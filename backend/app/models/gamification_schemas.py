@@ -38,6 +38,9 @@ class XpTransactionResponse(BaseSchema):
     source_id: str
     idempotency_key: str
     description: str | None = None
+    source_display: str | None = None
+    category: str = "Học tập"
+    icon: str = "⭐"
     created_at: datetime
 
 
@@ -132,17 +135,37 @@ class LevelConditionProgress(BaseSchema):
     is_met: bool
 
 
+class LevelAdvancementCondition(BaseSchema):
+    type: str = "condition"
+    label: str
+    target: float | int
+    current: float | int
+    met: bool
+    unit: str
+
+
+class LevelAdvancementInfo(BaseSchema):
+    target_level: str | None = None
+    conditions: list[LevelAdvancementCondition] = []
+    all_met: bool = False
+
+
 class GamificationSummaryResponse(BaseSchema):
     xp: int
+    total_xp: int = 0
     level: str
-    next_level: str | None
-    current_streak: int
-    best_streak: int
-    badges_earned: int
-    badges_total: int
-    level_conditions: list[LevelConditionProgress]
-    level_progress_pct: int
-    is_ready_for_promotion: bool
+    current_level: str = "A1"
+    next_level: str | None = None
+    current_streak: int = 0
+    best_streak: int = 0
+    badges_earned: int = 0
+    badges_earned_count: int = 0
+    badges_total: int = 6
+    badges_total_count: int = 6
+    level_conditions: list[LevelConditionProgress] = []
+    level_progress_pct: int = 0
+    is_ready_for_promotion: bool = False
+    advancement: LevelAdvancementInfo | None = None
 
 
 # --- Progress & Skills ---
@@ -221,7 +244,9 @@ class DashboardResponse(BaseSchema):
     display_name: str
     overall_score: int | float
     xp: int
+    total_xp: int = 0
     streak: int
+    current_streak: int = 0
     level: str
     next_level: str | None
     today_missions: list[DailyMissionItem]

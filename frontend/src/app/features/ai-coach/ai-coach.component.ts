@@ -74,6 +74,9 @@ import { AppStateService } from '../../core/services/app-state.service';
               <span class="font-700 text-base" style="font-weight: 700; color: #286FB4">
                 {{ sel.title }}
               </span>
+              <span class="badge text-xs px-2 py-0.5 rounded font-700" style="background: #FFF5E5; color: #f59e0b">
+                ⭐ +100 XP
+              </span>
               <span class="badge text-xs px-2 py-0.5 rounded font-600" style="background: #286FB4; color: #fff">
                 {{ sel.minLevel }}+
               </span>
@@ -143,6 +146,9 @@ import { AppStateService } from '../../core/services/app-state.service';
                       <span class="font-700 text-sm line-clamp-1" [style.color]="selected()?.id === topic.id ? '#286FB4' : '#1e293b'">
                         {{ topic.title }}
                       </span>
+                      <span class="badge text-xs px-2 py-0.5 rounded font-700 shrink-0" style="background: #FFF5E5; color: #f59e0b">
+                        ⭐ +100 XP
+                      </span>
                       <span class="badge text-xs px-2 py-0.5 rounded font-600 shrink-0" style="background: #E2F0F9; color: #286FB4">
                         {{ topic.minLevel }}+
                       </span>
@@ -209,7 +215,10 @@ import { AppStateService } from '../../core/services/app-state.service';
                           >
                             {{ topic.title }}
                           </span>
-                          <span class="badge text-xs px-2 py-0.5 rounded font-600 shrink-0" style="background: #E2F0F9; color: #286FB4">
+                          <span class="badge text-xs px-2 py-0.5 rounded font-700 shrink-0" style="background: #FFF5E5; color: #f59e0b">
+                        ⭐ +100 XP
+                      </span>
+                      <span class="badge text-xs px-2 py-0.5 rounded font-600 shrink-0" style="background: #E2F0F9; color: #286FB4">
                             {{ topic.minLevel }}+
                           </span>
                         </span>

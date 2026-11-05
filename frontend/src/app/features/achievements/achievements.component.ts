@@ -183,17 +183,28 @@ import {
         <div class="space-y-3">
           @if (xpHistory().length === 0) {
             <div class="card p-8 text-center text-sm text-slate-400">
-              Chưa có giao dịch XP nào trong sổ cái.
+              Chưa có giao dịch XP nào trong sổ cái. Hãy hoàn thành buổi luyện tập đầu tiên để nhận XP!
             </div>
           } @else {
             @for (x of xpHistory(); track x.id) {
               <div class="card p-5 flex items-center gap-4">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style="background: #FFF5E5">⭐</div>
-                <div class="flex-1">
-                  <div class="font-600 text-sm" style="font-weight: 600; color: #1e293b">{{ x.sourceDisplay }}</div>
-                  <div class="text-xs" style="color: #94a3b8">{{ formatDate(x.createdAt) }}</div>
+                <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0" style="background: #FFF5E5">
+                  {{ x.icon || getXpIcon(x.ruleKey) }}
                 </div>
-                <div class="font-800 text-base" style="font-weight: 800; color: #f59e0b">+{{ x.amount }} XP</div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-700 text-sm truncate" style="font-weight: 700; color: #1e293b">
+                      {{ x.sourceDisplay || x.description || getXpTitle(x.ruleKey) }}
+                    </span>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full font-600 bg-slate-100 text-slate-600">
+                      {{ x.category || getXpCategory(x.ruleKey) }}
+                    </span>
+                  </div>
+                  <div class="text-xs text-slate-400 mt-0.5">
+                    {{ formatDate(x.createdAt) }} • {{ getXpExplanation(x.ruleKey) }}
+                  </div>
+                </div>
+                <div class="font-800 text-base shrink-0" style="font-weight: 800; color: #f59e0b">+{{ x.amount }} XP</div>
               </div>
             }
           }
@@ -265,7 +276,13 @@ export class AchievementsComponent implements OnInit {
     if (!this.authService.isAuthenticated()) return;
 
     this.gamificationService.getGamificationSummary().subscribe({
-      next: (summary) => this.gamificationSummary.set(summary)
+      next: (summary) => {
+        this.gamificationSummary.set(summary);
+        const xp = summary.totalXp ?? summary.xp ?? 0;
+        const streak = summary.currentStreak ?? 0;
+        const level = summary.currentLevel ?? summary.level ?? 'A1';
+        this.appState.updateGamification(xp, streak, level);
+      }
     });
 
     this.gamificationService.getBadges().subscribe({
@@ -285,7 +302,7 @@ export class AchievementsComponent implements OnInit {
     this.gamificationService.claimMission(mission.id).subscribe({
       next: (res) => {
         this.missions.update(list => list.map(m => m.id === mission.id ? { ...m, status: 'CLAIMED', isClaimed: true } : m));
-        this.gamificationSummary.update(s => s ? { ...s, totalXp: res.newTotalXp } : s);
+        this.gamificationSummary.update(s => s ? { ...s, totalXp: res.newTotalXp, xp: res.newTotalXp } : s);
         this.appState.updateGamification(res.newTotalXp, this.appState.currentStreak());
         // Also refresh XP history
         this.gamificationService.getXpHistory(50).subscribe({
@@ -293,6 +310,50 @@ export class AchievementsComponent implements OnInit {
         });
       }
     });
+  }
+
+  getXpIcon(ruleKey?: string): string {
+    switch (ruleKey) {
+      case 'COACH_SESSION': return '🎙️';
+      case 'SCENARIO_LESSON': return '🎭';
+      case 'STREAK_BONUS': return '🔥';
+      case 'DAILY_MISSION': return '🎯';
+      case 'ROOM_SESSION': return '👥';
+      default: return '⭐';
+    }
+  }
+
+  getXpTitle(ruleKey?: string): string {
+    switch (ruleKey) {
+      case 'COACH_SESSION': return 'Buổi học với AI Coach';
+      case 'SCENARIO_LESSON': return 'Thực hành tình huống';
+      case 'STREAK_BONUS': return 'Thưởng duy trì chuỗi Streak';
+      case 'DAILY_MISSION': return 'Nhiệm vụ hàng ngày';
+      case 'ROOM_SESSION': return 'Phòng luyện nói cộng đồng';
+      default: return 'Hoạt động học tập';
+    }
+  }
+
+  getXpCategory(ruleKey?: string): string {
+    switch (ruleKey) {
+      case 'COACH_SESSION': return 'AI Coach';
+      case 'SCENARIO_LESSON': return 'Tình huống';
+      case 'STREAK_BONUS': return 'Streak';
+      case 'DAILY_MISSION': return 'Nhiệm vụ';
+      case 'ROOM_SESSION': return 'Cộng đồng';
+      default: return 'Học tập';
+    }
+  }
+
+  getXpExplanation(ruleKey?: string): string {
+    switch (ruleKey) {
+      case 'COACH_SESSION': return 'Hoàn thành cuộc trò chuyện 1-1 với AI Coach đạt tiêu chuẩn';
+      case 'SCENARIO_LESSON': return 'Đạt kết quả xuất sắc trong bài roleplay tình huống';
+      case 'STREAK_BONUS': return 'Luyện tập mỗi ngày để giữ vững thói quen nói tiếng Anh';
+      case 'DAILY_MISSION': return 'Hoàn thành và nhận thưởng nhiệm vụ trong ngày';
+      case 'ROOM_SESSION': return 'Tham gia phòng luyện nói nhóm cùng bạn học và AI';
+      default: return 'Cộng điểm thưởng vào sổ cái XP';
+    }
   }
 
   getBadgeProgressPct(badge: BadgeItem): number {

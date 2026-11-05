@@ -28,6 +28,8 @@ from app.models.gamification_schemas import (
     DailyMissionItem,
     DailyMissionsTodayResponse,
     GamificationSummaryResponse,
+    LevelAdvancementCondition,
+    LevelAdvancementInfo,
     LevelConditionProgress,
     NotificationItem,
     NotificationsListResponse,
@@ -572,17 +574,38 @@ class GamificationService:
             met_count = sum(1 for c in conditions if c.is_met)
             progress_pct = int(met_count / len(conditions) * 100) if conditions else 0
 
+        advancement_info = LevelAdvancementInfo(
+            target_level=next_level,
+            conditions=[
+                LevelAdvancementCondition(
+                    type=c.name,
+                    label=c.name,
+                    target=c.required_value,
+                    current=c.current_value,
+                    met=c.is_met,
+                    unit=c.unit,
+                )
+                for c in conditions
+            ],
+            all_met=is_ready,
+        )
+
         return GamificationSummaryResponse(
             xp=profile.total_xp,
+            total_xp=profile.total_xp,
             level=current_level,
+            current_level=current_level,
             next_level=next_level,
             current_streak=profile.current_streak,
             best_streak=profile.best_streak,
             badges_earned=len(earned_badges),
+            badges_earned_count=len(earned_badges),
             badges_total=len(all_badges),
+            badges_total_count=len(all_badges),
             level_conditions=conditions,
             level_progress_pct=progress_pct,
             is_ready_for_promotion=is_ready,
+            advancement=advancement_info,
         )
 
     async def get_badges_list(self, user_id: uuid.UUID) -> BadgesListResponse:
@@ -643,8 +666,24 @@ class GamificationService:
         """List user's XP transactions."""
         txs = await self._repo.list_xp_transactions(user_id, limit, offset)
         profile = await self._repo.get_or_create_profile(user_id)
-        return XpHistoryResponse(
-            transactions=[
+        def _format_xp_tx(t: XpTransaction) -> tuple[str, str, str]:
+            desc = t.description or ""
+            if t.rule_key == "COACH_SESSION" or t.source_type == "COACH_SESSION":
+                return desc or "Luyện nói 1-1 với AI Coach", "AI Coach", "🎙️"
+            elif t.rule_key == "SCENARIO_LESSON" or t.source_type == "SCENARIO_LESSON":
+                return desc or "Hoàn thành tình huống thực tế", "Tình huống", "🎭"
+            elif t.rule_key == "STREAK_BONUS" or t.source_type == "STREAK":
+                return desc or "Thưởng duy trì chuỗi Streak", "Streak", "🔥"
+            elif t.rule_key == "DAILY_MISSION" or t.source_type == "DAILY_MISSION" or t.source_type == "MISSION":
+                return desc or "Thưởng hoàn thành nhiệm vụ ngày", "Nhiệm vụ", "🎯"
+            elif t.rule_key == "ROOM_SESSION" or t.source_type == "ROOM_SESSION":
+                return desc or "Luyện nói phòng cộng đồng", "Cộng đồng", "👥"
+            return desc or "Hoạt động luyện tập", "Học tập", "⭐"
+
+        items: list[XpTransactionResponse] = []
+        for t in txs:
+            disp, cat, ico = _format_xp_tx(t)
+            items.append(
                 XpTransactionResponse(
                     id=t.id,
                     amount=t.amount,
@@ -653,10 +692,15 @@ class GamificationService:
                     source_id=t.source_id,
                     idempotency_key=t.idempotency_key,
                     description=t.description,
+                    source_display=disp,
+                    category=cat,
+                    icon=ico,
                     created_at=t.created_at,
                 )
-                for t in txs
-            ],
+            )
+
+        return XpHistoryResponse(
+            transactions=items,
             total_xp=profile.total_xp,
         )
 
