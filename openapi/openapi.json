@@ -3572,6 +3572,11 @@
             "type": "string",
             "title": "Skill"
           },
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "default": ""
+          },
           "label": {
             "type": "string",
             "title": "Label"
@@ -3583,20 +3588,41 @@
               },
               {
                 "type": "number"
+              },
+              {
+                "type": "null"
               }
             ],
             "title": "Value"
           },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
           "color": {
             "type": "string",
             "title": "Color"
+          },
+          "isReference": {
+            "type": "boolean",
+            "title": "Isreference",
+            "default": false
           }
         },
         "type": "object",
         "required": [
           "skill",
           "label",
-          "value",
           "color"
         ],
         "title": "DashboardSkillOverview"

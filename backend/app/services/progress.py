@@ -381,9 +381,12 @@ class ProgressService:
         skills_overview = [
             DashboardSkillOverview(
                 skill=sk.skill,
+                key=sk.skill,
                 label=sk.label,
-                value=int(round(sk.current)) if sk.current is not None else 0,
+                value=int(round(sk.current)) if sk.current is not None else None,
+                score=int(round(sk.current)) if sk.current is not None else None,
                 color=sk.color,
+                is_reference=(sk.skill == "pronunciation"),
             )
             for sk in skills_resp.skills
         ]
@@ -436,12 +439,13 @@ class ProgressService:
                 score_gap=score_gap,
             )
 
+        valid_skill_vals = [s.value for s in skills_overview if s.value is not None]
         overall_score = (
             int(round(summary.overall_score))
             if summary.overall_score is not None
             else (
-                int(round(sum(s.value for s in skills_overview) / len(skills_overview)))
-                if skills_overview
+                int(round(sum(valid_skill_vals) / len(valid_skill_vals)))
+                if valid_skill_vals
                 else 0
             )
         )

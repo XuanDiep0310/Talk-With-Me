@@ -225,9 +225,12 @@ class MotivationalCard(BaseSchema):
 
 class DashboardSkillOverview(BaseSchema):
     skill: str
+    key: str = ""
     label: str
-    value: int | float
+    value: int | float | None = None
+    score: int | float | None = None
     color: str
+    is_reference: bool = False
 
 
 class DashboardRecentSession(BaseSchema):

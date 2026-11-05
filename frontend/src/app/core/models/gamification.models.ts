@@ -11,11 +11,13 @@ export interface DailyMissionItem {
 }
 
 export interface SkillSummaryItem {
-  key: string;
+  key?: string;
+  skill?: string;
   label: string;
-  score: number | null;
+  score?: number | null;
+  value?: number | null;
   color: string;
-  isReference: boolean;
+  isReference?: boolean;
 }
 
 export interface RecentSessionItem {
@@ -133,6 +135,7 @@ export interface BadgeItem {
   name: string;
   description: string;
   icon: string;
+  category?: string;
   criteriaType: string;
   target: number;
   earned: boolean;

@@ -82,25 +82,31 @@ interface Shortcut {
           <!-- Skills breakdown overview -->
           <div class="card p-6">
             <div class="flex items-center justify-between mb-5">
-              <h2 class="font-700 text-base" style="font-weight: 700; color: #1e293b">Kỹ năng giao tiếp</h2>
-              <button class="text-sm font-600 cursor-pointer" style="color: #286FB4; font-weight: 600" (click)="appState.go('progress')">Xem chi tiết →</button>
+              <div>
+                <h2 class="font-700 text-base" style="font-weight: 700; color: #1e293b">Kỹ năng giao tiếp</h2>
+                <p class="text-xs text-slate-500 mt-0.5">5 trụ cột cốt lõi theo tiêu chuẩn CEFR</p>
+              </div>
+              <button class="text-sm font-600 cursor-pointer flex items-center gap-1 hover:underline" style="color: #286FB4; font-weight: 600" (click)="appState.go('progress')">
+                <span>Chẩn đoán chi tiết</span>
+                <span>→</span>
+              </button>
             </div>
             <div class="space-y-4">
-              @for (s of skills(); track s.key) {
+              @for (s of skills(); track (s.key || s.skill || s.label || $index)) {
                 <div>
                   <div class="flex items-center justify-between mb-1.5">
                     <div class="flex items-center gap-1.5">
-                      <span class="text-sm font-500" style="font-weight: 500; color: #374151">{{ s.label }}</span>
+                      <span class="text-sm font-600" style="font-weight: 600; color: #374151">{{ s.label }}</span>
                       @if (s.isReference) {
                         <span class="text-[10px] px-1.5 py-0.5 rounded font-600" style="background: #F1F5F9; color: #64748b">tham khảo</span>
                       }
                     </div>
                     <span class="text-sm font-700" [style.color]="s.color" style="font-weight: 700">
-                      {{ s.score !== null ? s.score : 'N/A' }}
+                      {{ (s.score !== null && s.score !== undefined) ? s.score : ((s.value !== null && s.value !== undefined) ? s.value : 'N/A') }}
                     </span>
                   </div>
                   <div class="progress-bar h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="progress-bar-fill h-2 rounded-full" [style.width.%]="s.score ?? 0" [style.background]="s.color"></div>
+                    <div class="progress-bar-fill h-2 rounded-full transition-all duration-500" [style.width.%]="(s.score ?? s.value ?? 0)" [style.background]="s.color"></div>
                   </div>
                 </div>
               }
@@ -143,62 +149,92 @@ interface Shortcut {
 
         <!-- Sidebar column: Daily missions & Motivational Card -->
         <div class="space-y-6">
-          <div class="card p-6">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="font-700 text-base" style="font-weight: 700; color: #1e293b">Nhiệm vụ hôm nay</h2>
-              <span class="badge" style="background: #E2F0F9; color: #286FB4">
-                {{ missionsCompletedCount() }}/{{ missions().length }}
+          <!-- Daily Missions Quest Box -->
+          <div class="card p-6 border shadow-sm" style="border-color: #E2F0F9">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🎯</span>
+                <h2 class="font-700 text-base" style="font-weight: 700; color: #1e293b">Nhiệm vụ hôm nay</h2>
+              </div>
+              <span class="badge font-700 px-2.5 py-1" style="background: #FEF3C7; color: #92400e; font-size: 11px">
+                🎁 Rương +100 XP
               </span>
             </div>
 
-            <div class="mb-5">
-              <div class="flex justify-between text-xs mb-1.5" style="color: #64748b">
-                <span>Tiến độ nhiệm vụ</span>
-                <span class="font-600" style="font-weight: 600">{{ missionsProgressPct() }}%</span>
+            <!-- Daily Treasure Chest Bar -->
+            <div class="p-3 rounded-xl mb-4" style="background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%); border: 1px dashed #B0DDE4">
+              <div class="flex justify-between items-center text-xs mb-1.5">
+                <span class="font-600 text-slate-700 flex items-center gap-1">
+                  <span>{{ missionsCompletedCount() === missions().length && missions().length > 0 ? '🎉 Đã mở Rương Ngày!' : 'Mở Rương Ngày:' }}</span>
+                  <span class="text-sky-700 font-700">{{ missionsCompletedCount() }}/{{ missions().length }} hoàn thành</span>
+                </span>
+                <span class="font-800 text-amber-600">{{ missionsProgressPct() }}%</span>
               </div>
-              <div class="progress-bar h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div class="progress-bar-fill h-2 rounded-full" [style.width.%]="missionsProgressPct()" style="background: #286FB4"></div>
+              <div class="progress-bar h-2.5 bg-slate-200/80 rounded-full overflow-hidden">
+                <div class="progress-bar-fill h-2.5 rounded-full transition-all duration-500" [style.width.%]="missionsProgressPct()" style="background: linear-gradient(90deg, #f59e0b, #22c55e)"></div>
               </div>
             </div>
 
+            <!-- Quest List -->
             <div class="space-y-3">
               @for (m of missions(); track m.id) {
                 <div
-                  class="flex items-center gap-3 p-3 rounded-xl w-full text-left transition-all"
-                  [style.background]="m.status === 'CLAIMED' ? '#F0FDF4' : m.status === 'COMPLETED' ? '#FFFBEB' : '#F8FAFC'"
+                  class="p-3.5 rounded-xl border transition-all flex items-center gap-3"
+                  [style.borderColor]="m.status === 'CLAIMED' ? '#DCFCE7' : m.status === 'COMPLETED' ? '#FDE68A' : '#E2E8F0'"
+                  [style.background]="m.status === 'CLAIMED' ? '#F0FDF4' : m.status === 'COMPLETED' ? '#FFFBEB' : '#FFFFFF'"
                 >
-                  <span class="text-xl">{{ getMissionIcon(m.conditionType) }}</span>
+                  <div
+                    class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 shadow-xs"
+                    [style.background]="m.status === 'CLAIMED' ? '#DCFCE7' : m.status === 'COMPLETED' ? '#FEF3C7' : '#E2F0F9'"
+                  >
+                    @if (m.status === 'CLAIMED') {
+                      <span class="text-emerald-600 font-bold">✓</span>
+                    } @else {
+                      <span>{{ getMissionIcon(m.conditionType) }}</span>
+                    }
+                  </div>
+
                   <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-0.5">
+                      <span
+                        class="text-xs font-700 px-1.5 py-0.5 rounded"
+                        [style.background]="m.conditionType === 'COACH' ? '#E2F0F9' : m.conditionType === 'SCENARIO' ? '#FFF0F3' : m.conditionType === 'ROOM' ? '#F5F3FF' : '#FEF3C7'"
+                        [style.color]="m.conditionType === 'COACH' ? '#286FB4' : m.conditionType === 'SCENARIO' ? '#DF4C73' : m.conditionType === 'ROOM' ? '#7c3aed' : '#b45309'"
+                        style="font-size: 10px"
+                      >
+                        {{ m.conditionType === 'COACH' ? '🎙️ AI Coach' : m.conditionType === 'SCENARIO' ? '🎭 Tình huống' : m.conditionType === 'ROOM' ? '👥 Phòng thoại' : '🔥 Chuỗi ngày' }}
+                      </span>
+                      <span class="text-xs font-700 text-amber-600">⭐ +{{ m.xp }} XP</span>
+                    </div>
                     <div
-                      class="text-sm font-500 truncate"
+                      class="text-xs font-600 truncate"
                       [style.textDecoration]="m.status === 'CLAIMED' ? 'line-through' : 'none'"
-                      [style.color]="m.status === 'CLAIMED' ? '#64748b' : '#1e293b'"
-                      style="font-weight: 500"
+                      [style.color]="m.status === 'CLAIMED' ? '#94a3b8' : '#1e293b'"
+                      style="font-weight: 600"
                     >
                       {{ m.title }}
                     </div>
-                    <div class="text-xs font-600" style="color: #f59e0b; font-weight: 600">+{{ m.xp }} XP</div>
                   </div>
 
                   @if (m.status === 'COMPLETED') {
                     <button
                       type="button"
-                      class="px-2.5 py-1 text-xs font-700 rounded-lg text-white cursor-pointer border-0 shadow-sm"
+                      class="px-3 py-1.5 text-xs font-700 rounded-lg text-white cursor-pointer border-0 shadow-md animate-pulse shrink-0"
                       style="background: #22c55e"
                       (click)="claimMission(m)"
                     >
-                      Nhận
+                      Nhận XP 🎁
                     </button>
                   } @else if (m.status === 'CLAIMED') {
-                    <span class="text-xs font-700 text-emerald-600">✓ Đã nhận</span>
+                    <span class="text-xs font-700 text-emerald-600 shrink-0">✓ Đã nhận</span>
                   } @else {
                     <button
                       type="button"
-                      class="px-2.5 py-1 text-xs font-600 rounded-lg border-0 cursor-pointer"
-                      style="background: #E2F0F9; color: #286FB4"
+                      class="px-3 py-1.5 text-xs font-700 rounded-lg border-0 cursor-pointer text-white shrink-0 shadow-xs"
+                      style="background: #286FB4"
                       (click)="goToMissionAction(m.conditionType)"
                     >
-                      Bắt đầu
+                      Luyện ngay ➔
                     </button>
                   }
                 </div>
@@ -251,11 +287,11 @@ export class DashboardComponent implements OnInit {
 
   readonly skills = computed(() => {
     return this.dashboardData()?.skills ?? [
-      { key: 'fluency', label: 'Độ trôi chảy', score: null, color: '#286FB4', isReference: false },
-      { key: 'vocabulary', label: 'Vốn từ vựng', score: null, color: '#059669', isReference: false },
-      { key: 'grammar', label: 'Ngữ pháp', score: null, color: '#7c3aed', isReference: false },
-      { key: 'pronunciation', label: 'Phát âm', score: null, color: '#DF4C73', isReference: true },
-      { key: 'interaction', label: 'Tương tác & Phản xạ', score: null, color: '#f59e0b', isReference: false },
+      { key: 'fluency', skill: 'fluency', label: 'Độ trôi chảy', score: null, value: null, color: '#286FB4', isReference: false },
+      { key: 'vocabulary', skill: 'vocabulary', label: 'Vốn từ vựng', score: null, value: null, color: '#059669', isReference: false },
+      { key: 'grammar', skill: 'grammar', label: 'Ngữ pháp', score: null, value: null, color: '#7c3aed', isReference: false },
+      { key: 'pronunciation', skill: 'pronunciation', label: 'Phát âm', score: null, value: null, color: '#DF4C73', isReference: true },
+      { key: 'interaction', skill: 'interaction', label: 'Tương tác & Phản xạ', score: null, value: null, color: '#f59e0b', isReference: false },
     ];
   });
 
