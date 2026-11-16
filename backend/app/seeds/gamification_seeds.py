@@ -28,12 +28,6 @@ XP_RULES: list[dict[str, Any]] = [
         "description": "Hoàn thành một phiên luyện nói với AI Coach",
     },
     {
-        "key": "ROOM_SESSION",
-        "xp_amount": 100,
-        "is_active": True,
-        "description": "Tham gia phiên phòng thoại cộng đồng",
-    },
-    {
         "key": "STREAK_BONUS",
         "xp_amount": 20,
         "is_active": True,
@@ -56,15 +50,6 @@ MISSION_DEFINITIONS: list[dict[str, Any]] = [
         "title": "Luyện 1 tình huống mới",
         "xp_reward": 50,
         "condition_type": "SCENARIO_LESSON",
-        "target_count": 1,
-        "params": {},
-        "is_active": True,
-    },
-    {
-        "key": "room_session",
-        "title": "Tham gia phòng cộng đồng",
-        "xp_reward": 50,
-        "condition_type": "ROOM_SESSION",
         "target_count": 1,
         "params": {},
         "is_active": True,
@@ -204,29 +189,6 @@ BADGE_DEFINITIONS: list[dict[str, Any]] = [
         "target_value": 20,
         "params": {},
         "sort_order": 11,
-    },
-    # --- Community Rooms ---
-    {
-        "key": "community_first",
-        "name": "Chào sân cộng đồng",
-        "description": "Tham gia buổi phòng luyện nói nhóm đầu tiên",
-        "icon_emoji": "👋",
-        "category": "COMMUNITY",
-        "criteria_type": "ROOMS_COUNT",
-        "target_value": 1,
-        "params": {},
-        "sort_order": 12,
-    },
-    {
-        "key": "community_star",
-        "name": "Ngôi sao cộng đồng",
-        "description": "Tham gia 10 buổi phòng luyện nói cộng đồng",
-        "icon_emoji": "⭐",
-        "category": "COMMUNITY",
-        "criteria_type": "ROOMS_COUNT",
-        "target_value": 10,
-        "params": {},
-        "sort_order": 13,
     },
     # --- Skills ---
     {

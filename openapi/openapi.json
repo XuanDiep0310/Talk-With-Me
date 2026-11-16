@@ -2157,10 +2157,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by session type (COACH, ROLEPLAY, ROOM)",
+              "description": "Filter by session type (COACH, ROLEPLAY)",
               "title": "Type"
             },
-            "description": "Filter by session type (COACH, ROLEPLAY, ROOM)"
+            "description": "Filter by session type (COACH, ROLEPLAY)"
           },
           {
             "name": "limit",

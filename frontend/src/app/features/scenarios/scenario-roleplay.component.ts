@@ -34,64 +34,73 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
       tabindex="-1"
       class="fixed inset-0 flex flex-col z-50 select-none bg-slate-50 text-slate-800"
     >
-      <!-- Top Header (TalkWithMe Design System) -->
+      <!-- Top Studio Header -->
       <header
-        class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 shrink-0 bg-white border-b border-slate-200 shadow-xs"
+        class="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3.5 shrink-0 bg-white border-b border-slate-200/80 shadow-xs"
       >
         <div class="flex items-center gap-3 min-w-0">
           <button
             type="button"
             aria-label="Quay lại"
-            class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+            class="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 transition cursor-pointer border-0"
             (click)="showEndModal.set(true)"
           >
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path d="M15 19l-7-7 7-7" />
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div class="min-w-0">
-            <h1 class="font-800 text-base sm:text-lg truncate text-slate-900 font-extrabold">
+            <h1 class="font-extrabold text-base sm:text-lg truncate text-slate-900 tracking-tight">
               {{ scenario()?.titleVi || 'Roleplay Tình huống' }}
             </h1>
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full" [ngClass]="statusDotClass()"></span>
-              <span class="text-xs text-slate-500 font-500">{{ statusLabel() }}</span>
+              <span class="text-xs text-slate-500 font-medium">{{ statusLabel() }}</span>
               <span class="text-xs text-slate-300 hidden sm:inline">•</span>
-              <span class="text-xs text-[#286FB4] font-600 hidden sm:inline">
+              <span class="text-xs text-[#286FB4] font-semibold hidden sm:inline">
                 Bạn ({{ scenario()?.userRole }}) vs AI ({{ scenario()?.aiRole }})
               </span>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5 sm:gap-3">
           <!-- Session Timer -->
-          <span class="font-700 text-sm font-mono text-[#286FB4] bg-[#E2F0F9] px-3 py-1 rounded-xl">
-            {{ timer() | formatTime }}
-          </span>
+          <div class="inline-flex items-center gap-1.5 font-bold text-xs sm:text-sm font-mono text-[#286FB4] bg-sky-50 border border-sky-100 px-3 py-1.5 rounded-xl">
+            <svg class="w-3.5 h-3.5 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span>{{ timer() | formatTime }}</span>
+          </div>
 
           <!-- Chunks Target Drawer Toggle -->
           <button
             type="button"
-            class="text-xs font-700 py-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1.5 border"
+            class="text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1.5 border"
             [ngClass]="
               showChunks()
-                ? 'bg-[#E2F0F9] text-[#286FB4] border-sky-200 shadow-xs'
+                ? 'bg-sky-50 text-[#286FB4] border-sky-200 shadow-xs'
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             "
             (click)="toggleChunks()"
           >
-            <span>🧩</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+            </svg>
             <span class="hidden sm:inline">Mẫu câu</span> ({{ scenario()?.chunks?.length || 0 }})
           </button>
 
           <!-- Complete Session button -->
           <button
             type="button"
-            class="btn-primary text-xs font-700 py-2 px-4 rounded-xl cursor-pointer shadow-sm"
+            class="btn-primary text-xs font-bold py-2 px-3.5 sm:px-4 rounded-xl cursor-pointer shadow-xs inline-flex items-center gap-1.5"
             (click)="showEndModal.set(true)"
           >
-            Hoàn thành
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Hoàn thành</span>
           </button>
         </div>
       </header>
@@ -107,11 +116,18 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
           >
             <!-- Scenario Context Card at top of stream -->
             @if (scenario(); as s) {
-              <div class="p-4 rounded-2xl bg-[#E2F0F9]/60 border border-sky-100 text-xs text-slate-700 space-y-1 mb-2">
-                <div class="font-700 text-[#286FB4] text-sm">🎯 Bối cảnh tình huống:</div>
-                <p class="leading-relaxed">{{ s.context }}</p>
+              <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-100 text-xs text-slate-700 space-y-1 mb-2">
+                <div class="font-bold text-[#286FB4] text-sm flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="6" />
+                    <circle cx="12" cy="12" r="2" />
+                  </svg>
+                  <span>Bối cảnh tình huống:</span>
+                </div>
+                <p class="leading-relaxed text-slate-700">{{ s.context }}</p>
                 <div class="pt-1 text-slate-500 italic">
-                  Hãy tự nhiên trả lời bằng tiếng Anh theo vai của bạn. Bấm loa 🔊 ở mỗi câu để nghe lại.
+                  Hãy tự nhiên trả lời bằng tiếng Anh theo vai của bạn. Bấm biểu tượng loa ở mỗi câu để nghe lại.
                 </div>
               </div>
             }
@@ -126,7 +142,15 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
                   class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-xs text-white shadow-xs"
                   [style.background]="t.speaker === 'AI' ? '#286FB4' : '#10b981'"
                 >
-                  {{ t.speaker === 'AI' ? 'AI' : 'Bạn' }}
+                  @if (t.speaker === 'AI') {
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  } @else {
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  }
                 </div>
 
                 <!-- Speech Bubble -->
@@ -134,25 +158,25 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
                   class="min-w-0 max-w-[85%] sm:max-w-lg rounded-2xl p-4 text-sm shadow-xs transition-all"
                   [ngClass]="
                     t.speaker === 'AI'
-                      ? 'bg-white border border-slate-200 text-slate-800'
-                      : 'bg-[#286FB4] text-white shadow-md'
+                      ? 'bg-white border border-slate-200/90 text-slate-800'
+                      : 'bg-[#286FB4] text-white shadow-sm'
                   "
                 >
-                  <!-- Top Bar: Speaker + Actions (Replay Speaker 🔊 & Translate 🌐) -->
+                  <!-- Top Bar: Speaker + Actions -->
                   <div
                     class="flex items-center justify-between gap-4 text-[11px] mb-1.5"
                     [class.text-slate-400]="t.speaker === 'AI'"
                     [class.text-sky-100]="t.speaker === 'USER'"
                   >
-                    <span class="font-700">
+                    <span class="font-bold">
                       {{ t.speaker === 'AI' ? (scenario()?.aiRole || 'AI Roleplay') : 'Bạn' }} • {{ t.time }}
                     </span>
 
                     <div class="flex items-center gap-1.5">
-                      <!-- Translate Toggle Button (Globe icon) -->
+                      <!-- Translate Toggle Button -->
                       <button
                         type="button"
-                        class="w-6 h-6 flex items-center justify-center rounded-full text-xs transition cursor-pointer"
+                        class="w-6 h-6 flex items-center justify-center rounded-full text-xs transition cursor-pointer border-0 bg-transparent"
                         [ngClass]="
                           t.speaker === 'AI'
                             ? (showTranslation()[t.id] ? 'bg-sky-100 text-[#286FB4]' : 'hover:bg-slate-100 text-slate-500')
@@ -161,13 +185,17 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
                         [title]="showTranslation()[t.id] ? 'Ẩn bản dịch' : 'Xem bản dịch tiếng Việt'"
                         (click)="toggleTranslation(t)"
                       >
-                        🌐
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
                       </button>
 
                       <!-- Audio Replay Speaker Button -->
                       <button
                         type="button"
-                        class="w-6 h-6 flex items-center justify-center rounded-full text-xs transition cursor-pointer"
+                        class="w-6 h-6 flex items-center justify-center rounded-full text-xs transition cursor-pointer border-0 bg-transparent"
                         [ngClass]="
                           t.speaker === 'AI'
                             ? (voiceService.playingSegmentId() === t.id ? 'bg-amber-100 text-amber-700 animate-pulse' : 'hover:bg-slate-100 text-slate-600')
@@ -176,20 +204,28 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
                         [title]="voiceService.playingSegmentId() === t.id ? 'Đang phát...' : 'Nghe lại phát âm'"
                         (click)="replaySpeaker(t)"
                       >
-                        {{ voiceService.playingSegmentId() === t.id ? '🔊' : '🔈' }}
+                        @if (voiceService.playingSegmentId() === t.id) {
+                          <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z" />
+                          </svg>
+                        } @else {
+                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
+                          </svg>
+                        }
                       </button>
                     </div>
                   </div>
 
                   <!-- Spoken English Text -->
-                  <div class="font-500 text-[15px] leading-relaxed break-words">
+                  <div class="font-medium text-[15px] leading-relaxed break-words">
                     {{ t.text }}
                     @if (t.isPartial) {
                       <span class="inline-block animate-pulse font-bold">...</span>
                     }
                   </div>
 
-                  <!-- Full Vietnamese Translation (Always available / auto-shown if available or on toggle) -->
+                  <!-- Full Vietnamese Translation -->
                   @if (showTranslation()[t.id]) {
                     <div
                       class="mt-2.5 pt-2 text-xs leading-relaxed italic border-t"
@@ -212,23 +248,27 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
 
             @if (voiceService.liveTranscripts().length === 0) {
               <div class="py-16 text-center text-slate-400 text-sm">
-                <div class="text-3xl animate-bounce mb-2">💬</div>
+                <div class="w-12 h-12 rounded-2xl bg-sky-50 text-[#286FB4] mx-auto flex items-center justify-center mb-3 animate-pulse">
+                  <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
                 Đang kết nối và chuẩn bị câu mở đầu từ AI...
               </div>
             }
 
             <!-- AI Thinking indicator -->
             @if (voiceService.uxState() === 'processing') {
-              <div class="flex items-center gap-2 text-xs text-[#286FB4] font-600 py-2">
+              <div class="flex items-center gap-2 text-xs text-[#286FB4] font-semibold py-2">
                 <span class="w-2 h-2 rounded-full bg-[#286FB4] animate-ping"></span>
                 AI đang xử lý câu trả lời...
               </div>
             }
           </div>
 
-          <!-- Pure Microphone Bottom Bar (No Text Box, Only Microphone) -->
+          <!-- Pure Microphone Bottom Bar -->
           <footer
-            class="p-4 sm:p-5 shrink-0 flex flex-col items-center justify-center gap-2.5 bg-white border-t border-slate-200 shadow-md"
+            class="p-4 sm:p-5 shrink-0 flex flex-col items-center justify-center gap-2.5 bg-white border-t border-slate-200/80 shadow-md"
           >
             <!-- Central Microphone Button with Pulsing Wave on Speaking -->
             <div class="relative flex items-center justify-center">
@@ -240,7 +280,7 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
               <button
                 type="button"
                 data-testid="roleplay-mic-btn"
-                class="relative z-10 w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center text-2xl text-white transition-all duration-200 shadow-xl cursor-pointer hover:scale-105 active:scale-95 focus:outline-none"
+                class="relative z-10 w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center text-white transition-all duration-200 shadow-xl cursor-pointer hover:scale-105 active:scale-95 focus:outline-none border-0"
                 [style.background]="voiceService.isRecordingTurn() ? '#DF4C73' : '#286FB4'"
                 [attr.aria-label]="voiceService.isRecordingTurn() ? 'Dừng nói' : 'Bắt đầu nói'"
                 (click)="toggleSpeaking()"
@@ -254,14 +294,16 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
                     <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite_0.6s]"></span>
                   </div>
                 } @else {
-                  <span class="text-2xl sm:text-3xl">🎙️</span>
+                  <svg class="w-7 h-7 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                  </svg>
                 }
               </button>
             </div>
 
             <!-- Hint text below microphone -->
             <div class="text-center">
-              <p class="text-xs sm:text-sm font-700 text-slate-700">
+              <p class="text-xs sm:text-sm font-bold text-slate-700">
                 @if (voiceService.isRecordingTurn()) {
                   <span class="text-rose-600">Đang lắng nghe... Chạm lại để hoàn tất câu nói</span>
                 } @else if (voiceService.uxState() === 'processing') {
@@ -279,18 +321,23 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
         <!-- Chunks Target Drawer (Clean Sidebar for Desktop) -->
         @if (showChunks()) {
           <aside
-            class="w-80 shrink-0 border-l border-slate-200 p-5 overflow-y-auto hidden md:block bg-white shadow-xs"
+            class="w-80 shrink-0 border-l border-slate-200/80 p-5 overflow-y-auto hidden md:block bg-white shadow-xs"
           >
             <div class="flex items-center justify-between mb-3">
-              <h3 class="font-800 text-xs text-[#286FB4] uppercase tracking-wider">
-                🧩 Mẫu câu gợi ý
+              <h3 class="font-extrabold text-xs text-[#286FB4] uppercase tracking-wider flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+                </svg>
+                <span>Mẫu câu gợi ý</span>
               </h3>
               <button
                 type="button"
-                class="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+                class="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 text-xs cursor-pointer border-0 bg-transparent"
                 (click)="showChunks.set(false)"
               >
-                ✕
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <p class="text-xs text-slate-500 mb-4 leading-relaxed">
@@ -306,11 +353,13 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
                     </span>
                     <button
                       type="button"
-                      class="text-xs hover:scale-110 transition cursor-pointer text-slate-500"
+                      class="text-xs hover:scale-110 transition cursor-pointer text-slate-500 border-0 bg-transparent"
                       title="Nghe mẫu phát âm"
                       (click)="playSample(c.text)"
                     >
-                      🔊
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M11 5L6 9H2v6h4l5 4V5z" />
+                      </svg>
                     </button>
                   </div>
                   <div class="text-xs font-bold text-slate-900 leading-snug">
@@ -328,9 +377,13 @@ import { FormatTimePipe } from '../../shared/pipes/app-pipes';
 
       <!-- End confirmation modal -->
       @if (showEndModal()) {
-        <div class="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div class="card max-w-sm w-full p-6 space-y-4 bg-white border-slate-100 text-slate-800 shadow-2xl rounded-3xl">
-            <div class="text-3xl text-center">🏁</div>
+        <div class="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div class="card max-w-sm w-full p-6 space-y-4 bg-white border border-slate-100 text-slate-800 shadow-2xl rounded-3xl">
+            <div class="w-12 h-12 rounded-2xl bg-sky-50 text-[#286FB4] mx-auto flex items-center justify-center">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
             <h3 class="font-extrabold text-lg text-slate-900 text-center">Kết thúc phiên Roleplay?</h3>
             <p class="text-xs text-slate-600 leading-relaxed text-center">
               Hệ thống sẽ chấm điểm 5 kỹ năng, kiểm tra các mục tiêu nhiệm vụ bạn đã đạt và thống kê các chunk bạn dùng tốt.
@@ -458,7 +511,7 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
         this.timer.update((t) => t + 1);
       }, 1000);
     } else {
-      // No session id in route — initialize fresh roleplay session to prevent any session bleed
+      // No session id in route — initialize fresh roleplay session
       const queryScenId = this.route.snapshot.queryParamMap.get('scenarioId') || 'supermarket-shopping';
       this.scenarioService.startRoleplay(queryScenId).subscribe({
         next: (res) => {

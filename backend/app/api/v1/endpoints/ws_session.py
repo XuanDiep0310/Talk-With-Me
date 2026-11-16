@@ -1,6 +1,6 @@
 """
 WebSocket handler for realtime practice sessions (/api/v1/ws/sessions/{session_id}?ticket=).
-Supports AI Coach (Sprint 3) and reusable for Scenario Roleplay (Sprint 5) and Voice Rooms.
+Supports AI Coach (Sprint 3) and reusable for Scenario Roleplay (Sprint 5).
 
 Features:
   - Ticket-based one-time authentication via Redis.

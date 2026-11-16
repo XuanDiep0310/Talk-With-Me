@@ -6,7 +6,7 @@ Tệp này là ngữ cảnh dùng chung cho mọi sprint. Agent phải đọc to
 
 TalkWithMe là web app luyện nói tiếng Anh với AI theo triết lý Communication-First: tăng thời lượng người học thực sự nói và xây dựng sự tự tin, không ngắt lời để sửa lỗi liên tục. Người dùng là người học Việt Nam, trình độ A1 đến C1 (khung CEFR). Giao diện hiển thị bằng tiếng Việt, nội dung luyện tập bằng tiếng Anh. Code, comment, tên biến, tên bảng, commit message viết bằng tiếng Anh.
 
-Ba luồng chính: AI Coach (hội thoại giọng nói 1-1), Scenario Lesson (roleplay theo tình huống, dạy bằng Chunking), Community Room (phòng thoại 3 đến 5 người có Invisible AI Assistant). Phía sau là Scoring Engine (5 chỉ số + điểm tổng) và Gamification (XP, Streak, Mission, Badge, Level).
+Hai luồng chính: AI Coach (hội thoại giọng nói 1-1), Scenario Lesson (roleplay theo tình huống, dạy bằng Chunking). Phía sau là Scoring Engine (5 chỉ số + điểm tổng) và Gamification (XP, Streak, Mission, Badge, Level).
 
 ## 2. Tài liệu tham chiếu
 
@@ -23,13 +23,13 @@ Nguyên tắc: UI quyết định cấu trúc màn hình và dữ liệu hiển 
 
 | ID | Chủ đề | Quyết định mặc định |
 |---|---|---|
-| D-01 | Quy tắc XP | Bảng cấu hình `xp_rules`, seed theo SRS (Daily Mission 50, Scenario 100, Coach 100, Room 100, Streak bonus 20). Số trên UI chỉ là dữ liệu hiển thị lấy từ cấu hình |
+| D-01 | Quy tắc XP | Bảng cấu hình `xp_rules`, seed theo SRS (Daily Mission 50, Scenario 100, Coach 100, Streak bonus 20). Số trên UI chỉ là dữ liệu hiển thị lấy từ cấu hình |
 | D-02 | Thăng level | Theo SRS 3.4 (điểm, số session, số scenario, điều kiện kỹ năng tối thiểu). XP không dùng đơn độc. API trả về từng điều kiện và mức hiện tại để UI vẽ thanh tiến độ |
 | D-03 | Số tình huống | Seed 20 tình huống, 5 tình huống mỗi nhóm trong 4 nhóm |
 | D-04 | Mục tiêu và kỹ năng cần cải thiện | Chọn nhiều, lưu dạng mảng (`goals[]`, `weak_points[]`) |
 | D-05 | Tính năng ngoài SRS | Huy hiệu, thông báo, cài đặt: làm bản đơn giản. Roadmap: endpoint sinh theo luật, làm ở Sprint 8 |
 | D-06 | STT | Client gửi audio qua WebSocket tới backend, backend proxy sang nhà cung cấp STT sau interface `SttProvider`. Không lưu audio thô |
-| D-07 | Voice Room | LiveKit làm SFU, backend cấp token và quản lý trạng thái qua `VoiceRoomProvider` |
+| D-07 | Voice Room | Tính năng Community Voice Room đã bị loại bỏ hoàn toàn khỏi hệ thống (D-41) |
 | D-08 | Voice test và mic | Backend làm API thật. Frontend có công tắc mock cho dev |
 | D-09 | Múi giờ | Mỗi user có `timezone` (mặc định `Asia/Ho_Chi_Minh`); streak, mission, nhắc nhở tính theo ngày địa phương của user |
 | D-10 | Điểm tổng khi thiếu chỉ số | Nếu thiếu 1 trong 5 chỉ số, tính lại trọng số trên các chỉ số còn lại và gắn `partial=true`; thiếu từ 2 chỉ số trở lên thì điểm tổng là N/A |
@@ -39,7 +39,7 @@ Nguyên tắc: UI quyết định cấu trúc màn hình và dữ liệu hiển 
 - Backend: Python 3.12, FastAPI (async), SQLAlchemy 2.0 async + asyncpg, Alembic, Pydantic v2 + pydantic-settings, PostgreSQL 16, Redis 7, ARQ (job nền và cron), tenacity (retry), ruff, mypy (strict cho `app/`), pytest.
 - Frontend: Angular bản ổn định mới nhất, standalone components, strict TypeScript, client API sinh từ OpenAPI. Style theo UI (nền xanh nhạt, màu chủ đạo xanh dương); thống nhất ở Sprint 0 giữa Tailwind hoặc SCSS thuần, không thêm UI library nặng nếu không cần.
 - Test: pytest, pytest-asyncio, httpx AsyncClient, testcontainers (hoặc service Postgres/Redis trong CI), respx, schemathesis, Playwright.
-- Hạ tầng dev: Docker Compose (postgres, redis, backend, frontend; LiveKit ở profile riêng từ Sprint 7).
+- Hạ tầng dev: Docker Compose (postgres, redis, backend, frontend).
 
 ## 5. Cấu trúc repo
 
@@ -63,13 +63,13 @@ repo/
   Makefile
 ```
 
-Module: `auth`, `users`, `onboarding`, `sessions`, `coach`, `scoring`, `scenarios`, `gamification`, `rooms`, `notifications`.
+Module: `auth`, `users`, `onboarding`, `sessions`, `coach`, `scoring`, `scenarios`, `gamification`, `notifications`.
 
 ## 6. Quy ước kiến trúc và code
 
 - Modular monolith. Mỗi module theo tầng router → service → repository. Router không chứa logic nghiệp vụ; repository không chứa logic nghiệp vụ.
 - Module không import repository hoặc model của module khác. Giao tiếp qua service công khai hoặc domain event (`core/events.py`, event bus bất đồng bộ trong tiến trình).
-- Mọi dịch vụ ngoài (STT, LLM, TTS, Voice Room, Email, Google token verifier, Storage) đặt sau interface trong `core/providers/`, mỗi cái có bản Fake dùng cho dev và test. Chọn bản cài đặt qua biến môi trường.
+- Mọi dịch vụ ngoài (STT, LLM, TTS, Email, Google token verifier, Storage) đặt sau interface trong `core/providers/`, mỗi cái có bản Fake dùng cho dev và test. Chọn bản cài đặt qua biến môi trường.
 - Thời gian lấy từ `Clock` có thể tiêm vào, không gọi `datetime.now()` trực tiếp trong logic nghiệp vụ.
 - Cấu hình qua biến môi trường (pydantic-settings), có `.env.example`. Không commit secret.
 - Mọi quy tắc dễ đổi (trọng số chấm điểm, ngưỡng, XP, thời gian chờ) nằm trong cấu hình hoặc bảng cấu hình, có `formula_version` khi liên quan tới điểm số.
@@ -95,7 +95,6 @@ Module: `auth`, `users`, `onboarding`, `sessions`, `coach`, `scoring`, `scenario
 3. Audio và transcript chỉ được nhận khi session `ACTIVE`. Microphone dừng thu ngay khi session kết thúc. Không lưu audio thô.
 4. Level không bị hạ vì một buổi kết quả thấp. Mọi thay đổi level ghi vào `level_history`.
 5. XP: sổ cái `xp_transactions` là nguồn sự thật, mỗi giao dịch có `idempotency_key` duy nhất. Tổng XP lưu sẵn phải luôn bằng tổng sổ cái.
-6. Private Cue Card chỉ gửi tới đúng người nhận, không bao giờ broadcast.
 7. Mọi truy vấn dữ liệu người dùng phải scope theo `user_id` của token.
 8. Retry không được tạo bản ghi trùng (transcript, feedback, XP, phản hồi AI).
 9. AI Coach không ngắt lời khi người dùng ngập ngừng hoặc dùng từ đệm (um, uh), không sửa ngữ pháp giữa chừng, điều chỉnh từ vựng theo level, khéo léo dẫn lại chủ đề khi người dùng nói lạc.
@@ -107,7 +106,7 @@ Trạng thái: `CREATED`, `ACTIVE`, `RECONNECTING`, `ENDING`, `ENDED`, `FEEDBACK
 
 Chuyển hợp lệ: `CREATED → ACTIVE`; `ACTIVE ⇄ RECONNECTING`; `ACTIVE → ENDING`; `RECONNECTING → ENDING` (hết thời gian chờ); `ENDING → ENDED`; `ENDED → FEEDBACK_READY | INSUFFICIENT_DATA | FAILED`; `FAILED → ENDED` (khi retry). Mọi chuyển khác bị từ chối. Từ chối quyền mic: session không chuyển sang `ACTIVE`.
 
-Loại session (`type`): `COACH`, `ROLEPLAY`, `ROOM`. Placement Test có bảng riêng.
+Loại session (`type`): `COACH`, `ROLEPLAY`. Placement Test có bảng riêng.
 
 ## 10. Chiến lược test
 

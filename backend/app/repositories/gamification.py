@@ -138,10 +138,12 @@ class GamificationRepository:
         """Fetch daily missions for a user on a given local date."""
         stmt = (
             select(UserDailyMission)
+            .join(MissionDefinition, UserDailyMission.mission_key == MissionDefinition.key)
             .options(selectinload(UserDailyMission.mission))
             .where(
                 UserDailyMission.user_id == user_id,
                 UserDailyMission.mission_date == mission_date,
+                MissionDefinition.is_active == True,  # noqa: E712
             )
             .order_by(UserDailyMission.created_at.asc())
         )
@@ -155,11 +157,10 @@ class GamificationRepository:
         Ensure user has 4 missions generated for mission_date.
         Concurrency-safe via PostgreSQL INSERT ... ON CONFLICT DO NOTHING.
         """
-        existing = await self.get_user_missions_for_date(user_id, mission_date)
-        if len(existing) >= 4:
-            return existing
-
         definitions = await self.get_active_mission_definitions()
+        existing = await self.get_user_missions_for_date(user_id, mission_date)
+        if len(existing) >= len(definitions):
+            return existing
         is_sqlite = bool(self._session.bind and self._session.bind.dialect.name == "sqlite")
         for d in definitions:
             if is_sqlite:

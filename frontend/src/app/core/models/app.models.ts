@@ -2,7 +2,6 @@ export type AppPage =
   | "landing" | "login" | "register" | "onboarding"
   | "dashboard" | "ai-coach" | "ai-coach-session" | "ai-coach-report"
   | "scenarios" | "scenario-detail" | "scenario-roleplay" | "scenario-result"
-  | "community" | "community-room"
   | "progress" | "achievements" | "profile" | "settings" | "help"
   | "health";
 
@@ -54,7 +53,7 @@ export interface XpHistoryEntry {
   source: string;
 }
 
-export type LearningActivityType = 'AI_COACH' | 'SCENARIO' | 'COMMUNITY';
+export type LearningActivityType = 'AI_COACH' | 'SCENARIO';
 
 export interface LearningActivity {
   id: string;
@@ -96,13 +95,6 @@ export interface ConversationLine {
   detectedChunk?: string;
 }
 
-export interface CommunityRoomMember {
-  name: string;
-  emoji: string;
-  color: string;
-  speaking: boolean;
-}
-
 export interface UsefulPhrase {
   en: string;
   vi: string;
@@ -137,32 +129,6 @@ export interface ScenarioGroup {
   label: string;
   emoji: string;
   scenarios: ScenarioCatalogItem[];
-}
-
-export interface RoomListing {
-  id: number;
-  title: string;
-  topic: string;
-  level: string;
-  members: number;
-  max: number;
-  active: boolean;
-  emoji: string;
-  host: string;
-  duration: string;
-}
-
-export interface CommunityRoom {
-  id: string;
-  name: string;
-  topic: string;
-  level: string;
-  members: number;
-  maxMembers: number;
-  active: boolean;
-  host: string;
-  hostAvatar: string;
-  tags: string[];
 }
 
 export interface SkillProgress {

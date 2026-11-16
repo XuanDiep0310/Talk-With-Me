@@ -148,20 +148,6 @@ export const routes: Routes = [
           )
       },
       {
-        path: 'community',
-        loadComponent: () =>
-          import('./features/community/community.component').then(
-            (m) => m.CommunityComponent
-          )
-      },
-      {
-        path: 'community-room',
-        loadComponent: () =>
-          import('./features/community/community-room.component').then(
-            (m) => m.CommunityRoomComponent
-          )
-      },
-      {
         path: 'progress',
         loadComponent: () =>
           import('./features/progress/progress.component').then(

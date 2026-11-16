@@ -288,8 +288,6 @@ class ProgressService:
                 stmt = stmt.where(Session.type == "COACH")
             elif norm_type in ("ROLEPLAY", "SCENARIO"):
                 stmt = stmt.where(Session.type == "ROLEPLAY")
-            elif norm_type == "ROOM":
-                stmt = stmt.where(Session.type == "ROOM")
 
         # Handle cursor
         if cursor:
@@ -395,11 +393,7 @@ class ProgressService:
         recent_sessions = [
             DashboardRecentSession(
                 id=h.id,
-                type="ai-coach"
-                if "Coach" in h.type
-                else "scenario"
-                if "Tình" in h.type
-                else "community",
+                type="ai-coach" if "Coach" in h.type else "scenario",
                 topic=h.topic,
                 date=h.date,
                 duration=h.duration,
