@@ -4,6 +4,8 @@ Enables loose coupling between modules (e.g. Coach/Scoring emitting FeedbackGene
 RoleplayEvaluated, Gamification listening to grant XP in Sprint 6).
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import uuid
@@ -47,16 +49,6 @@ class RoleplayEvaluated(Event):
     used_chunks_count: int
     needs_practice_chunks_count: int
     overall_score: float | None
-
-
-@dataclass
-class RoomSessionCompleted(Event):
-    """Event emitted whenever a community voice room session completes (Sprint 7 ready)."""
-
-    session_id: uuid.UUID
-    room_id: uuid.UUID
-    user_id: uuid.UUID
-    duration_seconds: float
 
 
 EventHandler = Callable[[Any], Coroutine[Any, Any, None]]

@@ -2,7 +2,7 @@
 SQLAlchemy ORM models for shared sessions, transcripts, and coach topics.
 
 Tables:
-  sessions             — shared practice sessions (COACH, ROLEPLAY, ROOM)
+  sessions             — shared practice sessions (COACH, ROLEPLAY)
   transcript_segments  — live script dialogue segments
   coach_topics         — catalog of conversation topics for AI Coach
 """
@@ -45,12 +45,12 @@ class CoachTopic(Base, TimestampMixin):
 
 
 class Session(Base, TimestampMixin):
-    """Shared practice session (COACH, ROLEPLAY, ROOM) across the application."""
+    """Shared practice session (COACH, ROLEPLAY) across the application."""
 
     __tablename__ = "sessions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # COACH | ROLEPLAY | ROOM
+    # COACH | ROLEPLAY
     type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -65,7 +65,6 @@ class Session(Base, TimestampMixin):
         index=True,
     )
     scenario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    room_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
     # CEFR Level at the time of session creation (A1, A2, B1, B2, C1)
     level: Mapped[str] = mapped_column(String(10), nullable=False)

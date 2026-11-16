@@ -616,7 +616,7 @@ class GeminiLlmProvider:
     ) -> list[dict[str, str]]:
         prompt = (
             f"You are an English coach assistant. The learner is at CEFR Level {user_level}, "
-            f"discussing '{topic_title}' (Room min level: {topic_min_level}).\n"
+            f"discussing '{topic_title}' (Topic min level: {topic_min_level}).\n"
             f"Coach's last question: '{last_ai_message}'\n"
             f"Generate exactly 3 diverse, natural sample answers that the learner could say to reply.\n"
             f"Tailor vocabulary and structure strictly to CEFR level {user_level}.\n"
