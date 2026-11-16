@@ -15,34 +15,11 @@ import {
   ScenarioLibraryResponse,
 } from '../../core/services/scenario.service';
 
-const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
-  DAILY_LIFE: { label: 'Đời sống hằng ngày', emoji: '☀️' },
-  SOCIAL: { label: 'Giao tiếp xã hội', emoji: '🤝' },
-  TRAVEL_SHOPPING: { label: 'Du lịch & Mua sắm', emoji: '✈️' },
-  WORKPLACE: { label: 'Nơi làm việc', emoji: '💼' },
-};
-
-const SCENARIO_EMOJIS: Record<string, string> = {
-  'supermarket-shopping': '🛒',
-  'restaurant-reservation': '🍽️',
-  'doctor-visit': '🏥',
-  'apartment-renting': '🏠',
-  'coffee-ordering': '☕',
-  'self-introduction': '👋',
-  'party-small-talk': '🎉',
-  'making-friends-online': '💬',
-  'asking-for-help': '🤝',
-  'inviting-a-friend': '✉️',
-  'hotel-checkin': '🏨',
-  'asking-for-directions': '🗺️',
-  'shopping-at-the-mall': '👗',
-  'museum-tour': '🏛️',
-  'airport-transit': '🛫',
-  'job-interview': '💼',
-  'project-team-meeting': '📊',
-  'handling-customer-call': '📞',
-  'email-and-report': '📧',
-  'giving-a-presentation': '🗣️',
+const CATEGORY_META: Record<string, { label: string; icon: string }> = {
+  DAILY_LIFE: { label: 'Đời sống hằng ngày', icon: 'sun' },
+  SOCIAL: { label: 'Giao tiếp xã hội', icon: 'users' },
+  TRAVEL_SHOPPING: { label: 'Du lịch & Mua sắm', icon: 'plane' },
+  WORKPLACE: { label: 'Nơi làm việc', icon: 'briefcase' },
 };
 
 @Component({
@@ -51,45 +28,50 @@ const SCENARIO_EMOJIS: Record<string, string> = {
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="p-5 md:p-8 max-w-6xl mx-auto">
+    <div class="p-5 md:p-8 max-w-6xl mx-auto space-y-6">
       <!-- Header & Progress bar -->
-      <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
+      <div class="flex items-center justify-between flex-wrap gap-4 pb-2 border-b border-slate-200/80">
         <div>
-          <h1 class="text-2xl font-800" style="font-weight: 800; color: #1e293b">Thư viện tình huống</h1>
-          <p class="text-sm mt-1" style="color: #64748b">
-            Hoàn thành {{ completedCount() }}/{{ totalCount() }} tình huống · {{ remainingCount() }} còn lại
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 text-xs font-bold mb-2">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            Phương pháp Chunking
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Thư viện tình huống</h1>
+          <p class="text-sm text-slate-500 mt-1">
+            Đã hoàn thành <strong class="text-blue-700 font-bold">{{ completedCount() }}</strong> / {{ totalCount() }} tình huống (còn {{ remainingCount() }} chưa học)
           </p>
         </div>
-        <div class="flex items-center gap-3">
-          <div class="progress-bar h-2.5 w-36 bg-slate-100 rounded-full overflow-hidden">
+        <div class="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
+          <div class="progress-bar h-2.5 w-32 sm:w-40 bg-slate-100 rounded-full overflow-hidden">
             <div
-              class="progress-bar-fill h-2.5 rounded-full transition-all duration-500"
+              class="progress-bar-fill h-2.5 rounded-full transition-all duration-500 bg-gradient-to-r from-blue-600 to-indigo-600"
               [style.width.%]="completionPercent()"
-              style="background: #286FB4"
             ></div>
           </div>
-          <span class="text-sm font-700" style="color: #286FB4; font-weight: 700">
+          <span class="text-sm font-bold text-blue-700">
             {{ completionPercent() }}%
           </span>
         </div>
       </div>
 
       <!-- Filters Row -->
-      <div class="flex flex-wrap gap-3 mb-6">
-        <div class="relative flex-1 min-w-56">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="relative flex-1 min-w-64">
           <svg
-            class="absolute left-3 top-1/2 -translate-y-1/2"
-            width="16"
-            height="16"
+            class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            width="17"
+            height="17"
             fill="none"
             viewBox="0 0 24 24"
-            stroke="#94a3b8"
-            strokeWidth="2"
+            stroke="currentColor"
+            stroke-width="2"
           >
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
           <input
-            class="input-field pl-9 text-sm w-full"
+            class="input-field pl-10 pr-4 text-sm w-full rounded-xl border border-slate-200 bg-white shadow-2xs py-2.5"
             aria-label="Search scenarios"
             placeholder="Tìm theo tên tình huống, vai trò..."
             [value]="searchQuery()"
@@ -98,16 +80,16 @@ const SCENARIO_EMOJIS: Record<string, string> = {
         </div>
 
         <!-- Level filters -->
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
           @for (lvl of levels; track lvl) {
             <button
               type="button"
-              class="px-3 py-2 rounded-xl text-sm font-600 transition-all cursor-pointer"
-              [style.background]="selectedLevel() === lvl ? '#286FB4' : '#fff'"
-              [style.color]="selectedLevel() === lvl ? '#fff' : '#64748b'"
-              [style.borderColor]="selectedLevel() === lvl ? '#286FB4' : '#E2F0F9'"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              [class.bg-white]="selectedLevel() === lvl"
+              [class.text-blue-700]="selectedLevel() === lvl"
+              [class.shadow-2xs]="selectedLevel() === lvl"
+              [class.text-slate-600]="selectedLevel() !== lvl"
               [attr.aria-pressed]="selectedLevel() === lvl"
-              style="border-width: 1.5px"
               (click)="setLevel(lvl)"
             >
               {{ lvl }}
@@ -116,16 +98,16 @@ const SCENARIO_EMOJIS: Record<string, string> = {
         </div>
 
         <!-- Status filters -->
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200/80">
           @for (st of statusFilters; track st.value) {
             <button
               type="button"
-              class="px-3 py-2 rounded-xl text-sm font-600 transition-all cursor-pointer"
-              [style.background]="selectedStatus() === st.value ? '#286FB4' : '#fff'"
-              [style.color]="selectedStatus() === st.value ? '#fff' : '#64748b'"
-              [style.borderColor]="selectedStatus() === st.value ? '#286FB4' : '#E2F0F9'"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+              [class.bg-white]="selectedStatus() === st.value"
+              [class.text-blue-700]="selectedStatus() === st.value"
+              [class.shadow-2xs]="selectedStatus() === st.value"
+              [class.text-slate-600]="selectedStatus() !== st.value"
               [attr.aria-pressed]="selectedStatus() === st.value"
-              style="border-width: 1.5px"
               (click)="setStatus(st.value)"
             >
               {{ st.label }}
@@ -135,27 +117,35 @@ const SCENARIO_EMOJIS: Record<string, string> = {
       </div>
 
       <!-- Category Filter Tabs -->
-      <div class="flex gap-2 mb-8 overflow-x-auto pb-1">
+      <div class="flex gap-2 overflow-x-auto pb-1">
         <button
           type="button"
-          class="px-4 py-2 rounded-full text-sm font-600 whitespace-nowrap shrink-0 transition-all cursor-pointer"
-          [style.background]="selectedCategory() === 'all' ? '#286FB4' : '#E2F0F9'"
-          [style.color]="selectedCategory() === 'all' ? '#fff' : '#286FB4'"
+          class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer border"
+          [class.bg-blue-600]="selectedCategory() === 'all'"
+          [class.text-white]="selectedCategory() === 'all'"
+          [class.border-blue-600]="selectedCategory() === 'all'"
+          [class.bg-white]="selectedCategory() !== 'all'"
+          [class.text-slate-700]="selectedCategory() !== 'all'"
+          [class.border-slate-200]="selectedCategory() !== 'all'"
           [attr.aria-pressed]="selectedCategory() === 'all'"
           (click)="setCategory('all')"
         >
-          🗂️ Tất cả nhóm
+          Tất cả nhóm
         </button>
         @for (cat of categoryOptions; track cat.id) {
           <button
             type="button"
-            class="px-4 py-2 rounded-full text-sm font-600 whitespace-nowrap shrink-0 transition-all cursor-pointer"
-            [style.background]="selectedCategory() === cat.id ? '#286FB4' : '#E2F0F9'"
-            [style.color]="selectedCategory() === cat.id ? '#fff' : '#286FB4'"
+            class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer border flex items-center gap-2"
+            [class.bg-blue-600]="selectedCategory() === cat.id"
+            [class.text-white]="selectedCategory() === cat.id"
+            [class.border-blue-600]="selectedCategory() === cat.id"
+            [class.bg-white]="selectedCategory() !== cat.id"
+            [class.text-slate-700]="selectedCategory() !== cat.id"
+            [class.border-slate-200]="selectedCategory() !== cat.id"
             [attr.aria-pressed]="selectedCategory() === cat.id"
             (click)="setCategory(cat.id)"
           >
-            {{ cat.emoji }} {{ cat.label }}
+            <span>{{ cat.label }}</span>
           </button>
         }
       </div>
@@ -163,28 +153,32 @@ const SCENARIO_EMOJIS: Record<string, string> = {
       <!-- Scenarios Grid -->
       @if (isLoading()) {
         <div class="py-20 text-center text-slate-400">
-          <div class="text-4xl animate-bounce mb-3">💬</div>
-          <p class="text-sm">Đang tải danh sách tình huống...</p>
+          <div class="w-10 h-10 mx-auto rounded-full border-2 border-blue-600 border-t-transparent animate-spin mb-3"></div>
+          <p class="text-sm font-medium">Đang tải danh sách tình huống...</p>
         </div>
       } @else if (errorMessage()) {
-        <div class="card p-6 text-center text-rose-600 bg-rose-50 border-rose-200">
-          <p>{{ errorMessage() }}</p>
-          <button type="button" class="btn-secondary mt-3 cursor-pointer" (click)="loadScenarios()">
+        <div class="card p-8 text-center text-rose-600 bg-rose-50/60 border-rose-200 rounded-2xl">
+          <p class="text-sm font-semibold">{{ errorMessage() }}</p>
+          <button type="button" class="btn-secondary mt-3 text-xs px-4 py-2 cursor-pointer rounded-xl" (click)="loadScenarios()">
             Thử lại
           </button>
         </div>
       } @else {
         <div class="space-y-10">
           @for (group of groupedScenarios(); track group.category) {
-            <div>
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl">{{ group.emoji }}</span>
-                  <h2 class="font-700 text-lg" style="font-weight: 700; color: #1e293b">
+            <section class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </div>
+                  <h2 class="font-extrabold text-lg text-slate-900 tracking-tight">
                     {{ group.label }}
                   </h2>
                 </div>
-                <span class="badge" style="background: #E2F0F9; color: #286FB4; font-size: 12px; font-weight: 700">
+                <span class="badge text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
                   {{ group.completedCount }}/{{ group.items.length }} hoàn thành
                 </span>
               </div>
@@ -193,58 +187,75 @@ const SCENARIO_EMOJIS: Record<string, string> = {
                 @for (s of group.items; track s.id) {
                   <button
                     type="button"
-                    class="card p-5 flex flex-col text-left hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer border border-slate-100"
+                    class="card-interactive p-5 flex flex-col text-left rounded-2xl border border-slate-200/80 bg-white justify-between gap-3 group"
                     (click)="selectScenario(s)"
                   >
-                    <div class="flex items-start justify-between mb-3">
-                      <span class="text-3xl">{{ getEmoji(s.slug) }}</span>
-                      @if (s.status === 'COMPLETED') {
-                        <span class="badge" style="background: #DCFCE7; color: #166534; font-weight: 700">
-                          ✓ Đã xong
-                        </span>
-                      } @else if (s.status === 'IN_PROGRESS') {
-                        <span class="badge" style="background: #FEF3C7; color: #92400e; font-weight: 700">
-                          ⚡ Đang học
-                        </span>
-                      } @else {
-                        <span class="badge" style="background: #E2F0F9; color: #286FB4; font-weight: 700">
-                          {{ s.level }}
-                        </span>
-                      }
+                    <div>
+                      <div class="flex items-start justify-between gap-2 mb-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-blue-50 text-slate-600 group-hover:text-blue-600 flex items-center justify-center transition-colors">
+                          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                          </svg>
+                        </div>
+                        @if (s.status === 'COMPLETED') {
+                          <span class="badge text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Đã hoàn thành
+                          </span>
+                        } @else if (s.status === 'IN_PROGRESS') {
+                          <span class="badge text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            Đang học
+                          </span>
+                        } @else {
+                          <span class="badge text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                            {{ s.level }}
+                          </span>
+                        }
+                      </div>
+
+                      <div class="font-bold text-base text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-1">
+                        {{ s.titleVi }}
+                      </div>
+                      <div class="text-xs italic text-slate-400 font-medium line-clamp-1 mb-2">
+                        {{ s.titleEn }}
+                      </div>
+                      <div class="text-xs text-slate-500 line-clamp-2">
+                        Vai: <strong class="text-slate-700 font-semibold">{{ s.userRole }}</strong>
+                      </div>
                     </div>
 
-                    <div class="font-700 text-base mb-1" style="font-weight: 700; color: #1e293b">
-                      {{ s.titleVi }}
-                    </div>
-                    <div class="text-xs italic mb-2 text-slate-500 font-500">
-                      {{ s.titleEn }}
-                    </div>
-                    <div class="text-xs mb-3 flex-1 text-slate-600 line-clamp-2">
-                      Vai của bạn: <span class="font-600 text-slate-800">{{ s.userRole }}</span>
-                    </div>
-
-                    <div class="flex items-center justify-between pt-2 border-t border-slate-100">
-                      <span class="text-xs" style="color: #94a3b8">⏱ {{ s.estimatedDurationMinutes || 10 }} phút</span>
-                      <span class="text-xs font-700" style="color: #f59e0b; font-weight: 700">
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs">
+                      <span class="text-slate-400 flex items-center gap-1 font-medium">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        {{ s.estimatedDurationMinutes || 10 }} phút
+                      </span>
+                      <span class="font-bold text-amber-600">
                         +{{ s.xpReward }} XP
                       </span>
                     </div>
                   </button>
                 }
               </div>
-            </div>
+            </section>
           }
 
           @if (groupedScenarios().length === 0) {
-            <div class="text-center py-20">
-              <div class="text-5xl mb-4">🔍</div>
-              <div class="font-700 text-base mb-2" style="font-weight: 700; color: #374151">
+            <div class="card p-12 text-center rounded-2xl">
+              <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
+              <div class="font-bold text-base text-slate-800 mb-1">
                 Không tìm thấy tình huống nào
               </div>
-              <p class="text-sm" style="color: #94a3b8">
+              <p class="text-xs text-slate-400 mb-4">
                 Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.
               </p>
-              <button type="button" class="btn-secondary mt-4 cursor-pointer" (click)="resetFilters()">
+              <button type="button" class="btn-secondary text-xs px-4 py-2 cursor-pointer rounded-xl" (click)="resetFilters()">
                 Xóa bộ lọc
               </button>
             </div>
@@ -272,17 +283,17 @@ export class ScenariosComponent implements OnInit {
   readonly levels = ['Tất cả', 'A1', 'A2', 'B1', 'B2', 'C1'];
 
   readonly statusFilters = [
-    { value: 'all', label: 'Mọi trạng thái' },
+    { value: 'all', label: 'Tất cả trạng thái' },
     { value: 'COMPLETED', label: 'Đã hoàn thành' },
     { value: 'IN_PROGRESS', label: 'Đang học' },
     { value: 'NOT_STARTED', label: 'Chưa học' },
   ] as const;
 
   readonly categoryOptions = [
-    { id: 'DAILY_LIFE', label: 'Đời sống hằng ngày', emoji: '☀️' },
-    { id: 'SOCIAL', label: 'Giao tiếp xã hội', emoji: '🤝' },
-    { id: 'TRAVEL_SHOPPING', label: 'Du lịch & Mua sắm', emoji: '✈️' },
-    { id: 'WORKPLACE', label: 'Nơi làm việc', emoji: '💼' },
+    { id: 'DAILY_LIFE', label: 'Đời sống hằng ngày' },
+    { id: 'SOCIAL', label: 'Giao tiếp xã hội' },
+    { id: 'TRAVEL_SHOPPING', label: 'Du lịch & Mua sắm' },
+    { id: 'WORKPLACE', label: 'Nơi làm việc' },
   ] as const;
 
   readonly totalCount = computed(() => this.libraryData()?.totalCount ?? 0);
@@ -303,7 +314,6 @@ export class ScenariosComponent implements OnInit {
       {
         category: string;
         label: string;
-        emoji: string;
         completedCount: number;
         items: ScenarioSummary[];
       }
@@ -311,11 +321,10 @@ export class ScenariosComponent implements OnInit {
 
     for (const s of data.scenarios) {
       if (!categoryGroups[s.category]) {
-        const meta = CATEGORY_META[s.category] || { label: s.category, emoji: '📁' };
+        const meta = CATEGORY_META[s.category] || { label: s.category, icon: 'folder' };
         categoryGroups[s.category] = {
           category: s.category,
           label: meta.label,
-          emoji: meta.emoji,
           completedCount: 0,
           items: [],
         };
@@ -387,9 +396,5 @@ export class ScenariosComponent implements OnInit {
 
   selectScenario(scenario: ScenarioSummary): void {
     this.router.navigate(['/scenarios', scenario.id]);
-  }
-
-  getEmoji(slug: string): string {
-    return SCENARIO_EMOJIS[slug] || '💬';
   }
 }
