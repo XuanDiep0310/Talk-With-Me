@@ -15,7 +15,7 @@ from sqlalchemy import distinct, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import Clock, get_clock
-from app.core.events import FeedbackGenerated, RoleplayEvaluated, RoomSessionCompleted, event_bus
+from app.core.events import FeedbackGenerated, RoleplayEvaluated, event_bus
 from app.models.gamification import (
     GamificationProfile,
     UserBadge,
@@ -81,7 +81,6 @@ LEVEL_REQUIREMENTS: dict[str, dict] = {
 MISSION_ICONS = {
     "coach_session": "🎙️",
     "new_scenario": "🎭",
-    "room_session": "👥",
     "maintain_streak": "🔥",
 }
 
@@ -442,14 +441,6 @@ class GamificationService:
         )
         max_fluency = (await self._session.execute(fluency_stmt)).scalar_one_or_none() or 0.0
 
-        # Check completed rooms count
-        room_stmt = select(func.count(Session.id)).where(
-            Session.user_id == user_id,
-            Session.type == "ROOM",
-            Session.status.in_(["ENDED", "FEEDBACK_READY"]),
-        )
-        rooms_count = int((await self._session.execute(room_stmt)).scalar_one() or 0)
-
         max_speed = float(stats.get("avg_skills", {}).get("response_speed", 0.0))
 
         awarded: list[UserBadge] = []
@@ -480,10 +471,6 @@ class GamificationService:
                 and stats["total_scenarios"] >= 5
                 or b.key == "master_actor"
                 and stats["total_scenarios"] >= 20
-                or b.key == "community_first"
-                and rooms_count >= 1
-                or b.key == "community_star"
-                and rooms_count >= 10
                 or b.key == "fluency_master"
                 and max_fluency >= 75
                 or b.key == "speed_demon"
@@ -660,8 +647,6 @@ class GamificationService:
                 curr_progress = min(b.target_value, cur_streak)
             elif b.criteria_type == "SCENARIOS_COMPLETED":
                 curr_progress = min(b.target_value, stats["total_scenarios"])
-            elif b.criteria_type == "ROOMS_COUNT":
-                curr_progress = 1 if is_earned else 0
             else:
                 curr_progress = b.target_value if is_earned else 0
 
@@ -709,8 +694,6 @@ class GamificationService:
                 or t.source_type == "MISSION"
             ):
                 return desc or "Thưởng hoàn thành nhiệm vụ ngày", "Nhiệm vụ", "🎯"
-            elif t.rule_key == "ROOM_SESSION" or t.source_type == "ROOM_SESSION":
-                return desc or "Luyện nói phòng cộng đồng", "Cộng đồng", "👥"
             return desc or "Hoạt động luyện tập", "Học tập", "⭐"
 
         items: list[XpTransactionResponse] = []
@@ -844,38 +827,6 @@ class GamificationService:
         await self.evaluate_level_advancement(event.user_id, triggering_session_id=event.session_id)
         await self.evaluate_badges(event.user_id)
 
-    async def on_room_session_completed(self, event: RoomSessionCompleted) -> None:
-        """
-        Handle RoomSessionCompleted domain event from Community Voice Rooms (Sprint 7 ready).
-        """
-        # 1. Award ROOM_SESSION XP (+100 XP)
-        await self.award_xp(
-            user_id=event.user_id,
-            rule_key="ROOM_SESSION",
-            source_type="ROOM_SESSION",
-            source_id=str(event.session_id),
-            description="Tham gia phòng luyện nói cộng đồng",
-        )
-
-        # 2. Update Streak
-        await self.update_streak(event.user_id)
-
-        # 3. Progress daily mission: room_session
-        u_profile = await self._repo.get_user_profile(event.user_id)
-        today = self._get_user_local_date(u_profile.timezone if u_profile else None)
-        await self._repo.ensure_daily_missions(event.user_id, today)
-        await self._repo.update_mission_progress(
-            user_id=event.user_id,
-            mission_date=today,
-            condition_type="ROOM_SESSION",
-            increment=1,
-            now=self._clock.now(),
-        )
-
-        # 4. Check level progression & badges
-        await self.evaluate_level_advancement(event.user_id, triggering_session_id=event.session_id)
-        await self.evaluate_badges(event.user_id)
-
 
 def register_gamification_event_listeners() -> None:
     """Wire up async domain event bus subscribers for gamification processing."""
@@ -893,12 +844,5 @@ def register_gamification_event_listeners() -> None:
             await svc.on_roleplay_evaluated(event)
             await db.commit()
 
-    async def _on_room_session_completed(event: RoomSessionCompleted) -> None:
-        async with async_session_factory() as db:
-            svc = GamificationService(db)
-            await svc.on_room_session_completed(event)
-            await db.commit()
-
     event_bus.subscribe(FeedbackGenerated, _on_feedback_generated)
     event_bus.subscribe(RoleplayEvaluated, _on_roleplay_evaluated)
-    event_bus.subscribe(RoomSessionCompleted, _on_room_session_completed)

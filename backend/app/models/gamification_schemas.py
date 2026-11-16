@@ -265,7 +265,7 @@ class DashboardSkillOverview(BaseSchema):
 
 class DashboardRecentSession(BaseSchema):
     id: uuid.UUID
-    type: str  # ai-coach | scenario | community
+    type: str  # ai-coach | scenario
     topic: str
     date: str
     duration: str

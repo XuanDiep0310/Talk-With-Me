@@ -35,7 +35,6 @@ class SessionState(StrEnum):
 class SessionType(StrEnum):
     COACH = "COACH"
     ROLEPLAY = "ROLEPLAY"
-    ROOM = "ROOM"
 
 
 class InvalidSessionStateTransitionError(Exception):

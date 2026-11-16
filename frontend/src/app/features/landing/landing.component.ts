@@ -213,7 +213,7 @@ export class LandingComponent {
   readonly features: Feature[] = [
     { icon: "🎙️", title: "AI Coach giọng nói", desc: "Luyện nói trực tiếp với AI, nhận phản hồi tức thì về phát âm và ngữ pháp." },
     { icon: "🎭", title: "Tình huống thực tế", desc: "Hàng trăm kịch bản từ đời sống, công việc đến du lịch." },
-    { icon: "👥", title: "Phòng cộng đồng", desc: "Luyện nói cùng người học khác trong phòng voice 3–5 người." },
+    { icon: "🏆", title: "Thành tích & Streak", desc: "Hệ thống XP, Streak và Huy hiệu giúp bạn duy trì động lực học tập mỗi ngày." },
     { icon: "📊", title: "Phân tích chi tiết", desc: "Theo dõi 5 chỉ số kỹ năng: Fluency, Listening, Vocabulary, Tốc độ và Phát âm." }
   ];
 

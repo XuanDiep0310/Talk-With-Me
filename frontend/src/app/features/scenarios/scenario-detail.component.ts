@@ -703,7 +703,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                   [disabled]="isStartingRoleplay()"
                   (click)="startRoleplay()"
                 >
-                  {{ isStartingRoleplay() ? 'Đang tạo phòng...' : 'Vào hội thoại thực hành' }}
+                  {{ isStartingRoleplay() ? 'Đang khởi tạo...' : 'Vào hội thoại thực hành' }}
                 </button>
                 <button
                   type="button"

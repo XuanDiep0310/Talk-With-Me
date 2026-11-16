@@ -265,7 +265,7 @@ async def test_dashboard_and_gamification_endpoints(
     assert "xp" in data
     assert "streak" in data
     assert "todayMissions" in data
-    assert len(data["todayMissions"]) == 4
+    assert len(data["todayMissions"]) == 3
     assert "motivationalCard" in data
     assert len(data["skills"]) == 5
 
@@ -281,8 +281,8 @@ async def test_dashboard_and_gamification_endpoints(
     resp_m = await client.get("/api/v1/missions/today", headers=headers)
     assert resp_m.status_code == 200
     data_m = resp_m.json()
-    assert data_m["totalCount"] == 4
-    assert len(data_m["missions"]) == 4
+    assert data_m["totalCount"] == 3
+    assert len(data_m["missions"]) == 3
 
     # 4. GET /badges
     resp_b = await client.get("/api/v1/badges", headers=headers)
@@ -297,7 +297,7 @@ async def test_daily_missions_concurrent_safety(
     gamification_test_env: dict,
     client: AsyncClient,
 ) -> None:
-    """Calling /missions/today concurrently returns exactly 4 missions without duplicate records."""
+    """Calling /missions/today concurrently returns exactly 3 missions without duplicate records."""
     db_factory = gamification_test_env["db"]
     _, token = await create_test_user(db_factory, email="concurrent_m@example.com")
     headers = {"Authorization": f"Bearer {token}"}
@@ -313,7 +313,7 @@ async def test_daily_missions_concurrent_safety(
 
     for r in results:
         assert r.status_code == 200
-        assert len(r.json()["missions"]) == 4
+        assert len(r.json()["missions"]) == 3
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,4 @@
-import type { Achievement, AiCoachSkillMetric, AiCoachTopicGroup, CommunityRoomMember, ConversationLine, DashboardShortcut, DashboardSkill, FaqItem, LevelRequirement, LoginFeature, Mission, ProgressSessionHistory, QuickGuide, RecommendedExercise, RoomListing, Scenario, ScenarioChunk, ScenarioGroup, ScenarioTaskResult, Session, Settings, SkillProgress, SummaryMetric, ThemeOption, UsefulPhrase, User, XpHistoryEntry } from '../models/app.models';
+import type { Achievement, AiCoachSkillMetric, AiCoachTopicGroup, ConversationLine, DashboardShortcut, DashboardSkill, FaqItem, LevelRequirement, LoginFeature, Mission, ProgressSessionHistory, QuickGuide, RecommendedExercise, Scenario, ScenarioChunk, ScenarioGroup, ScenarioTaskResult, Session, Settings, SkillProgress, SummaryMetric, ThemeOption, UsefulPhrase, User, XpHistoryEntry } from '../models/app.models';
 
 export const MOCK_USER: User = {
   name: "Minh Anh",
@@ -15,7 +15,7 @@ export const MOCK_USER: User = {
 export const MOCK_RECENT_SESSIONS: Session[] = [
   { topic: "Giới thiệu bản thân", date: "Hôm nay, 09:15", duration: "18 phút", score: 76, type: "ai-coach" },
   { topic: "Đặt phòng khách sạn", date: "Hôm qua, 20:30", duration: "12 phút", score: 82, type: "scenario" },
-  { topic: "Small Talk at Work", date: "2 ngày trước", duration: "25 phút", score: 70, type: "community" }
+  { topic: "Thuyết trình dự án", date: "2 ngày trước", duration: "20 phút", score: 80, type: "ai-coach" }
 ];
 export const GROUPS: ScenarioGroup[] = [
   {
@@ -63,14 +63,6 @@ export const GROUPS: ScenarioGroup[] = [
   }
 ];
 
-export const ROOMS: RoomListing[] = [
-  { id: 1, title: "Kể chuyện cuối tuần", topic: "Daily Talk", level: "B1", members: 3, max: 5, active: true, emoji: "🌟", host: "Lan", duration: "12 phút" },
-  { id: 2, title: "Work & Career Chat", topic: "Công việc", level: "B2", members: 4, max: 5, active: true, emoji: "💼", host: "Minh", duration: "8 phút" },
-  { id: 3, title: "Du lịch mơ ước", topic: "Du lịch", level: "A2", members: 2, max: 5, active: true, emoji: "✈️", host: "Hoa", duration: "5 phút" },
-  { id: 4, title: "Phim & Series TV", topic: "Giải trí", level: "B1", members: 5, max: 5, active: false, emoji: "🎬", host: "Tuấn", duration: "20 phút" },
-  { id: 5, title: "Startup & Innovation", topic: "Kinh doanh", level: "B2", members: 3, max: 5, active: true, emoji: "🚀", host: "Nam", duration: "3 phút" },
-  { id: 6, title: "Book Club - This week", topic: "Sách", level: "C1", members: 2, max: 4, active: true, emoji: "📚", host: "An", duration: "15 phút" }
-];
 export const MOCK_SCENARIO_DETAILS: Pick<Scenario, 'category' | 'objectives' | 'vocabulary' | 'image'> = {
   category: "Đời sống",
   objectives: ["Hoàn thành cuộc hội thoại thực tế", "Dùng từ vựng đúng ngữ cảnh"],
@@ -78,16 +70,12 @@ export const MOCK_SCENARIO_DETAILS: Pick<Scenario, 'category' | 'objectives' | '
   image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=200&fit=crop"
 };
 
-export const MOCK_ROOM_HOST_AVATAR = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop";
-
-
 export const MOCK_ACHIEVEMENTS: Achievement[] = [
   { id: 1, emoji: "🎙️", name: "Người nói đầu tiên", desc: "Hoàn thành buổi AI Coach đầu tiên", earned: true, date: "12/01/2025" },
   { id: 2, emoji: "🔥", name: "Streak 7 ngày", desc: "Học liên tục 7 ngày", earned: true, date: "08/03/2025" },
   { id: 3, emoji: "🌟", name: "B1 Achiever", desc: "Đạt level B1", earned: true, date: "15/03/2025" },
   { id: 4, emoji: "🏆", name: "Fluency Master", desc: "Đạt điểm Fluency ≥ 80", earned: false, progress: 72, total: 80 },
   { id: 5, emoji: "🎭", name: "Diễn viên xuất sắc", desc: "Hoàn thành 20 tình huống roleplay", earned: false, progress: 7, total: 20 },
-  { id: 6, emoji: "👥", name: "Ngôi sao cộng đồng", desc: "Tham gia 10 Voice Room", earned: false, progress: 3, total: 10 },
   { id: 7, emoji: "🔥", name: "Streak 30 ngày", desc: "Học liên tục 30 ngày", earned: false, progress: 12, total: 30 },
   { id: 8, emoji: "📚", name: "Từ điển sống", desc: "Học 500 từ vựng mới", earned: false, progress: 210, total: 500 },
   { id: 9, emoji: "⚡", name: "Tốc độ ánh sáng", desc: "Đạt điểm Tốc độ P.H ≥ 80", earned: false, progress: 55, total: 80 }
@@ -96,14 +84,13 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
 export const MOCK_DAILY_MISSIONS: Mission[] = [
   { id: 1, label: "Hoàn thành 1 buổi AI Coach", xp: 50, done: true, icon: "🎙️" },
   { id: 2, label: "Luyện 1 tình huống mới", xp: 30, done: false, icon: "🎭" },
-  { id: 3, label: "Tham gia Phòng cộng đồng", xp: 40, done: false, icon: "👥" },
-  { id: 4, label: "Duy trì streak hôm nay", xp: 20, done: true, icon: "🔥" }
+  { id: 3, label: "Duy trì streak hôm nay", xp: 20, done: true, icon: "🔥" }
 ];
 
 export const MOCK_XP_HISTORY: XpHistoryEntry[] = [
   { date: "Hôm nay", xp: 70, source: "AI Coach + Streak" },
   { date: "Hôm qua", xp: 120, source: "Tình huống + AI Coach" },
-  { date: "2 ngày trước", xp: 90, source: "Voice Room + AI Coach" },
+  { date: "2 ngày trước", xp: 90, source: "AI Coach" },
   { date: "3 ngày trước", xp: 50, source: "AI Coach" },
   { date: "4 ngày trước", xp: 140, source: "Tình huống + Badge" }
 ];
@@ -135,25 +122,6 @@ export const MOCK_USEFUL_PHRASES: UsefulPhrase[] = [
   { en: "What I find fascinating is...", vi: "Điều tôi thấy thú vị là..." },
   { en: "Could you say that again?", vi: "Bạn có thể nhắc lại không?" }
 ];
-
-export const MOCK_COMMUNITY_MEMBERS: CommunityRoomMember[] = [
-  { name: "Bạn", emoji: "👤", color: "#286FB4", speaking: false },
-  { name: "Lan", emoji: "👩", color: "#DF4C73", speaking: false },
-  { name: "Minh", emoji: "👨", color: "#7c3aed", speaking: false },
-  { name: "Hoa", emoji: "🧑", color: "#059669", speaking: false }
-];
-
-export const MOCK_COMMUNITY_TRANSCRIPT: ConversationLine[] = [
-  { id: 1, speaker: "Lan", text: "So, what did everyone do this weekend? I went hiking near the city!", time: "00:03" },
-  { id: 2, speaker: "Minh", text: "That sounds amazing! I stayed home and binged a Netflix series. Total couch potato mode.", time: "00:18" },
-  { id: 3, speaker: "Hoa", text: "I tried a new coffee shop downtown. The vibes were so good!", time: "00:35" }
-];
-
-export const MOCK_COMMUNITY_USER_UTTERANCE: Pick<ConversationLine, 'speaker' | 'text' | 'time'> = {
-  speaker: "Báº¡n",
-  text: "I totally agree! I spent my weekend reading a great book.",
-  time: "01:12"
-};
 
 export const MOCK_AI_INTERIM_UTTERANCE = "I would really love to visit Japan...";
 
@@ -308,7 +276,7 @@ export const MOCK_DASHBOARD_SKILLS: DashboardSkill[] = [
 export const MOCK_DASHBOARD_SHORTCUTS: DashboardShortcut[] = [
     { id: "ai-coach", label: "AI Coach", desc: "Nói chuyện với AI", emoji: "🎙️", color: "#286FB4", bg: "#E2F0F9" },
     { id: "scenarios", label: "Tình huống", desc: "Luyện kịch bản thực tế", emoji: "🎭", color: "#DF4C73", bg: "#FFF0F3" },
-    { id: "community", label: "Cộng đồng", desc: "Voice room 3–5 người", emoji: "👥", color: "#7c3aed", bg: "#F5F3FF" },
+    { id: "achievements", label: "Thành tích", desc: "Huy hiệu & nhiệm vụ", emoji: "🏆", color: "#d97706", bg: "#FEF3C7" },
     { id: "progress", label: "Tiến độ", desc: "Xem kỹ năng của bạn", emoji: "📊", color: "#059669", bg: "#ECFDF5" }
   ];
 
@@ -340,13 +308,12 @@ export const MOCK_DASHBOARD_COMMUNICATION_SCORE = 67;
 export const MOCK_QUICK_GUIDES: QuickGuide[] = [
   { emoji: "🎙️", title: "Bắt đầu buổi AI Coach", steps: ["Vào trang AI Coach", "Chọn chủ đề phù hợp", "Nhấn 'Bắt đầu nói'", "Cho phép quyền micro", "Luyện nói tự nhiên!"] },
   { emoji: "🎭", title: "Luyện tình huống Roleplay", steps: ["Vào Thư viện tình huống", "Chọn tình huống phù hợp trình độ", "Đọc bối cảnh và mẫu câu", "Nhấn 'Bắt đầu roleplay'", "Hoàn thành các nhiệm vụ"] },
-  { emoji: "👥", title: "Tham gia phòng cộng đồng", steps: ["Vào Phòng cộng đồng", "Lọc theo level và chủ đề", "Nhấn 'Tham gia' phòng phù hợp", "Cho phép quyền micro", "Lắng nghe và tham gia trò chuyện!"] }
 ];
 
 export const MOCK_REGISTER_HIGHLIGHTS: string[] = [
     "✅ Phân tích phát âm chi tiết",
     "✅ Hơn 200 tình huống thực tế",
-    "✅ Phòng luyện tập cộng đồng",
+    "✅ Luyện tập phản xạ thông minh",
     "✅ Theo dõi tiến độ hằng ngày"
   ];
 
