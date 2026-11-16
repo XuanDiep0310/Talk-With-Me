@@ -441,7 +441,6 @@ class GamificationService:
         )
         max_fluency = (await self._session.execute(fluency_stmt)).scalar_one_or_none() or 0.0
 
-
         max_speed = float(stats.get("avg_skills", {}).get("response_speed", 0.0))
 
         awarded: list[UserBadge] = []
