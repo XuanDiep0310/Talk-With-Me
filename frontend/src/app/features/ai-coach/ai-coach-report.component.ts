@@ -31,58 +31,68 @@ interface SkillDisplay {
   template: `
     <main class="p-5 md:p-8 max-w-4xl mx-auto space-y-6">
       <!-- Header Navigation -->
-      <header class="flex items-center justify-between flex-wrap gap-4">
+      <header class="flex items-center justify-between flex-wrap gap-4 pb-2 border-b border-slate-200/80">
         <div class="flex items-center gap-3">
           <button
             type="button"
-            class="btn-secondary cursor-pointer flex items-center gap-1.5 px-3 py-2 text-sm"
+            class="btn-secondary cursor-pointer flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-xl"
             (click)="navigateCoach()"
           >
-            ← AI Coach
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <span>AI Coach</span>
           </button>
           <div>
-            <h1 class="text-2xl font-800" style="font-weight: 800; color: #1e293b">
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
               Kết quả & Phản hồi buổi nói
             </h1>
             <p class="text-xs text-slate-500 mt-0.5">
-              Chủ đề: <span class="font-600 text-slate-700">{{ topicTitle() }}</span>
+              Chủ đề: <span class="font-bold text-slate-700">{{ topicTitle() }}</span>
             </p>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2.5">
           <button
             type="button"
-            class="btn-secondary text-sm px-3 py-2 cursor-pointer"
+            class="btn-secondary text-xs sm:text-sm px-3.5 py-2 cursor-pointer rounded-xl font-semibold"
             (click)="navigateDashboard()"
           >
             Dashboard
           </button>
           <button
             type="button"
-            class="btn-primary text-sm px-4 py-2 cursor-pointer"
+            class="btn-primary text-xs sm:text-sm px-4 py-2 cursor-pointer rounded-xl font-bold flex items-center gap-2 shadow-sm"
             (click)="navigateCoach()"
           >
-            Luyện tập tiếp 🎙️
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            </svg>
+            <span>Luyện tập tiếp</span>
           </button>
         </div>
       </header>
 
       <!-- 1. LOADING / PENDING STATE -->
       @if (feedbackStatus() === 'PENDING') {
-        <section class="card p-8 text-center space-y-4 my-8">
-          <div class="w-16 h-16 mx-auto rounded-full bg-blue-50 flex items-center justify-center animate-spin text-3xl">
-            🔄
+        <section class="card p-10 text-center space-y-4 my-8 rounded-3xl">
+          <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <svg class="animate-spin h-7 w-7" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
           </div>
           <div>
-            <h2 class="text-lg font-700 text-slate-800">
+            <h2 class="text-lg font-bold text-slate-900 tracking-tight">
               AI đang phân tích cuộc hội thoại...
             </h2>
-            <p class="text-sm text-slate-500 max-w-md mx-auto mt-1">
-              Đang tính toán 5 chỉ số giao tiếp (Độ trôi chảy, Thấu hiểu, Từ vựng, Tốc độ phản xạ, Phát âm) và tổng hợp nhận xét cá nhân hóa.
+            <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
+              Đang tính toán 5 chỉ số giao tiếp theo chuẩn CEFR (Độ trôi chảy, Thấu hiểu, Từ vựng, Tốc độ phản xạ, Phát âm) và tổng hợp nhận xét cá nhân hóa.
             </p>
           </div>
-          <div class="w-48 h-1.5 bg-slate-100 rounded-full mx-auto overflow-hidden">
+          <div class="w-48 h-2 bg-slate-100 rounded-full mx-auto overflow-hidden">
             <div class="h-full bg-blue-600 rounded-full animate-pulse w-3/4"></div>
           </div>
         </section>
@@ -90,25 +100,31 @@ interface SkillDisplay {
 
       <!-- 2. INSUFFICIENT DATA STATE -->
       @else if (feedbackStatus() === 'INSUFFICIENT_DATA') {
-        <section class="card p-8 border-2 border-amber-200 bg-amber-50/50 rounded-2xl text-center space-y-4">
-          <div class="text-4xl">⚠️</div>
+        <section class="card p-8 border-2 border-amber-200 bg-amber-50/40 rounded-3xl text-center space-y-4">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </div>
           <div>
-            <h2 class="text-lg font-800 text-amber-900">
+            <h2 class="text-lg font-extrabold text-amber-900 tracking-tight">
               Chưa đủ dữ liệu để tính điểm giao tiếp
             </h2>
-            <p class="text-sm text-amber-800 max-w-xl mx-auto mt-2 leading-relaxed">
-              Phiên nói chuyện quá ngắn hoặc chưa có đủ lượt phản hồi của bạn (tiêu chuẩn tối thiểu: 5 từ, 1 lượt thoại hoàn chỉnh, và 5 giây nói). Hệ thống tuân thủ nguyên tắc <strong>Communication-First</strong>: tuyệt đối không bịa đặt điểm số khi thiếu dữ liệu thực tế.
+            <p class="text-xs sm:text-sm text-amber-800 max-w-xl mx-auto mt-2 leading-relaxed">
+              Phiên nói chuyện quá ngắn hoặc chưa có đủ lượt thoại của bạn (tiêu chuẩn tối thiểu: 5 từ, 1 lượt thoại hoàn chỉnh, và 5 giây nói). Hệ thống tuân thủ nguyên tắc <strong>Communication-First</strong>: tuyệt đối không tạo điểm ảo khi thiếu dữ liệu thực tế.
             </p>
           </div>
 
           <!-- Empty Skill Bars with N/A -->
-          <div class="card p-6 bg-white max-w-xl mx-auto text-left shadow-sm">
-            <h3 class="text-sm font-700 text-slate-700 mb-3">Chỉ số giao tiếp (N/A)</h3>
+          <div class="card p-5 bg-white max-w-xl mx-auto text-left shadow-2xs rounded-2xl">
+            <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Chỉ số giao tiếp (N/A)</h3>
             <div class="space-y-3">
               @for (s of skillsList(); track s.name) {
                 <div class="flex items-center justify-between text-xs text-slate-500">
-                  <span>{{ s.label }}</span>
-                  <span class="font-700 text-slate-400">N/A (Chưa đủ dữ liệu)</span>
+                  <span class="font-medium">{{ s.label }}</span>
+                  <span class="font-bold text-slate-400">N/A (Chưa đủ dữ liệu)</span>
                 </div>
               }
             </div>
@@ -117,10 +133,10 @@ interface SkillDisplay {
           <div class="pt-2">
             <button
               type="button"
-              class="btn-primary px-6 py-2.5 text-sm cursor-pointer shadow-md"
+              class="btn-primary px-6 py-2.5 text-sm cursor-pointer shadow-md rounded-xl font-bold"
               (click)="navigateCoach()"
             >
-              Bắt đầu phiên nói mới 🎙️
+              Bắt đầu phiên nói mới
             </button>
           </div>
         </section>
@@ -128,13 +144,19 @@ interface SkillDisplay {
 
       <!-- 3. FAILED STATE -->
       @else if (feedbackStatus() === 'FAILED') {
-        <section class="card p-8 border-2 border-rose-200 bg-rose-50/50 rounded-2xl text-center space-y-4">
-          <div class="text-4xl">❌</div>
+        <section class="card p-8 border-2 border-rose-200 bg-rose-50/40 rounded-3xl text-center space-y-4">
+          <div class="w-12 h-12 mx-auto rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          </div>
           <div>
-            <h2 class="text-lg font-800 text-rose-900">
+            <h2 class="text-lg font-extrabold text-rose-900 tracking-tight">
               Không thể hoàn thành phân tích phản hồi
             </h2>
-            <p class="text-sm text-rose-800 max-w-md mx-auto mt-1">
+            <p class="text-xs sm:text-sm text-rose-800 max-w-md mx-auto mt-1 leading-relaxed">
               {{ errorMessage() || 'Hệ thống đánh giá gặp gián đoạn tạm thời khi phân tích ngôn ngữ.' }}
             </p>
           </div>
@@ -142,20 +164,20 @@ interface SkillDisplay {
             @if (isRetryable()) {
               <button
                 type="button"
-                class="btn-primary bg-rose-600 hover:bg-rose-700 text-white text-sm px-5 py-2.5 cursor-pointer shadow-md"
+                class="btn-primary bg-rose-600! hover:bg-rose-700! border-rose-700! text-white text-xs sm:text-sm px-5 py-2.5 cursor-pointer shadow-md rounded-xl font-bold"
                 [disabled]="isRetrying()"
                 (click)="onRetryFeedback()"
               >
                 @if (isRetrying()) {
                   <span>Đang thử lại...</span>
                 } @else {
-                  <span>Thử lại phân tích 🔄</span>
+                  <span>Thử lại phân tích</span>
                 }
               </button>
             }
             <button
               type="button"
-              class="btn-secondary text-sm px-4 py-2.5 cursor-pointer"
+              class="btn-secondary text-xs sm:text-sm px-4 py-2.5 cursor-pointer rounded-xl font-semibold"
               (click)="navigateCoach()"
             >
               Quay lại AI Coach
@@ -167,52 +189,58 @@ interface SkillDisplay {
       <!-- 4. FEEDBACK_READY STATE -->
       @else if (feedbackStatus() === 'FEEDBACK_READY') {
         <!-- XP Reward Banner -->
-        <div class="px-5 py-4 rounded-2xl flex items-center justify-between gap-4 border shadow-sm" style="background: #FFF9ED; border-color: #FDE68A">
-          <div class="flex items-center gap-3">
-            <span class="text-3xl">🎉</span>
+        <div class="px-5 py-4 rounded-2xl flex items-center justify-between gap-4 border border-amber-200 bg-amber-50/70 shadow-2xs">
+          <div class="flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            </div>
             <div>
-              <p class="text-sm font-700 text-amber-900">
-                Chúc mừng! Bạn đã nhận <span class="text-amber-600 font-800">+100 XP</span> cho bài học này ⭐
+              <p class="text-sm font-bold text-amber-900">
+                Chúc mừng! Bạn đã nhận <span class="text-amber-700 font-extrabold">+100 XP</span> cho buổi luyện tập này
               </p>
-              <p class="text-xs text-amber-700 mt-0.5">
-                Điểm XP và chuỗi streak đã được cập nhật thành công vào sổ cái học tập của bạn.
+              <p class="text-xs text-amber-700/90 mt-0.5">
+                Điểm thưởng và chuỗi Streak đã được ghi nhận an toàn vào sổ cái học tập của bạn.
               </p>
             </div>
           </div>
-          <span class="px-3.5 py-1.5 rounded-full text-xs font-700 bg-amber-500 text-white shadow-sm shrink-0">
+          <span class="px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-500 text-white shadow-xs shrink-0">
             +100 XP Đã cộng
           </span>
         </div>
+
         <!-- Overall Score Card -->
         <section
-          class="card p-6 md:p-8 text-white rounded-2xl shadow-xl relative overflow-hidden"
-          style="background: linear-gradient(135deg, #286FB4 0%, #1d5a94 100%)"
+          class="p-6 md:p-8 text-white rounded-3xl shadow-xl shadow-blue-500/10 relative overflow-hidden bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600"
         >
+          <div class="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
+
           <div class="relative z-10 flex flex-wrap items-center justify-between gap-6">
             <div>
               <div class="flex items-center gap-2">
-                <p class="text-xs md:text-sm uppercase tracking-wider font-700 text-sky-200">
-                  Điểm tổng giao tiếp
+                <p class="text-xs uppercase tracking-wider font-bold text-blue-200">
+                  Điểm tổng giao tiếp CEFR
                 </p>
                 @if (isPartial()) {
-                  <span class="text-[11px] bg-amber-400 text-slate-900 font-700 px-2 py-0.5 rounded-full">
+                  <span class="text-[10px] bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded-full">
                     Ước tính (D-10)
                   </span>
                 }
               </div>
               <div class="flex items-baseline gap-2 mt-1">
                 @if (overallScore() !== null) {
-                  <span class="text-5xl md:text-6xl font-900 tracking-tight" style="font-weight: 900">
+                  <span class="text-5xl md:text-6xl font-black tracking-tight">
                     {{ overallScore() }}
                   </span>
-                  <span class="text-2xl text-sky-200 font-700">/100</span>
+                  <span class="text-xl text-blue-200 font-bold">/100</span>
                 } @else {
-                  <span class="text-4xl md:text-5xl font-800 text-slate-300">N/A</span>
+                  <span class="text-4xl md:text-5xl font-extrabold text-slate-300">N/A</span>
                 }
               </div>
               @if (isPartial()) {
-                <p class="text-xs text-sky-100/90 mt-1">
-                  * Điểm tổng được tính lại trọng số trên các chỉ số có đủ dữ liệu.
+                <p class="text-xs text-blue-100/90 mt-1.5">
+                  * Điểm tổng được tính lại trọng số trên các chỉ số có đủ dữ liệu thực tế.
                 </p>
               }
             </div>
@@ -220,44 +248,42 @@ interface SkillDisplay {
             <!-- Session Stats -->
             <div class="flex items-center gap-4 sm:gap-6 border-t sm:border-t-0 sm:border-l border-white/20 pt-4 sm:pt-0 sm:pl-6">
               <div>
-                <p class="text-xs text-sky-200 font-500">Thời lượng phiên</p>
-                <p class="text-lg md:text-xl font-700 mt-0.5">
+                <p class="text-xs text-blue-200 font-medium">Thời lượng phiên</p>
+                <p class="text-lg md:text-xl font-bold mt-0.5">
                   {{ sessionDuration() }}s
                 </p>
               </div>
               <div>
-                <p class="text-xs text-sky-200 font-500">Thời lượng bạn nói</p>
-                <p class="text-lg md:text-xl font-700 mt-0.5">
+                <p class="text-xs text-blue-200 font-medium">Thời gian bạn nói</p>
+                <p class="text-lg md:text-xl font-bold mt-0.5">
                   {{ spokenDuration() }}s
                 </p>
               </div>
               <div>
-                <p class="text-xs text-sky-200 font-500">Trình độ</p>
-                <p class="text-lg md:text-xl font-700 text-amber-300 mt-0.5">
-                  {{ sessionLevel() }}
+                <p class="text-xs text-blue-200 font-medium">Cấp độ</p>
+                <p class="text-lg md:text-xl font-bold text-amber-300 mt-0.5">
+                  Level {{ sessionLevel() }}
                 </p>
               </div>
               <div>
-                <p class="text-xs text-sky-200 font-500">Thưởng XP</p>
-                <p class="text-lg md:text-xl font-800 text-amber-300 mt-0.5">
-                  +100 XP ⭐
+                <p class="text-xs text-blue-200 font-medium">Thưởng XP</p>
+                <p class="text-lg md:text-xl font-extrabold text-amber-300 mt-0.5">
+                  +100 XP
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- 5 Communication Skills Breakdown (Reusing Dashboard Style) -->
-        <section class="card p-6 md:p-8 rounded-2xl space-y-5">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="font-800 text-base md:text-lg text-slate-900" style="font-weight: 800">
-                Chi tiết 5 kỹ năng giao tiếp
-              </h2>
-              <p class="text-xs text-slate-500 mt-0.5">
-                Đánh giá theo chuẩn CEFR & SRS F-03 (Công thức TalkWithMe v{{ formulaVersion() }})
-              </p>
-            </div>
+        <!-- 5 Communication Skills Breakdown -->
+        <section class="card p-6 md:p-8 rounded-3xl space-y-5">
+          <div>
+            <h2 class="font-bold text-base md:text-lg text-slate-900 tracking-tight">
+              Chi tiết 5 kỹ năng giao tiếp cốt lõi
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Đánh giá đa chiều theo chuẩn CEFR & SRS F-03 (Công thức TalkWithMe v{{ formulaVersion() }})
+            </p>
           </div>
 
           <div class="space-y-4">
@@ -265,11 +291,11 @@ interface SkillDisplay {
               <div>
                 <div class="flex items-center justify-between mb-1.5">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-600 text-slate-800" style="font-weight: 600">
+                    <span class="text-sm font-semibold text-slate-800">
                       {{ s.label }}
                     </span>
                     @if (s.isReference) {
-                      <span class="text-[10px] bg-slate-100 text-slate-600 font-700 px-2 py-0.5 rounded border border-slate-200" title="Đánh giá tham khảo dựa trên STT confidence">
+                      <span class="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full border border-slate-200" title="Đánh giá tham khảo dựa trên STT confidence">
                         Tham khảo
                       </span>
                     }
@@ -277,18 +303,17 @@ interface SkillDisplay {
 
                   <div>
                     @if (s.score !== null) {
-                      <span class="text-sm font-800" [style.color]="s.color" style="font-weight: 800">
+                      <span class="text-sm font-extrabold" [style.color]="s.color">
                         {{ s.score }}/100
                       </span>
                     } @else {
-                      <span class="text-xs font-700 text-slate-400" title="{{ s.naReason || 'Không đủ dữ liệu' }}">
+                      <span class="text-xs font-bold text-slate-400" title="{{ s.naReason || 'Không đủ dữ liệu' }}">
                         N/A ({{ s.naReason || 'Chưa đủ dữ liệu' }})
                       </span>
                     }
                   </div>
                 </div>
 
-                <!-- Progress Bar matching Dashboard style -->
                 <div class="progress-bar h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   @if (s.score !== null) {
                     <div
@@ -306,62 +331,76 @@ interface SkillDisplay {
         </section>
 
         <!-- Strengths & Improvements Grid -->
-        <div class="grid md:grid-cols-2 gap-6">
+        <div class="grid md:grid-cols-2 gap-5 sm:gap-6">
           <!-- Strengths -->
-          <section class="card p-6 rounded-2xl border-l-4 border-emerald-500 bg-emerald-50/20">
-            <div class="flex items-center gap-2 mb-4">
-              <span class="text-xl">🌟</span>
-              <h3 class="text-base font-800 text-emerald-900" style="font-weight: 800">
+          <section class="card p-6 rounded-3xl border border-emerald-200 bg-emerald-50/20">
+            <div class="flex items-center gap-2.5 mb-4">
+              <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <h3 class="text-base font-bold text-emerald-950 tracking-tight">
                 Điểm mạnh nổi bật
               </h3>
             </div>
             @if (strengths().length > 0) {
-              <ul class="space-y-2.5 text-sm text-slate-700">
+              <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
                 @for (item of strengths(); track item) {
-                  <li class="flex items-start gap-2">
-                    <span class="text-emerald-600 font-bold shrink-0">✓</span>
-                    <span>{{ item }}</span>
+                  <li class="flex items-start gap-2.5">
+                    <span class="text-emerald-600 font-bold shrink-0 mt-0.5">•</span>
+                    <span class="leading-relaxed">{{ item }}</span>
                   </li>
                 }
               </ul>
             } @else {
-              <p class="text-sm text-slate-500 italic">Chưa ghi nhận điểm mạnh cụ thể.</p>
+              <p class="text-xs sm:text-sm text-slate-500 italic">Chưa ghi nhận điểm mạnh cụ thể.</p>
             }
           </section>
 
           <!-- Improvements -->
-          <section class="card p-6 rounded-2xl border-l-4 border-amber-500 bg-amber-50/20">
-            <div class="flex items-center gap-2 mb-4">
-              <span class="text-xl">💡</span>
-              <h3 class="text-base font-800 text-amber-900" style="font-weight: 800">
+          <section class="card p-6 rounded-3xl border border-amber-200 bg-amber-50/20">
+            <div class="flex items-center gap-2.5 mb-4">
+              <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z" />
+                </svg>
+              </div>
+              <h3 class="text-base font-bold text-amber-950 tracking-tight">
                 Điểm cần cải thiện
               </h3>
             </div>
             @if (improvements().length > 0) {
-              <ul class="space-y-2.5 text-sm text-slate-700">
+              <ul class="space-y-2.5 text-xs sm:text-sm text-slate-700">
                 @for (item of improvements(); track item) {
-                  <li class="flex items-start gap-2">
-                    <span class="text-amber-600 font-bold shrink-0">→</span>
-                    <span>{{ item }}</span>
+                  <li class="flex items-start gap-2.5">
+                    <span class="text-amber-600 font-bold shrink-0 mt-0.5">→</span>
+                    <span class="leading-relaxed">{{ item }}</span>
                   </li>
                 }
               </ul>
             } @else {
-              <p class="text-sm text-slate-500 italic">Không có lỗi cần khắc phục lớn.</p>
+              <p class="text-xs sm:text-sm text-slate-500 italic">Không có lỗi cần khắc phục lớn.</p>
             }
           </section>
         </div>
 
         <!-- Next Practice Recommendation -->
         @if (nextPractice()) {
-          <section class="card p-6 rounded-2xl border border-blue-100 bg-sky-50/40">
-            <div class="flex items-start gap-3">
-              <span class="text-2xl shrink-0">🎯</span>
+          <section class="card p-6 rounded-3xl border border-blue-100 bg-blue-50/40">
+            <div class="flex items-start gap-3.5">
+              <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
+              </div>
               <div>
-                <h3 class="text-sm font-800 text-sky-950 uppercase tracking-wide" style="font-weight: 800">
+                <h3 class="text-xs font-bold text-blue-950 uppercase tracking-wider">
                   Gợi ý luyện tập tiếp theo
                 </h3>
-                <p class="text-sm text-slate-700 mt-1.5 leading-relaxed">
+                <p class="text-xs sm:text-sm text-slate-700 mt-1 leading-relaxed">
                   {{ nextPractice() }}
                 </p>
               </div>
@@ -372,15 +411,20 @@ interface SkillDisplay {
 
       <!-- Fallback / No Session State -->
       @else {
-        <section class="card p-8 text-center space-y-3">
-          <div class="text-4xl">🎙️</div>
-          <h2 class="text-lg font-700 text-slate-800">Chưa có phiên luyện nói nào</h2>
-          <p class="text-sm text-slate-500">
+        <section class="card p-10 text-center space-y-3 rounded-3xl">
+          <div class="w-12 h-12 mx-auto rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            </svg>
+          </div>
+          <h2 class="text-base font-bold text-slate-900">Chưa có phiên luyện nói nào</h2>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto">
             Hãy bắt đầu một cuộc hội thoại với AI Coach để nhận báo cáo kỹ năng chi tiết.
           </p>
           <button
             type="button"
-            class="btn-primary text-sm px-5 py-2.5 cursor-pointer mt-2"
+            class="btn-primary text-xs px-5 py-2.5 cursor-pointer mt-2 rounded-xl"
             (click)="navigateCoach()"
           >
             Chọn chủ đề luyện tập
@@ -392,17 +436,21 @@ interface SkillDisplay {
       <footer class="flex items-center justify-between gap-4 pt-4 border-t border-slate-200">
         <button
           type="button"
-          class="btn-secondary text-sm px-4 py-2.5 cursor-pointer"
+          class="btn-secondary text-xs sm:text-sm px-4 py-2.5 cursor-pointer rounded-xl font-semibold"
           (click)="navigateDashboard()"
         >
           ← Về Dashboard
         </button>
         <button
           type="button"
-          class="btn-primary text-sm px-6 py-2.5 cursor-pointer shadow-md"
+          class="btn-primary text-xs sm:text-sm px-6 py-2.5 cursor-pointer shadow-md rounded-xl font-bold flex items-center gap-2"
           (click)="navigateCoach()"
         >
-          Luyện nói chủ đề khác 🎙️
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          </svg>
+          <span>Luyện nói chủ đề khác</span>
         </button>
       </footer>
     </main>
@@ -463,11 +511,11 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
 
   readonly skillsList = computed<SkillDisplay[]>(() => {
     const defaultColorMap: Record<string, string> = {
-      fluency: '#286FB4',
+      fluency: '#2563EB',
       listening: '#059669',
-      vocabulary: '#7c3aed',
-      response_speed: '#ea580c',
-      pronunciation: '#0284c7',
+      vocabulary: '#7C3AED',
+      response_speed: '#EA580C',
+      pronunciation: '#0284C7',
     };
 
     const defaultLabels: Record<string, string> = {
@@ -484,7 +532,7 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
         name: key,
         label: defaultLabels[key],
         score: null,
-        color: defaultColorMap[key] || '#286FB4',
+        color: defaultColorMap[key] || '#2563EB',
         isReference: key === 'pronunciation',
         naReason: 'SESSION_INSUFFICIENT_DATA',
       }));
@@ -494,14 +542,13 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
       name: s.skillName,
       label: s.label || defaultLabels[s.skillName] || s.skillName,
       score: s.score,
-      color: defaultColorMap[s.skillName] || '#286FB4',
+      color: defaultColorMap[s.skillName] || '#2563EB',
       isReference: s.isReference,
       naReason: s.naReason,
     }));
   });
 
   ngOnInit(): void {
-    // 1. Resolve Session ID from Route params, query params, or appState
     const idFromParam = this.route.snapshot.paramMap.get('id');
     const idFromQuery = this.route.snapshot.queryParamMap.get('sessionId');
     const resolvedId = idFromParam || idFromQuery || this.appState.latestAiCoachSession()?.id;
@@ -555,7 +602,6 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
     this.pollSub = interval(2000).subscribe(() => {
       this.pollCount++;
       if (this.pollCount > 30) {
-        // Stop polling after 60 seconds
         this.stopPolling();
         return;
       }

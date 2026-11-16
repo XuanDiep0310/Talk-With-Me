@@ -32,24 +32,30 @@ export interface StageItem {
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="p-5 md:p-8 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 class="text-2xl font-800" style="font-weight: 800; color: #1e293b">Tiến độ học tập</h1>
-        <p class="text-sm mt-1" style="color: #64748b">Theo dõi kỹ năng giao tiếp và hành trình thăng hạng level của bạn.</p>
+    <div class="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Tiến độ học tập & Kỹ năng</h1>
+          <p class="text-sm text-slate-500 mt-1">Chẩn đoán 5 trụ cột ngôn ngữ, lịch sử luyện nói và lộ trình 25 mốc CEFR.</p>
+        </div>
       </div>
 
-      <!-- Overall Score Banner (Clean & Modern) -->
-      <div class="card p-6 border shadow-2xs bg-white" style="border-color: #E2E8F0">
+      <!-- Overall Score Banner -->
+      <div class="card p-6 border border-slate-200/80 shadow-xs bg-white">
         <div class="flex items-center justify-between flex-wrap gap-6">
           <div>
-            <div class="text-xs text-slate-500 font-500 mb-1">Điểm giao tiếp tổng hợp</div>
-            <div class="text-4xl font-800 text-[#286FB4]" style="font-weight: 800">
-              {{ overallDisplay() }}<span class="text-xl text-slate-400 font-600">{{ overallDisplay() !== 'N/A' ? ' / 100' : '' }}</span>
+            <div class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Điểm giao tiếp tổng hợp</div>
+            <div class="text-4xl font-extrabold text-[#286FB4]">
+              {{ overallDisplay() }}<span class="text-xl text-slate-400 font-semibold">{{ overallDisplay() !== 'N/A' ? ' / 100' : '' }}</span>
             </div>
             <div class="flex items-center gap-2 mt-1.5">
               @if (scoreChange30d() !== null) {
-                <span class="text-xs font-600" [style.color]="scoreChange30d()! >= 0 ? '#16a34a' : '#dc2626'">
-                  {{ scoreChange30d()! >= 0 ? '↑ +' + scoreChange30d() : '↓ ' + scoreChange30d() }} trong 30 ngày qua
+                <span class="text-xs font-bold inline-flex items-center gap-1" [style.color]="scoreChange30d()! >= 0 ? '#16a34a' : '#dc2626'">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="scoreChange30d()! >= 0 ? 'M5 10l7-7m0 0l7 7m-7-7v18' : 'M19 14l-7 7m0 0l-7-7m7 7V3'" />
+                  </svg>
+                  <span>{{ scoreChange30d()! >= 0 ? '+' + scoreChange30d() : scoreChange30d() }} trong 30 ngày qua</span>
                 </span>
               } @else {
                 <span class="text-slate-400 text-xs">Cần thêm buổi luyện để tính xu hướng</span>
@@ -60,7 +66,7 @@ export interface StageItem {
           <div class="grid grid-cols-3 gap-6 text-center border-l border-slate-100 pl-6">
             @for (m of metrics(); track m.label) {
               <div>
-                <div class="text-lg font-700 text-slate-800" style="font-weight: 700">{{ m.val }}</div>
+                <div class="text-lg font-bold text-slate-800">{{ m.val }}</div>
                 <div class="text-xs text-slate-400 mt-0.5">{{ m.label }}</div>
               </div>
             }
@@ -69,44 +75,63 @@ export interface StageItem {
       </div>
 
       <!-- Tab Buttons -->
-      <div class="flex gap-2 border-b" style="border-color: #E2F0F9">
+      <div class="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-px">
         <button
-          class="px-4 py-3 text-sm font-700 border-b-2 transition-all -mb-px cursor-pointer border-0 bg-transparent"
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all cursor-pointer border-0 bg-transparent shrink-0"
           [style.borderColor]="tab() === 'skills' ? '#286FB4' : 'transparent'"
           [style.color]="tab() === 'skills' ? '#286FB4' : '#64748b'"
           (click)="tab.set('skills')"
         >
-          📊 Chẩn Đoán Kỹ Năng
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <span>Chẩn đoán kỹ năng</span>
         </button>
+
         <button
-          class="px-4 py-3 text-sm font-700 border-b-2 transition-all -mb-px cursor-pointer border-0 bg-transparent"
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all cursor-pointer border-0 bg-transparent shrink-0"
           [style.borderColor]="tab() === 'history' ? '#286FB4' : 'transparent'"
           [style.color]="tab() === 'history' ? '#286FB4' : '#64748b'"
           (click)="tab.set('history')"
         >
-          📅 Lịch Sử Hoạt Động
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Lịch sử hoạt động</span>
         </button>
+
         <button
-          class="px-4 py-3 text-sm font-700 border-b-2 transition-all -mb-px cursor-pointer border-0 bg-transparent"
+          type="button"
+          class="inline-flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all cursor-pointer border-0 bg-transparent shrink-0"
           [style.borderColor]="tab() === 'roadmap' ? '#286FB4' : 'transparent'"
           [style.color]="tab() === 'roadmap' ? '#286FB4' : '#64748b'"
           (click)="tab.set('roadmap')"
         >
-          🏔️ Hành Trình Leo Núi CEFR
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          <span>Lộ trình 25 mốc CEFR</span>
         </button>
       </div>
 
-      <!-- Skills Tab: Comprehensive Diagnostic & Training Suite -->
+      <!-- SKILLS TAB -->
       @if (tab() === 'skills') {
         <div class="space-y-6">
           <!-- Top Diagnostic Insights Header -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="card p-5 border shadow-xs" style="border-color: #DCFCE7; background: #F0FDF4">
+            <!-- Top Skill -->
+            <div class="card p-5 border border-emerald-200 bg-emerald-50/50 shadow-xs">
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-xl">🌟</span>
-                <span class="text-xs font-700 text-emerald-800 uppercase tracking-wide">Kỹ năng nổi trội nhất</span>
+                <div class="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                  </svg>
+                </div>
+                <span class="text-xs font-bold text-emerald-800 uppercase tracking-wide">Kỹ năng nổi trội nhất</span>
               </div>
-              <div class="text-base font-800 text-emerald-950 mt-1">
+              <div class="text-base font-extrabold text-emerald-950 mt-1">
                 {{ topSkill()?.label || 'Chưa đủ dữ liệu' }}
               </div>
               <div class="text-xs text-emerald-700 mt-1">
@@ -114,12 +139,19 @@ export interface StageItem {
               </div>
             </div>
 
-            <div class="card p-5 border shadow-xs" style="border-color: #FDE68A; background: #FFFBEB">
+            <!-- Focus Skill -->
+            <div class="card p-5 border border-amber-200 bg-amber-50/50 shadow-xs">
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-xl">🎯</span>
-                <span class="text-xs font-700 text-amber-800 uppercase tracking-wide">Trọng tâm cần bứt phá</span>
+                <div class="w-6 h-6 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="6" />
+                    <circle cx="12" cy="12" r="2" />
+                  </svg>
+                </div>
+                <span class="text-xs font-bold text-amber-800 uppercase tracking-wide">Trọng tâm cần bứt phá</span>
               </div>
-              <div class="text-base font-800 text-amber-950 mt-1">
+              <div class="text-base font-extrabold text-amber-950 mt-1">
                 {{ focusSkill()?.label || 'Chưa đủ dữ liệu' }}
               </div>
               <div class="text-xs text-amber-700 mt-1">
@@ -127,12 +159,17 @@ export interface StageItem {
               </div>
             </div>
 
-            <div class="card p-5 border shadow-xs" style="border-color: #E2F0F9; background: #F8FBFE">
+            <!-- Balance Score -->
+            <div class="card p-5 border border-sky-200 bg-sky-50/40 shadow-xs">
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-xl">⚖️</span>
-                <span class="text-xs font-700 text-sky-800 uppercase tracking-wide">Cân bằng giao tiếp</span>
+                <div class="w-6 h-6 rounded-md bg-sky-100 text-[#286FB4] flex items-center justify-center">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                  </svg>
+                </div>
+                <span class="text-xs font-bold text-sky-800 uppercase tracking-wide">Cân bằng giao tiếp</span>
               </div>
-              <div class="text-base font-800 text-sky-950 mt-1">
+              <div class="text-base font-extrabold text-sky-950 mt-1">
                 {{ skillsBalanceScore() }}% Đồng đều
               </div>
               <div class="text-xs text-sky-700 mt-1">
@@ -144,21 +181,41 @@ export interface StageItem {
           <!-- In-depth Diagnostic Skill Cards -->
           <div class="space-y-4">
             @for (s of skills(); track (s.key || $index)) {
-              <div class="card p-6 border shadow-xs hover:shadow-md transition-all" style="border-color: #E2F0F9">
-                <!-- Skill Card Top Row -->
+              <div class="card p-6 border border-slate-200/80 shadow-xs hover:border-sky-300 transition-all bg-white">
+                <!-- Top Row -->
                 <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl" [style.background]="s.color + '18'" [style.color]="s.color">
-                      {{ getSkillIcon(s.key) }}
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" [style.background]="s.color + '18'" [style.color]="s.color">
+                      @if (s.key === 'fluency') {
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      } @else if (s.key === 'vocabulary') {
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                      } @else if (s.key === 'grammar') {
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      } @else if (s.key === 'pronunciation') {
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                        </svg>
+                      } @else {
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      }
                     </div>
                     <div>
                       <div class="flex items-center gap-2">
-                        <h3 class="font-800 text-lg text-slate-800" style="font-weight: 800">{{ s.label }}</h3>
+                        <h3 class="font-extrabold text-lg text-slate-800">{{ s.label }}</h3>
                         @if (s.isReference) {
-                          <span class="text-[10px] px-2 py-0.5 rounded font-700 bg-slate-100 text-slate-600 border border-slate-200">Tham khảo</span>
+                          <span class="text-[10px] px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-600 border border-slate-200">Tham khảo</span>
                         }
                         <span
-                          class="badge font-700 text-xs px-2.5 py-0.5"
+                          class="badge font-bold text-xs px-2.5 py-0.5"
                           [style.background]="s.status === 'Tốt' ? '#DCFCE7' : s.status === 'Đang phát triển' ? '#FEF3C7' : '#FEE2E2'"
                           [style.color]="s.status === 'Tốt' ? '#166534' : s.status === 'Đang phát triển' ? '#92400e' : '#991b1b'"
                         >
@@ -172,10 +229,10 @@ export interface StageItem {
                   <!-- Scores & Trends -->
                   <div class="flex items-center gap-4 text-right">
                     <div>
-                      <div class="text-2xl font-800" [style.color]="s.color" style="font-weight: 800">
+                      <div class="text-2xl font-extrabold" [style.color]="s.color">
                         {{ s.current !== null ? s.current : 'N/A' }}<span class="text-sm text-slate-400">/100</span>
                       </div>
-                      <div class="text-[11px] font-600" [style.color]="(s.diff ?? 0) >= 0 ? '#16a34a' : '#dc2626'">
+                      <div class="text-[11px] font-semibold" [style.color]="(s.diff ?? 0) >= 0 ? '#16a34a' : '#dc2626'">
                         @if (s.diff !== null) {
                           {{ s.diff >= 0 ? '↑ +' + s.diff : '↓ ' + s.diff }} (30 ngày)
                         } @else {
@@ -188,12 +245,12 @@ export interface StageItem {
 
                 <!-- CEFR Visual Benchmark Track -->
                 <div class="mb-4 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
-                  <div class="flex justify-between items-center text-[11px] text-slate-500 font-600 mb-1.5">
+                  <div class="flex justify-between items-center text-[11px] text-slate-500 font-semibold mb-1.5">
                     <span>Thang đo chuẩn CEFR:</span>
-                    <span class="font-700 text-slate-800">Trình độ tương đương: {{ getCefrBand(s.current) }}</span>
+                    <span class="font-bold text-slate-800">Trình độ tương đương: {{ getCefrBand(s.current) }}</span>
                   </div>
-                  <div class="relative h-3 bg-slate-200 rounded-full overflow-hidden mb-1.5">
-                    <div class="absolute inset-0 grid grid-cols-5 divide-x divide-white/50 text-[9px] pointer-events-none opacity-40">
+                  <div class="relative h-2.5 bg-slate-200 rounded-full overflow-hidden mb-1.5">
+                    <div class="absolute inset-0 grid grid-cols-5 divide-x divide-white/50 pointer-events-none opacity-40">
                       <div class="h-full"></div>
                       <div class="h-full"></div>
                       <div class="h-full"></div>
@@ -201,12 +258,12 @@ export interface StageItem {
                       <div class="h-full"></div>
                     </div>
                     <div
-                      class="h-3 rounded-full transition-all duration-700"
+                      class="h-2.5 rounded-full transition-all duration-700"
                       [style.width.%]="s.current ?? 0"
                       [style.background]="s.color"
                     ></div>
                   </div>
-                  <div class="flex justify-between text-[10px] text-slate-400 font-500">
+                  <div class="flex justify-between text-[10px] text-slate-400 font-medium">
                     <span>A1 (0-39)</span>
                     <span>A2 (40-54)</span>
                     <span>B1 (55-69)</span>
@@ -217,9 +274,11 @@ export interface StageItem {
 
                 <!-- Pedagogical Diagnostic & Strategy Block -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs mb-4">
-                  <div class="p-3 rounded-xl bg-sky-50/70 border border-sky-100 text-sky-950">
-                    <div class="font-700 text-sky-900 mb-1 flex items-center gap-1.5">
-                      <span>💡</span>
+                  <div class="p-3.5 rounded-xl bg-sky-50/70 border border-sky-100 text-sky-950">
+                    <div class="font-bold text-sky-900 mb-1 flex items-center gap-1.5">
+                      <svg class="w-4 h-4 text-sky-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
                       <span>Tiêu chí AI đánh giá</span>
                     </div>
                     <p class="leading-relaxed text-sky-900/80">
@@ -227,9 +286,11 @@ export interface StageItem {
                     </p>
                   </div>
 
-                  <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-100 text-amber-950">
-                    <div class="font-700 text-amber-900 mb-1 flex items-center gap-1.5">
-                      <span>🚀</span>
+                  <div class="p-3.5 rounded-xl bg-amber-50/70 border border-amber-100 text-amber-950">
+                    <div class="font-bold text-amber-900 mb-1 flex items-center gap-1.5">
+                      <svg class="w-4 h-4 text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
                       <span>Chiến lược bứt phá</span>
                     </div>
                     <p class="leading-relaxed text-amber-900/80">
@@ -241,12 +302,15 @@ export interface StageItem {
                 <!-- Action Button -->
                 <div class="flex justify-end pt-2 border-t border-slate-100">
                   <button
-                    class="px-4 py-2 rounded-xl text-xs font-700 cursor-pointer border-0 flex items-center gap-1.5 text-white shadow-xs transition-all hover:opacity-95"
+                    type="button"
+                    class="px-4 py-2 rounded-xl text-xs font-bold cursor-pointer border-0 flex items-center gap-1.5 text-white shadow-xs transition-all hover:opacity-95"
                     [style.background]="s.color"
                     (click)="practiceSkill(s.key)"
                   >
                     <span>{{ getPedagogy(s.key).actionBtn }}</span>
-                    <span>➔</span>
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -255,41 +319,49 @@ export interface StageItem {
         </div>
       }
 
-      <!-- History Tab -->
+      <!-- HISTORY TAB -->
       @if (tab() === 'history') {
         <div class="space-y-3">
           @if (historyItems().length === 0) {
-            <div class="card p-8 text-center text-sm text-slate-400">
+            <div class="card p-10 text-center text-sm text-slate-400 bg-white border border-slate-200">
               Chưa có phiên luyện tập nào được ghi nhận.
             </div>
           } @else {
             @for (s of historyItems(); track s.id) {
-              <div class="card p-5 flex items-center gap-4">
-                <div class="text-2xl">
-                  @if (s.type === 'COACH') { 🎙️ } @else if (s.type === 'ROLEPLAY') { 🎭 } @else { 👥 }
+              <div class="card p-4 sm:p-5 flex items-center gap-4 bg-white border border-slate-200/80 shadow-xs hover:border-slate-300 transition">
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-sky-50 text-[#286FB4] border border-sky-100">
+                  @if (s.type === 'COACH') {
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                    </svg>
+                  } @else {
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  }
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="font-600 text-sm" style="font-weight: 600; color: #1e293b">{{ s.topic }}</div>
+                  <div class="font-bold text-sm text-slate-800 truncate">{{ s.topic }}</div>
                   <div class="flex items-center gap-2 mt-0.5">
-                    <span class="text-xs" style="color: #94a3b8">{{ formatDate(s.date) }} · {{ s.durationDisplay }}</span>
-                    <span class="badge" style="background: #E2F0F9; color: #286FB4; font-size: 11px">
-                      {{ s.type === 'COACH' ? 'AI Coach' : s.type === 'ROLEPLAY' ? 'Tình huống' : 'Cộng đồng' }}
+                    <span class="text-xs text-slate-400">{{ formatDate(s.date) }} · {{ s.durationDisplay }}</span>
+                    <span class="badge text-[11px] px-2 py-0.5 rounded-full font-semibold bg-sky-50 text-[#286FB4] border border-sky-100">
+                      {{ s.type === 'COACH' ? 'AI Coach' : 'Tình huống' }}
                     </span>
                   </div>
                 </div>
-                <div class="text-right">
-                  <div class="font-700 text-base" [style.color]="(s.score ?? 0) >= 70 ? '#22c55e' : '#f59e0b'" style="font-weight: 700">
+                <div class="text-right shrink-0">
+                  <div class="font-extrabold text-base" [style.color]="(s.score ?? 0) >= 70 ? '#16a34a' : '#d97706'">
                     {{ s.score !== null ? s.score + '/100' : 'N/A' }}
                   </div>
-                  <div class="text-xs" style="color: #94a3b8">điểm giao tiếp</div>
+                  <div class="text-xs text-slate-400">điểm giao tiếp</div>
                 </div>
               </div>
             }
 
             @if (historyHasMore()) {
               <button
-                class="w-full py-3 rounded-xl font-600 text-sm cursor-pointer border-0"
-                style="background: #E2F0F9; color: #286FB4"
+                type="button"
+                class="w-full py-3 rounded-xl font-bold text-sm cursor-pointer border-0 bg-sky-50 text-[#286FB4] hover:bg-sky-100 transition"
                 (click)="loadMoreHistory()"
               >
                 Tải thêm lịch sử
@@ -299,16 +371,16 @@ export interface StageItem {
         </div>
       }
 
-      <!-- 25-Milestone CEFR Learning Journey (Clean & Structured) -->
+      <!-- ROADMAP TAB: 25-Milestone CEFR Learning Journey -->
       @if (tab() === 'roadmap') {
         <div class="space-y-6">
           <!-- Journey Overview Header -->
-          <div class="card p-5 border shadow-2xs bg-white" style="border-color: #E2E8F0">
+          <div class="card p-5 border border-slate-200/80 shadow-xs bg-white">
             <div class="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <div class="flex items-center gap-2">
-                  <h2 class="text-base font-700 text-slate-900" style="font-weight: 700">Lộ Trình 25 Cột Mốc Chinh Phục Tiếng Anh</h2>
-                  <span class="text-xs px-2 py-0.5 rounded-full font-600 bg-sky-50 text-sky-800 border border-sky-200">
+                  <h2 class="text-base font-bold text-slate-900">Lộ trình 25 cột mốc chinh phục CEFR</h2>
+                  <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-sky-50 text-sky-800 border border-sky-200">
                     Trình độ hiện tại: Level {{ currentLevel() }}
                   </span>
                 </div>
@@ -319,40 +391,58 @@ export interface StageItem {
 
               <!-- Active Milestone Progress Badge -->
               <div class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-right">
-                <div class="text-[11px] text-slate-500 font-500">Tiến độ lộ trình</div>
-                <div class="text-sm font-700 text-slate-800">{{ completedMilestonesCount() }} / 25 mốc hoàn thành</div>
+                <div class="text-[11px] text-slate-500 font-medium">Tiến độ lộ trình</div>
+                <div class="text-sm font-bold text-slate-800">{{ completedMilestonesCount() }} / 25 mốc hoàn thành</div>
               </div>
             </div>
           </div>
 
           <!-- Active Advancement Checklist -->
           @if (advancementInfo(); as adv) {
-            <div class="card p-5 border shadow-2xs bg-white" style="border-color: #B0DDE4">
+            <div class="card p-5 border border-sky-200 shadow-xs bg-white">
               <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <div class="flex items-center gap-2">
-                  <span class="text-lg">🎯</span>
-                  <h3 class="font-700 text-sm text-slate-900" style="font-weight: 700">
+                  <div class="w-6 h-6 rounded-md bg-sky-50 text-[#286FB4] flex items-center justify-center">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="6" />
+                      <circle cx="12" cy="12" r="2" />
+                    </svg>
+                  </div>
+                  <h3 class="font-bold text-sm text-slate-900">
                     Điều kiện để bứt phá lên Level {{ adv.targetLevel || 'C1' }}
                   </h3>
                 </div>
                 <span
-                  class="text-xs px-2.5 py-0.5 rounded-full font-600"
+                  class="text-xs px-2.5 py-0.5 rounded-full font-semibold"
                   [style.background]="adv.allMet ? '#DCFCE7' : '#FEF3C7'"
                   [style.color]="adv.allMet ? '#166534' : '#92400e'"
                 >
-                  {{ adv.allMet ? '✓ Đủ điều kiện thăng cấp' : 'Đang phấn đấu' }}
+                  {{ adv.allMet ? 'Đủ điều kiện thăng cấp' : 'Đang phấn đấu' }}
                 </span>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 @for (cond of adv.conditions; track cond.label) {
                   <div class="p-3 rounded-lg border bg-slate-50 flex items-center justify-between" style="border-color: #E2E8F0">
                     <div>
-                      <div class="text-[11px] text-slate-500 font-500">{{ cond.label }}</div>
-                      <div class="text-xs font-700 text-slate-800 mt-0.5">
+                      <div class="text-[11px] text-slate-500 font-medium">{{ cond.label }}</div>
+                      <div class="text-xs font-bold text-slate-800 mt-0.5">
                         {{ cond.current }} / {{ cond.target }} {{ cond.unit }}
                       </div>
                     </div>
-                    <span class="text-sm">{{ cond.met ? '✅' : '⏳' }}</span>
+                    @if (cond.met) {
+                      <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    } @else {
+                      <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    }
                   </div>
                 }
               </div>
@@ -362,24 +452,24 @@ export interface StageItem {
           <!-- 5 CEFR Stages with 5 Checkpoints Each (25 Total) -->
           <div class="space-y-6">
             @for (stage of stages; track stage.level) {
-              <div class="card p-5 border shadow-2xs bg-white" style="border-color: #E2E8F0">
+              <div class="card p-5 border border-slate-200/80 shadow-xs bg-white">
                 <!-- Stage Header -->
                 <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 flex-wrap gap-2">
                   <div class="flex items-center gap-2.5">
-                    <span class="w-8 h-8 rounded-lg flex items-center justify-center font-700 text-xs text-white" style="background: #286FB4">
+                    <span class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white" style="background: #286FB4">
                       {{ stage.level }}
                     </span>
                     <div>
-                      <h3 class="font-700 text-sm text-slate-900">{{ stage.name }}</h3>
+                      <h3 class="font-bold text-sm text-slate-900">{{ stage.name }}</h3>
                       <p class="text-xs text-slate-500">{{ stage.description }} · Yêu cầu điểm TB: ≥ {{ stage.minScore }}</p>
                     </div>
                   </div>
                   <span
-                    class="text-xs px-2.5 py-0.5 rounded-full font-600"
+                    class="text-xs px-2.5 py-0.5 rounded-full font-semibold"
                     [style.background]="isLevelAchieved(stage.level) ? '#DCFCE7' : isCurrentLevel(stage.level) ? '#E2F0F9' : '#F1F5F9'"
                     [style.color]="isLevelAchieved(stage.level) ? '#166534' : isCurrentLevel(stage.level) ? '#286FB4' : '#64748b'"
                   >
-                    {{ isLevelAchieved(stage.level) ? '✓ Đã chinh phục' : isCurrentLevel(stage.level) ? 'Đang thực hiện' : 'Chưa mở khóa' }}
+                    {{ isLevelAchieved(stage.level) ? 'Đã chinh phục' : isCurrentLevel(stage.level) ? 'Đang thực hiện' : 'Chưa mở khóa' }}
                   </span>
                 </div>
 
@@ -393,19 +483,41 @@ export interface StageItem {
                     >
                       <!-- Milestone Number Circle -->
                       <div
-                        class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-700 shrink-0"
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                         [style.background]="getMilestoneStatus(m.id) === 'conquered' ? '#DCFCE7' : getMilestoneStatus(m.id) === 'current' ? '#286FB4' : '#E2E8F0'"
                         [style.color]="getMilestoneStatus(m.id) === 'conquered' ? '#166534' : getMilestoneStatus(m.id) === 'current' ? '#FFFFFF' : '#64748b'"
                       >
-                        {{ getMilestoneStatus(m.id) === 'conquered' ? '✓' : m.id }}
+                        @if (getMilestoneStatus(m.id) === 'conquered') {
+                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        } @else {
+                          {{ m.id }}
+                        }
                       </div>
 
                       <!-- Details -->
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
-                          <span class="text-sm font-600 text-slate-800">{{ m.title }}</span>
-                          <span class="text-[10px] px-1.5 py-0.2 rounded font-500 bg-slate-100 text-slate-500">
-                            {{ m.type === 'COACH' ? '🎙️ AI Coach' : m.type === 'SCENARIO' ? '🎭 Tình huống' : '🎯 Thử thách' }}
+                          <span class="text-sm font-semibold text-slate-800">{{ m.title }}</span>
+                          <span class="text-[10px] px-2 py-0.5 rounded font-medium bg-slate-100 text-slate-600 inline-flex items-center gap-1">
+                            @if (m.type === 'COACH') {
+                              <svg class="w-3 h-3 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+                              </svg>
+                              <span>AI Coach</span>
+                            } @else if (m.type === 'SCENARIO') {
+                              <svg class="w-3 h-3 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              <span>Tình huống</span>
+                            } @else {
+                              <svg class="w-3 h-3 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <circle cx="12" cy="12" r="6" />
+                              </svg>
+                              <span>Thử thách</span>
+                            }
                           </span>
                         </div>
                         <p class="text-xs text-slate-500 truncate mt-0.5">{{ m.description }}</p>
@@ -414,16 +526,30 @@ export interface StageItem {
                       <!-- Status & CTA -->
                       <div class="shrink-0 text-right">
                         @if (getMilestoneStatus(m.id) === 'conquered') {
-                          <span class="text-xs text-emerald-600 font-600">⭐⭐⭐ Đạt</span>
+                          <span class="text-xs text-emerald-600 font-bold inline-flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Đã đạt</span>
+                          </span>
                         } @else if (getMilestoneStatus(m.id) === 'current') {
                           <button
-                            class="btn-primary text-xs px-3 py-1.5 rounded-lg cursor-pointer border-0 shadow-xs"
+                            type="button"
+                            class="btn-primary text-xs px-3 py-1.5 rounded-lg cursor-pointer border-0 shadow-xs inline-flex items-center gap-1"
                             (click)="practiceMilestone(m)"
                           >
-                            Luyện ngay ➔
+                            <span>Luyện ngay</span>
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
                           </button>
                         } @else {
-                          <span class="text-xs text-slate-400">🔒 Khóa</span>
+                          <span class="text-xs text-slate-400 inline-flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <span>Khóa</span>
+                          </span>
                         }
                       </div>
                     </div>
@@ -540,8 +666,6 @@ export class ProgressComponent implements OnInit {
     return Math.max(50, Math.round(100 - diff));
   });
 
-
-
   readonly overallDisplay = computed(() => {
     const s = this.summaryData()?.overallScore;
     return s !== null && s !== undefined ? String(s) : "N/A";
@@ -616,17 +740,6 @@ export class ProgressComponent implements OnInit {
     });
   }
 
-  getSkillIcon(key: string): string {
-    switch (key) {
-      case 'fluency': return '⚡';
-      case 'vocabulary': return '📚';
-      case 'grammar': return '🧩';
-      case 'pronunciation': return '🎯';
-      case 'interaction': return '💬';
-      default: return '📊';
-    }
-  }
-
   getCefrBand(score: number | null): string {
     if (score === null || score === undefined) return 'Chưa xác định';
     if (score >= 85) return 'C1 (Bậc thầy)';
@@ -647,7 +760,7 @@ export class ProgressComponent implements OnInit {
       case 'vocabulary':
         return {
           aiMetric: 'AI phân tích sự phong phú từ vựng CEFR, cách dùng cụm từ cố định (collocations) và việc hạn chế lặp từ cơ bản.',
-          strategy: 'Chủ động áp dụng 2-3 từ vựng mới hoặc thành ngữ trong mỗi lượt nói thay vì chỉ dùng từ vựng quen thuộc cấp A1/A2.',
+          strategy: 'Chủ động áp dụng 2-3 từ vựng mới hoặc thành ngữ trong mỗi lượt nói thay vị chỉ dùng từ vựng quen thuộc cấp A1/A2.',
           actionBtn: 'Học từ vựng qua Tình huống thực tế',
         };
       case 'grammar':
@@ -667,7 +780,7 @@ export class ProgressComponent implements OnInit {
         return {
           aiMetric: 'AI đo độ trễ khi phản hồi (Latency), mức độ phản biện và việc chủ động đặt câu hỏi mở rộng hội thoại.',
           strategy: 'Áp dụng công thức ARE (Answer - Reason - Example) cho mọi câu trả lời để kéo dài hội thoại và thể hiện sự tự tin.',
-          actionBtn: 'Luyện giao tiếp nhóm hoặc AI Coach',
+          actionBtn: 'Luyện phản xạ tương tác với AI Coach',
         };
     }
   }
