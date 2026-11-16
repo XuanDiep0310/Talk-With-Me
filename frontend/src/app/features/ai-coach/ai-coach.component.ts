@@ -125,7 +125,7 @@ import { AppStateService } from '../../core/services/app-state.service';
             </button>
             <button
               type="button"
-              class="btn-primary text-sm px-6 py-2.5 font-bold cursor-pointer rounded-xl flex items-center gap-2 shadow-md shadow-blue-600/25"
+              class="btn-primary text-white text-sm px-6 py-2.5 font-extrabold cursor-pointer rounded-xl flex items-center gap-2 shadow-md shadow-blue-600/25 transition-all"
               [disabled]="isStarting()"
               (click)="startSession()"
             >

@@ -40,7 +40,7 @@ interface NavItem {
         <!-- Logo -->
         <button
           type="button"
-          class="flex items-center gap-3.5 px-6 py-5 border-b border-slate-100 cursor-pointer w-full text-left bg-transparent group transition-colors"
+          class="flex items-center gap-3.5 px-6 h-16 shrink-0 border-b border-slate-200/80 cursor-pointer w-full text-left bg-transparent group transition-colors"
           (click)="navigate('dashboard')"
         >
           <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-tr from-blue-700 to-blue-500 text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform duration-200">
@@ -214,7 +214,7 @@ interface NavItem {
       <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <!-- Top header bar -->
         <header
-          class="flex items-center gap-3.5 px-6 py-3.5 shrink-0 relative z-20 bg-white border-b border-slate-200/80 shadow-xs"
+          class="flex items-center gap-3.5 px-6 h-16 shrink-0 relative z-20 bg-white border-b border-slate-200/80"
         >
           <button
             type="button"

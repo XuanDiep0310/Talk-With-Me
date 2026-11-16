@@ -49,15 +49,16 @@ interface Shortcut {
 
         <div class="relative z-10 flex sm:flex-col gap-3 shrink-0">
           <button
-            class="btn-primary bg-white! text-blue-700! hover:bg-blue-50! border-white! shadow-md px-6 py-3.5 text-sm font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2.5 active:scale-95"
+            type="button"
+            class="bg-white hover:bg-slate-50 text-blue-700 hover:text-blue-800 px-6 py-3.5 text-sm font-extrabold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer flex items-center justify-center gap-2.5 active:scale-95 border border-white"
             (click)="appState.go('ai-coach')"
           >
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-5 h-5 text-blue-700 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
               <line x1="12" y1="19" x2="12" y2="22" />
             </svg>
-            <span>Bắt đầu nói với AI</span>
+            <span class="tracking-tight">Bắt đầu nói với AI</span>
           </button>
         </div>
       </div>
