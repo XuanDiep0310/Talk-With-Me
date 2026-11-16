@@ -186,7 +186,7 @@ export class RegisterComponent {
   readonly highlights = [
     '✅ Phân tích phát âm chi tiết',
     '✅ Hơn 200 tình huống thực tế',
-    '✅ Phòng luyện tập cộng đồng',
+    '✅ Luyện tập giao tiếp thông minh',
     '✅ Theo dõi tiến độ hằng ngày'
   ];
 

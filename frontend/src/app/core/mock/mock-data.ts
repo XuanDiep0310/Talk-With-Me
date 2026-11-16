@@ -2,7 +2,6 @@ import type {
   Achievement,
   AiCoachSkillMetric,
   AiCoachTopicGroup,
-  CommunityRoomMember,
   ConversationLine,
   DashboardShortcut,
   DashboardSkill,
@@ -13,7 +12,6 @@ import type {
   ProgressSessionHistory,
   QuickGuide,
   RecommendedExercise,
-  RoomListing,
   Scenario,
   ScenarioChunk,
   ScenarioGroup,
@@ -61,7 +59,7 @@ export const MOCK_RECENT_SESSIONS: Session[] = [
     date: "2 ngày trước",
     duration: "25 phút",
     score: 70,
-    type: "community",
+    type: "ai-coach",
   },
 ];
 export const GROUPS: ScenarioGroup[] = [
@@ -245,80 +243,6 @@ export const GROUPS: ScenarioGroup[] = [
   },
 ];
 
-export const ROOMS: RoomListing[] = [
-  {
-    id: 1,
-    title: "Kể chuyện cuối tuần",
-    topic: "Daily Talk",
-    level: "B1",
-    members: 3,
-    max: 5,
-    active: true,
-    emoji: "🌟",
-    host: "Lan",
-    duration: "12 phút",
-  },
-  {
-    id: 2,
-    title: "Work & Career Chat",
-    topic: "Công việc",
-    level: "B2",
-    members: 4,
-    max: 5,
-    active: true,
-    emoji: "💼",
-    host: "Minh",
-    duration: "8 phút",
-  },
-  {
-    id: 3,
-    title: "Du lịch mơ ước",
-    topic: "Du lịch",
-    level: "A2",
-    members: 2,
-    max: 5,
-    active: true,
-    emoji: "✈️",
-    host: "Hoa",
-    duration: "5 phút",
-  },
-  {
-    id: 4,
-    title: "Phim & Series TV",
-    topic: "Giải trí",
-    level: "B1",
-    members: 5,
-    max: 5,
-    active: false,
-    emoji: "🎬",
-    host: "Tuấn",
-    duration: "20 phút",
-  },
-  {
-    id: 5,
-    title: "Startup & Innovation",
-    topic: "Kinh doanh",
-    level: "B2",
-    members: 3,
-    max: 5,
-    active: true,
-    emoji: "🚀",
-    host: "Nam",
-    duration: "3 phút",
-  },
-  {
-    id: 6,
-    title: "Book Club - This week",
-    topic: "Sách",
-    level: "C1",
-    members: 2,
-    max: 4,
-    active: true,
-    emoji: "📚",
-    host: "An",
-    duration: "15 phút",
-  },
-];
 export const MOCK_SCENARIO_DETAILS: Pick<
   Scenario,
   "category" | "objectives" | "vocabulary" | "image"
@@ -333,7 +257,6 @@ export const MOCK_SCENARIO_DETAILS: Pick<
     "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=200&fit=crop",
 };
 
-export const MOCK_ROOM_HOST_AVATAR =
   "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop";
 
 export const MOCK_ACHIEVEMENTS: Achievement[] = [
@@ -380,15 +303,6 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
     total: 20,
   },
   {
-    id: 6,
-    emoji: "👥",
-    name: "Ngôi sao cộng đồng",
-    desc: "Tham gia 10 Voice Room",
-    earned: false,
-    progress: 3,
-    total: 10,
-  },
-  {
     id: 7,
     emoji: "🔥",
     name: "Streak 30 ngày",
@@ -426,14 +340,13 @@ export const MOCK_DAILY_MISSIONS: Mission[] = [
     icon: "🎙️",
   },
   { id: 2, label: "Luyện 1 tình huống mới", xp: 30, done: false, icon: "🎭" },
-  { id: 3, label: "Tham gia Phòng cộng đồng", xp: 40, done: false, icon: "👥" },
   { id: 4, label: "Duy trì streak hôm nay", xp: 20, done: true, icon: "🔥" },
 ];
 
 export const MOCK_XP_HISTORY: XpHistoryEntry[] = [
   { date: "Hôm nay", xp: 70, source: "AI Coach + Streak" },
   { date: "Hôm qua", xp: 120, source: "Tình huống + AI Coach" },
-  { date: "2 ngày trước", xp: 90, source: "Voice Room + AI Coach" },
+  { date: "2 ngày trước", xp: 90, source: "AI Coach" },
   { date: "3 ngày trước", xp: 50, source: "AI Coach" },
   { date: "4 ngày trước", xp: 140, source: "Tình huống + Badge" },
 ];
@@ -494,43 +407,6 @@ export const MOCK_USEFUL_PHRASES: UsefulPhrase[] = [
   { en: "What I find fascinating is...", vi: "Điều tôi thấy thú vị là..." },
   { en: "Could you say that again?", vi: "Bạn có thể nhắc lại không?" },
 ];
-
-export const MOCK_COMMUNITY_MEMBERS: CommunityRoomMember[] = [
-  { name: "Bạn", emoji: "👤", color: "#286FB4", speaking: false },
-  { name: "Lan", emoji: "👩", color: "#DF4C73", speaking: false },
-  { name: "Minh", emoji: "👨", color: "#7c3aed", speaking: false },
-  { name: "Hoa", emoji: "🧑", color: "#059669", speaking: false },
-];
-
-export const MOCK_COMMUNITY_TRANSCRIPT: ConversationLine[] = [
-  {
-    id: 1,
-    speaker: "Lan",
-    text: "So, what did everyone do this weekend? I went hiking near the city!",
-    time: "00:03",
-  },
-  {
-    id: 2,
-    speaker: "Minh",
-    text: "That sounds amazing! I stayed home and binged a Netflix series. Total couch potato mode.",
-    time: "00:18",
-  },
-  {
-    id: 3,
-    speaker: "Hoa",
-    text: "I tried a new coffee shop downtown. The vibes were so good!",
-    time: "00:35",
-  },
-];
-
-export const MOCK_COMMUNITY_USER_UTTERANCE: Pick<
-  ConversationLine,
-  "speaker" | "text" | "time"
-> = {
-  speaker: "Báº¡n",
-  text: "I totally agree! I spent my weekend reading a great book.",
-  time: "01:12",
-};
 
 export const MOCK_AI_INTERIM_UTTERANCE =
   "I would really love to visit Japan...";
@@ -949,9 +825,9 @@ export const MOCK_DASHBOARD_SHORTCUTS: DashboardShortcut[] = [
     bg: "#FFF0F3",
   },
   {
-    id: "community",
+    id: "achievements",
     label: "Cộng đồng",
-    desc: "Voice room 3–5 người",
+    desc: "Huy hiệu & nhiệm vụ",
     emoji: "👥",
     color: "#7c3aed",
     bg: "#F5F3FF",
@@ -1016,21 +892,12 @@ export const MOCK_QUICK_GUIDES: QuickGuide[] = [
   },
   {
     emoji: "👥",
-    title: "Tham gia phòng cộng đồng",
-    steps: [
-      "Vào Phòng cộng đồng",
-      "Lọc theo level và chủ đề",
-      "Nhấn 'Tham gia' phòng phù hợp",
-      "Cho phép quyền micro",
-      "Lắng nghe và tham gia trò chuyện!",
-    ],
-  },
 ];
 
 export const MOCK_REGISTER_HIGHLIGHTS: string[] = [
   "✅ Phân tích phát âm chi tiết",
   "✅ Hơn 200 tình huống thực tế",
-  "✅ Phòng luyện tập cộng đồng",
+  "✅ Luyện tập giao tiếp thông minh",
   "✅ Theo dõi tiến độ hằng ngày",
 ];
 

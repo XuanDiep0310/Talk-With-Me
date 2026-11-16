@@ -39,7 +39,6 @@ export const FAQS: FaqItem[] = [
 export const QUICK_GUIDES: QuickGuide[] = [
   { emoji: "🎙️", title: "Bắt đầu buổi AI Coach", steps: ["Vào trang AI Coach", "Chọn chủ đề phù hợp", "Nhấn 'Bắt đầu nói'", "Cho phép quyền micro", "Luyện nói tự nhiên!"] },
   { emoji: "🎭", title: "Luyện tình huống Roleplay", steps: ["Vào Thư viện tình huống", "Chọn tình huống phù hợp trình độ", "Đọc bối cảnh và mẫu câu", "Nhấn 'Bắt đầu roleplay'", "Hoàn thành các nhiệm vụ"] },
-  { emoji: "👥", title: "Tham gia phòng cộng đồng", steps: ["Vào Phòng cộng đồng", "Lọc theo level và chủ đề", "Nhấn 'Tham gia' phòng phù hợp", "Cho phép quyền micro", "Lắng nghe và tham gia trò chuyện!"] }
 ];
 
 @Component({
