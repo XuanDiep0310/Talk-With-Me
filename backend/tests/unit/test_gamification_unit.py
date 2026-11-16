@@ -394,12 +394,8 @@ async def test_badge_evaluations() -> None:
     badge_actor = BadgeDefinition(
         key="master_actor", name="Diễn viên xuất sắc", target_value=20, sort_order=5
     )
-    badge_room = BadgeDefinition(
-        key="community_star", name="Ngôi sao cộng đồng", target_value=10, sort_order=6
-    )
-
     service._repo.list_badge_definitions = AsyncMock(
-        return_value=[badge_first, badge_streak, badge_b1, badge_fluency, badge_actor, badge_room]
+        return_value=[badge_first, badge_streak, badge_b1, badge_fluency, badge_actor]
     )
     service._repo.get_user_profile = AsyncMock(
         return_value=UserProfile(user_id=user_id, cefr_level="B1")
@@ -419,11 +415,8 @@ async def test_badge_evaluations() -> None:
     # Max fluency mock
     mock_max_fluency = MagicMock()
     mock_max_fluency.scalar_one_or_none.return_value = 88.0
-    # Room count mock
-    mock_room_count = MagicMock()
-    mock_room_count.scalar_one.return_value = 12
 
-    mock_db.execute.side_effect = [mock_max_fluency, mock_room_count]
+    mock_db.execute.side_effect = [mock_max_fluency]
     service._repo.award_badge = AsyncMock(
         side_effect=lambda *args, **kwargs: UserBadge(
             user_id=kwargs.get("user_id", args[0] if args else None),
@@ -441,5 +434,4 @@ async def test_badge_evaluations() -> None:
     assert "b1_achiever" in awarded_keys
     assert "fluency_master" in awarded_keys
     assert "master_actor" in awarded_keys
-    assert "community_star" in awarded_keys
-    assert len(awarded) == 6
+    assert len(awarded) == 5

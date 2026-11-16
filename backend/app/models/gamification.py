@@ -90,7 +90,7 @@ class MissionDefinition(Base, TimestampMixin):
     key: Mapped[str] = mapped_column(String(50), primary_key=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     xp_reward: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
-    # COACH_SESSION | SCENARIO_LESSON | ROOM_SESSION | STREAK
+    # COACH_SESSION | SCENARIO_LESSON | STREAK
     condition_type: Mapped[str] = mapped_column(String(50), nullable=False)
     target_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     params: Mapped[dict] = mapped_column(
@@ -140,7 +140,7 @@ class BadgeDefinition(Base, TimestampMixin):
     description: Mapped[str] = mapped_column(Text, nullable=False)
     icon_emoji: Mapped[str] = mapped_column(String(10), nullable=False)
     category: Mapped[str] = mapped_column(String(50), default="GENERAL", nullable=False)
-    # SESSIONS_COUNT | STREAK_DAYS | CEFR_LEVEL | FLUENCY_SCORE | SCENARIOS_COMPLETED | ROOMS_COUNT
+    # SESSIONS_COUNT | STREAK_DAYS | CEFR_LEVEL | FLUENCY_SCORE | SCENARIOS_COMPLETED
     criteria_type: Mapped[str] = mapped_column(String(50), nullable=False)
     target_value: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     params: Mapped[dict] = mapped_column(
