@@ -30,7 +30,9 @@ def upgrade() -> None:
     op.execute("DELETE FROM user_badges WHERE badge_key IN ('community_first', 'community_star')")
     op.execute("DELETE FROM badge_definitions WHERE key IN ('community_first', 'community_star')")
     op.execute("DELETE FROM xp_rules WHERE key = 'ROOM_SESSION'")
-    op.execute("DELETE FROM xp_transactions WHERE rule_key = 'ROOM_SESSION' OR source_type = 'ROOM_SESSION'")
+    op.execute(
+        "DELETE FROM xp_transactions WHERE rule_key = 'ROOM_SESSION' OR source_type = 'ROOM_SESSION'"
+    )
 
 
 def downgrade() -> None:

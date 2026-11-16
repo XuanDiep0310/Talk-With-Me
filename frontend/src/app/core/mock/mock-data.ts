@@ -257,7 +257,6 @@ export const MOCK_SCENARIO_DETAILS: Pick<
     "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=200&fit=crop",
 };
 
-  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop";
 
 export const MOCK_ACHIEVEMENTS: Achievement[] = [
   {
@@ -890,8 +889,6 @@ export const MOCK_QUICK_GUIDES: QuickGuide[] = [
       "Hoàn thành các nhiệm vụ",
     ],
   },
-  {
-    emoji: "👥",
 ];
 
 export const MOCK_REGISTER_HIGHLIGHTS: string[] = [
