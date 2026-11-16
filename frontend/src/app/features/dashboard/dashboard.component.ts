@@ -199,11 +199,11 @@ interface Shortcut {
                     <div class="flex items-center gap-2 mb-0.5">
                       <span
                         class="text-xs font-700 px-1.5 py-0.5 rounded"
-                        [style.background]="m.conditionType === 'COACH' ? '#E2F0F9' : m.conditionType === 'SCENARIO' ? '#FFF0F3' : m.conditionType === 'ROOM' ? '#F5F3FF' : '#FEF3C7'"
-                        [style.color]="m.conditionType === 'COACH' ? '#286FB4' : m.conditionType === 'SCENARIO' ? '#DF4C73' : m.conditionType === 'ROOM' ? '#7c3aed' : '#b45309'"
+                        [style.background]="m.conditionType === 'COACH' ? '#E2F0F9' : m.conditionType === 'SCENARIO' ? '#FFF0F3' : '#FEF3C7'"
+                        [style.color]="m.conditionType === 'COACH' ? '#286FB4' : m.conditionType === 'SCENARIO' ? '#DF4C73' : '#b45309'"
                         style="font-size: 10px"
                       >
-                        {{ m.conditionType === 'COACH' ? '🎙️ AI Coach' : m.conditionType === 'SCENARIO' ? '🎭 Tình huống' : m.conditionType === 'ROOM' ? '👥 Phòng thoại' : '🔥 Chuỗi ngày' }}
+                        {{ m.conditionType === 'COACH' ? '🎙️ AI Coach' : m.conditionType === 'SCENARIO' ? '🎭 Tình huống' : '🔥 Chuỗi ngày' }}
                       </span>
                       <span class="text-xs font-700 text-amber-600">⭐ +{{ m.xp }} XP</span>
                     </div>
@@ -317,7 +317,7 @@ export class DashboardComponent implements OnInit {
   readonly shortcuts: Shortcut[] = [
     { id: "ai-coach", label: "AI Coach", desc: "Nói chuyện với AI", emoji: "🎙️", color: "#286FB4", bg: "#E2F0F9" },
     { id: "scenarios", label: "Tình huống", desc: "Luyện kịch bản thực tế", emoji: "🎭", color: "#DF4C73", bg: "#FFF0F3" },
-    { id: "community", label: "Cộng đồng", desc: "Voice room 3–5 người", emoji: "👥", color: "#7c3aed", bg: "#F5F3FF" },
+    { id: "achievements", label: "Thành tích", desc: "Huy hiệu & nhiệm vụ", emoji: "🏆", color: "#d97706", bg: "#FEF3C7" },
     { id: "progress", label: "Tiến độ", desc: "Xem kỹ năng của bạn", emoji: "📊", color: "#059669", bg: "#ECFDF5" }
   ];
 
@@ -375,7 +375,6 @@ export class DashboardComponent implements OnInit {
     switch (type) {
       case 'AI_COACH': return '🎙️';
       case 'SCENARIO': return '🎭';
-      case 'ROOM': return '👥';
       case 'STREAK': return '🔥';
       default: return '🎯';
     }
@@ -385,7 +384,6 @@ export class DashboardComponent implements OnInit {
     switch (type) {
       case 'AI_COACH': this.appState.go('ai-coach'); break;
       case 'SCENARIO': this.appState.go('scenarios'); break;
-      case 'ROOM': this.appState.go('community'); break;
       case 'STREAK': this.appState.go('ai-coach'); break;
       default: this.appState.go('ai-coach'); break;
     }

@@ -286,7 +286,7 @@ import {
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-0.5">
                     <span class="text-[11px] font-600 text-slate-500">
-                      {{ m.conditionType === 'COACH' ? 'AI Coach' : m.conditionType === 'SCENARIO' ? 'Tình huống' : m.conditionType === 'ROOM' ? 'Phòng nhóm' : 'Streak' }}
+                      {{ m.conditionType === 'COACH' ? 'AI Coach' : m.conditionType === 'SCENARIO' ? 'Tình huống' : 'Streak' }}
                     </span>
                     <span class="text-xs font-700 text-amber-600">+{{ m.xp }} XP</span>
                   </div>
@@ -584,7 +584,6 @@ export class AchievementsComponent implements OnInit {
       case 'SCENARIO_LESSON': return '🎭';
       case 'STREAK_BONUS': return '🔥';
       case 'DAILY_MISSION': return '🎯';
-      case 'ROOM_SESSION': return '👥';
       default: return '⭐';
     }
   }
@@ -595,7 +594,6 @@ export class AchievementsComponent implements OnInit {
       case 'SCENARIO_LESSON': return 'Thực hành tình huống';
       case 'STREAK_BONUS': return 'Thưởng duy trì chuỗi Streak';
       case 'DAILY_MISSION': return 'Nhiệm vụ hàng ngày';
-      case 'ROOM_SESSION': return 'Phòng luyện nói cộng đồng';
       default: return 'Hoạt động học tập';
     }
   }
@@ -606,7 +604,6 @@ export class AchievementsComponent implements OnInit {
       case 'SCENARIO_LESSON': return 'Tình huống';
       case 'STREAK_BONUS': return 'Streak';
       case 'DAILY_MISSION': return 'Nhiệm vụ';
-      case 'ROOM_SESSION': return 'Cộng đồng';
       default: return 'Học tập';
     }
   }
@@ -617,7 +614,6 @@ export class AchievementsComponent implements OnInit {
       case 'SCENARIO_LESSON': return 'Đạt kết quả xuất sắc trong bài roleplay tình huống';
       case 'STREAK_BONUS': return 'Luyện tập mỗi ngày để giữ vững thói quen nói tiếng Anh';
       case 'DAILY_MISSION': return 'Hoàn thành và nhận thưởng nhiệm vụ trong ngày';
-      case 'ROOM_SESSION': return 'Tham gia phòng luyện nói nhóm cùng bạn học và AI';
       default: return 'Cộng điểm thưởng vào sổ cái XP';
     }
   }
@@ -631,7 +627,6 @@ export class AchievementsComponent implements OnInit {
     switch (type) {
       case 'AI_COACH': return '🎙️';
       case 'SCENARIO': return '🎭';
-      case 'ROOM': return '👥';
       case 'STREAK': return '🔥';
       default: return '🎯';
     }
@@ -641,7 +636,6 @@ export class AchievementsComponent implements OnInit {
     switch (type) {
       case 'AI_COACH': this.appState.go('ai-coach'); break;
       case 'SCENARIO': this.appState.go('scenarios'); break;
-      case 'ROOM': this.appState.go('community'); break;
       case 'STREAK': this.appState.go('ai-coach'); break;
       default: this.appState.go('ai-coach'); break;
     }
@@ -669,7 +663,6 @@ export class AchievementsComponent implements OnInit {
           rewardXp: 300,
         };
       case 'streak_7':
-      case 'community_star':
         return {
           tierName: 'Hiếm 🥈',
           badgeBg: '#E0E7FF',
@@ -698,8 +691,6 @@ export class AchievementsComponent implements OnInit {
         return 'Thực hiện một cuộc trò chuyện giọng nói tự do 1-1 với trợ lý AI Coach.';
       case 'SCENARIO':
         return 'Luyện tập tình huống thực tế để phản xạ và học từ vựng theo ngữ cảnh.';
-      case 'ROOM':
-        return 'Tham gia phòng luyện nói nhóm cùng bạn học với sự hỗ trợ của Invisible AI.';
       case 'STREAK':
         return 'Hoàn thành ít nhất một buổi học để tiếp tục chuỗi ngày học liên tục.';
       default:
@@ -712,9 +703,6 @@ export class AchievementsComponent implements OnInit {
     switch (badge.key) {
       case 'master_actor':
         this.appState.go('scenarios');
-        break;
-      case 'community_star':
-        this.appState.go('community');
         break;
       case 'first_speaker':
       case 'fluency_master':

@@ -22,7 +22,7 @@ export interface SkillSummaryItem {
 
 export interface RecentSessionItem {
   id: string;
-  type: 'COACH' | 'ROLEPLAY' | 'ROOM';
+  type: 'COACH' | 'ROLEPLAY';
   topic: string;
   date: string;
   durationSeconds: number;

@@ -15,7 +15,7 @@ export interface MilestoneItem {
   id: number;
   title: string;
   description: string;
-  type: 'COACH' | 'SCENARIO' | 'COMMUNITY' | 'CHALLENGE';
+  type: 'COACH' | 'SCENARIO' | 'CHALLENGE';
 }
 
 export interface StageItem {
@@ -405,7 +405,7 @@ export interface StageItem {
                         <div class="flex items-center gap-2">
                           <span class="text-sm font-600 text-slate-800">{{ m.title }}</span>
                           <span class="text-[10px] px-1.5 py-0.2 rounded font-500 bg-slate-100 text-slate-500">
-                            {{ m.type === 'COACH' ? '🎙️ AI Coach' : m.type === 'SCENARIO' ? '🎭 Tình huống' : m.type === 'COMMUNITY' ? '👥 Phòng nhóm' : '🎯 Thử thách' }}
+                            {{ m.type === 'COACH' ? '🎙️ AI Coach' : m.type === 'SCENARIO' ? '🎭 Tình huống' : '🎯 Thử thách' }}
                           </span>
                         </div>
                         <p class="text-xs text-slate-500 truncate mt-0.5">{{ m.description }}</p>
@@ -478,7 +478,7 @@ export class ProgressComponent implements OnInit {
       minScore: 55,
       milestones: [
         { id: 11, title: 'Họp nhóm & Báo cáo công việc', description: 'Cập nhật tiến độ dự án và trao đổi ý kiến với đồng nghiệp.', type: 'COACH' },
-        { id: 12, title: 'Diễn đạt ý kiến & Thuyết phục', description: 'Nêu quan điểm đồng tình hoặc phản bác một cách lịch thiệp.', type: 'COMMUNITY' },
+        { id: 12, title: 'Diễn đạt ý kiến & Thuyết phục', description: 'Nêu quan điểm đồng tình hoặc phản bác một cách lịch thiệp.', type: 'COACH' },
         { id: 13, title: 'Xử lý khiếu nại khách hàng', description: 'Lắng nghe, xoa dịu và đưa ra giải pháp thỏa đáng cho đối tác.', type: 'SCENARIO' },
         { id: 14, title: 'Thuyết trình ngắn 3 phút', description: 'Trình bày ý tưởng giải pháp mới một cách có cấu trúc rõ ràng.', type: 'COACH' },
         { id: 15, title: 'Thử thách: Chinh phục B1', description: 'Hội thoại độc lập 10 lượt nói với vốn từ vựng phong phú.', type: 'CHALLENGE' },
@@ -491,7 +491,7 @@ export class ProgressComponent implements OnInit {
       minScore: 70,
       milestones: [
         { id: 16, title: 'Đàm phán & Thương lượng hợp đồng', description: 'Thương lượng giá cả, điều khoản giao hàng và thời hạn thanh toán.', type: 'SCENARIO' },
-        { id: 17, title: 'Phân tích & Đề xuất giải pháp', description: 'Đào sâu nguyên nhân gốc rễ và bảo vệ giải pháp trước ban quản lý.', type: 'COMMUNITY' },
+        { id: 17, title: 'Phân tích & Đề xuất giải pháp', description: 'Đào sâu nguyên nhân gốc rễ và bảo vệ giải pháp trước ban quản lý.', type: 'SCENARIO' },
         { id: 18, title: 'Tranh luận chủ đề công nghệ & Xã hội', description: 'Tranh biện về tác động của công nghệ và xu hướng làm việc linh hoạt.', type: 'COACH' },
         { id: 19, title: 'Phỏng vấn tuyển dụng chuyên sâu', description: 'Trả lời các câu hỏi hành vi theo mô hình STAR chuyên nghiệp.', type: 'COACH' },
         { id: 20, title: 'Thử thách: Làm chủ B2', description: 'Nói lưu loát tự nhiên trên 120 từ/phút không dùng từ đệm.', type: 'CHALLENGE' },
@@ -505,8 +505,8 @@ export class ProgressComponent implements OnInit {
       milestones: [
         { id: 21, title: 'Sắc thái & Thành ngữ nâng cao', description: 'Áp dụng thành ngữ, lối nói ẩn dụ và sắc thái từ vựng tinh tế.', type: 'COACH' },
         { id: 22, title: 'Diễn thuyết truyền cảm hứng', description: 'Nghệ thuật sử dụng ngữ điệu và kết nối cảm xúc với người nghe.', type: 'COACH' },
-        { id: 23, title: 'Quản trị xung đột đa văn hóa', description: 'Hòa giải bất đồng và gắn kết các quan điểm đa quốc gia.', type: 'COMMUNITY' },
-        { id: 24, title: 'Tư duy phản biện sắc bén', description: 'Nhận diện ngụy biện và phản biện logic trong các vấn đề trừu tượng.', type: 'COMMUNITY' },
+        { id: 23, title: 'Quản trị xung đột đa văn hóa', description: 'Hòa giải bất đồng và gắn kết các quan điểm đa quốc gia.', type: 'COACH' },
+        { id: 24, title: 'Tư duy phản biện sắc bén', description: 'Nhận diện ngụy biện và phản biện logic trong các vấn đề trừu tượng.', type: 'COACH' },
         { id: 25, title: 'Đỉnh Vinh Quang C1', description: 'Chạm mốc hoàn thiện mọi tiêu chuẩn CEFR Bậc thầy giao tiếp.', type: 'CHALLENGE' },
       ],
     },
@@ -696,8 +696,6 @@ export class ProgressComponent implements OnInit {
   practiceMilestone(m: MilestoneItem): void {
     if (m.type === 'SCENARIO') {
       this.appState.go('scenarios');
-    } else if (m.type === 'COMMUNITY') {
-      this.appState.go('community');
     } else {
       this.appState.go('ai-coach');
     }
@@ -706,8 +704,6 @@ export class ProgressComponent implements OnInit {
   practiceSkill(key: string): void {
     if (key === 'vocabulary') {
       this.appState.go('scenarios');
-    } else if (key === 'interaction') {
-      this.appState.go('community');
     } else {
       this.appState.go('ai-coach');
     }

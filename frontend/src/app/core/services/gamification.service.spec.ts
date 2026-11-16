@@ -33,7 +33,7 @@ describe('GamificationService', () => {
     service.getDashboard().subscribe((res) => {
       expect(res.level).toBe('A1');
       expect(res.totalXp).toBe(500);
-      expect(res.todayMissions.length).toBe(4);
+      expect(res.todayMissions.length).toBe(3);
     });
 
     const req = httpMock.expectOne(`${environment.apiUrl}/dashboard`);
@@ -47,12 +47,11 @@ describe('GamificationService', () => {
       todayMissions: [
         { id: 'm-1', missionKey: 'coach_session', title: 'Hoàn thành 1 buổi AI Coach', xp: 50, conditionType: 'AI_COACH', status: 'PENDING', progress: 0, target: 1, isClaimed: false },
         { id: 'm-2', missionKey: 'scenario_lesson', title: 'Luyện 1 tình huống mới', xp: 50, conditionType: 'SCENARIO', status: 'PENDING', progress: 0, target: 1, isClaimed: false },
-        { id: 'm-3', missionKey: 'room_session', title: 'Tham gia phòng cộng đồng', xp: 50, conditionType: 'ROOM', status: 'PENDING', progress: 0, target: 1, isClaimed: false },
         { id: 'm-4', missionKey: 'streak_maintain', title: 'Duy trì streak', xp: 20, conditionType: 'STREAK', status: 'COMPLETED', progress: 1, target: 1, isClaimed: false },
       ],
       missionsCompletedCount: 1,
-      missionsTotalCount: 4,
-      missionsProgressPct: 25,
+      missionsTotalCount: 3,
+      missionsProgressPct: 33,
       skills: [],
       recentSessions: [],
       motivationalCard: { title: 'Cố lên!', message: 'Luyện tập thêm', targetLevel: 'A2', actionText: 'Bắt đầu', actionTarget: '/ai-coach' }

@@ -5,8 +5,6 @@ import {
   AppPage,
   User,
   Scenario,
-  CommunityRoom,
-  RoomListing,
   Settings,
   AiCoachCompletedSession,
   LearningActivity,
@@ -19,8 +17,6 @@ import {
   MOCK_USER,
   MOCK_SETTINGS,
   MOCK_AI_COACH_TOPIC_GROUPS,
-  ROOMS,
-  MOCK_ROOM_HOST_AVATAR,
   MOCK_SKILL_PROGRESS,
   MOCK_PROGRESS_SESSION_HISTORY,
   MOCK_ACHIEVEMENTS,
@@ -41,8 +37,6 @@ const VALID_PAGES: AppPage[] = [
   "scenario-detail",
   "scenario-roleplay",
   "scenario-result",
-  "community",
-  "community-room",
   "progress",
   "achievements",
   "profile",
@@ -64,10 +58,6 @@ const XP_HISTORY_STORAGE_KEY = "talk-with-me.xp-history";
 const STREAK_DATE_STORAGE_KEY = "talk-with-me.last-learning-date";
 const SCENARIO_STORAGE_KEY = "talk-with-me.selected-scenario";
 const SCENARIO_COMPLETIONS_KEY = "talk-with-me.completed-scenario-ids";
-const ROOM_STORAGE_KEY = "talk-with-me.selected-room";
-const ROOM_ACTIVITY_KEY = "talk-with-me.community-activity";
-const ROOMS_STORAGE_KEY = "talk-with-me.community-rooms";
-const JOINED_ROOM_STORAGE_KEY = "talk-with-me.joined-room-id";
 
 export interface AiCoachSessionDraft {
   topic: string;
@@ -151,7 +141,6 @@ function getInitialPage(): AppPage {
 })
 export class AppStateService {
   private readonly router = inject(Router);
-  private joinedRoomId: number | null = readStored(JOINED_ROOM_STORAGE_KEY, null);
 
   readonly currentPage = signal<AppPage>(getInitialPage());
   readonly user = signal<User | null>(getStoredUser());
@@ -160,7 +149,7 @@ export class AppStateService {
   readonly lastLearningDate = signal(readStored(STREAK_DATE_STORAGE_KEY, localDateKey()));
   readonly learningActivities = signal<LearningActivity[]>(readStored(ACTIVITIES_STORAGE_KEY, MOCK_PROGRESS_SESSION_HISTORY.map((session, index) => ({
     id: `seed-${index}`,
-    type: session.type === "AI Coach" ? "AI_COACH" : session.type === "Tình huống" ? "SCENARIO" : "COMMUNITY",
+    type: session.type === "AI Coach" ? "AI_COACH" : "SCENARIO",
     title: session.topic,
     topic: session.topic,
     completedAt: "",
@@ -194,9 +183,6 @@ export class AppStateService {
   readonly selectedScenario = signal<Scenario | null>(readStored(SCENARIO_STORAGE_KEY, null));
   readonly roleplayResult = signal<RoleplayResult | null>(null);
   readonly completedScenarioIds = signal<string[]>(readStored(SCENARIO_COMPLETIONS_KEY, []));
-  readonly selectedRoom = signal<CommunityRoom | null>(readStored(ROOM_STORAGE_KEY, null));
-  readonly communityActivity = signal<string[]>(readStored(ROOM_ACTIVITY_KEY, []));
-  readonly communityRooms = signal<RoomListing[]>(readStored(ROOMS_STORAGE_KEY, ROOMS.map((room) => ({ ...room }))));
 
   readonly appUser = computed(() => this.user() || MOCK_USER);
   readonly isLoggedIn = computed(() => this.user() !== null);
@@ -426,7 +412,6 @@ export class AppStateService {
       const matchesActivity =
         (activity.type === "AI_COACH" && mission.id === 1) ||
         (activity.type === "SCENARIO" && mission.id === 2) ||
-        (activity.type === "COMMUNITY" && mission.id === 3) ||
         mission.id === 4;
       return matchesActivity ? { ...mission, done: true } : mission;
     }));
@@ -449,74 +434,6 @@ export class AppStateService {
     this.persistStorage(ACHIEVEMENTS_STORAGE_KEY, this.achievements());
     this.persistStorage(MISSIONS_STORAGE_KEY, this.dailyMissions());
     if (this.user()) this.persistUser(this.user()!);
-  }
-
-  joinRoom(roomId: number): boolean {
-    const room = this.communityRooms().find((item) => item.id === roomId);
-    if (!room || !room.active || room.members >= room.max) return false;
-    const updatedRoom = { ...room, members: Math.min(room.members + 1, room.max) };
-    this.communityRooms.update((rooms) =>
-      rooms.map((item) => item.id === roomId ? updatedRoom : item),
-    );
-    this.persistStorage(ROOMS_STORAGE_KEY, this.communityRooms());
-    this.selectedRoom.set({
-      id: String(updatedRoom.id),
-      name: updatedRoom.title,
-      topic: updatedRoom.topic,
-      level: updatedRoom.level,
-      members: updatedRoom.members,
-      maxMembers: updatedRoom.max,
-      active: updatedRoom.active,
-      host: updatedRoom.host,
-      hostAvatar: MOCK_ROOM_HOST_AVATAR,
-      tags: [updatedRoom.topic, updatedRoom.level],
-    });
-    this.persistStorage(ROOM_STORAGE_KEY, this.selectedRoom());
-    const joinedAt = new Date().toISOString();
-    this.communityActivity.update((items) => [...items, joinedAt]);
-    this.persistStorage(ROOM_ACTIVITY_KEY, this.communityActivity());
-    this.recordActivity({
-      id: `community-${updatedRoom.id}-${joinedAt}`,
-      type: "COMMUNITY",
-      title: updatedRoom.title,
-      topic: updatedRoom.topic,
-      completedAt: joinedAt,
-      date: "Hôm nay",
-      duration: "",
-      score: 0,
-      emoji: updatedRoom.emoji,
-      xp: 0,
-      status: "completed",
-    });
-    this.joinedRoomId = updatedRoom.id;
-    this.persistStorage(JOINED_ROOM_STORAGE_KEY, this.joinedRoomId);
-    void this.go("community-room");
-    return true;
-  }
-
-  leaveRoom(): void {
-    const roomId = this.joinedRoomId;
-    if (roomId !== null) {
-      const room = this.communityRooms().find((item) => item.id === roomId);
-      if (room) {
-        const updatedRoom = { ...room, members: Math.max(0, room.members - 1) };
-        this.communityRooms.update((rooms) =>
-          rooms.map((item) => item.id === roomId ? updatedRoom : item),
-        );
-        this.persistStorage(ROOMS_STORAGE_KEY, this.communityRooms());
-      }
-    }
-    this.joinedRoomId = null;
-    if (typeof window !== "undefined") window.localStorage.removeItem(JOINED_ROOM_STORAGE_KEY);
-    this.selectedRoom.set(null);
-    if (typeof window !== "undefined") window.localStorage.removeItem(ROOM_STORAGE_KEY);
-    void this.go("community");
-  }
-
-  createCommunityRoom(room: Omit<RoomListing, "id">): void {
-    const id = Math.max(0, ...this.communityRooms().map((item) => item.id)) + 1;
-    this.communityRooms.update((rooms) => [{ ...room, id }, ...rooms]);
-    this.persistStorage(ROOMS_STORAGE_KEY, this.communityRooms());
   }
 
   private persistStorage(key: string, value: unknown): void {
