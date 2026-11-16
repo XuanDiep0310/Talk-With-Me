@@ -85,7 +85,7 @@ import {
           [style.color]="tab() === 'xp' ? '#286FB4' : '#64748b'"
           (click)="tab.set('xp')"
         >
-          ⭐ Sổ Cái XP
+          ⭐ XP
         </button>
       </div>
 
