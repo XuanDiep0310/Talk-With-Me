@@ -18,10 +18,6 @@ Triết lý test:
 
 from __future__ import annotations
 
-import asyncio
-import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 
 from app.services.session_state_machine import (
@@ -29,7 +25,6 @@ from app.services.session_state_machine import (
     SessionState,
     SessionStateMachine,
 )
-
 
 # ===========================================================================
 # SC-01: Happy Path — CREATED → ACTIVE → ENDING → ENDED → FEEDBACK_READY
@@ -81,7 +76,9 @@ class TestHappyPath:
     def test_insufficient_data_is_terminal_state(self) -> None:
         """INSUFFICIENT_DATA là terminal: can_transition luôn trả False."""
         for target in SessionState:
-            assert SessionStateMachine.can_transition(SessionState.INSUFFICIENT_DATA, target) is False
+            assert (
+                SessionStateMachine.can_transition(SessionState.INSUFFICIENT_DATA, target) is False
+            )
 
 
 # ===========================================================================
@@ -198,7 +195,9 @@ class TestReconnectTimeout:
         Nếu sess là None → không thực hiện bất kỳ transition nào.
         """
         sess = None  # Giả lập session không tìm thấy
-        should_process = sess is not None and getattr(sess, "status", None) == SessionState.RECONNECTING.value
+        should_process = (
+            sess is not None and getattr(sess, "status", None) == SessionState.RECONNECTING.value
+        )
         assert should_process is False, "Handler phải bỏ qua nếu session là None"
 
 
@@ -274,13 +273,25 @@ class TestIllegalTransitions:
             # Nhảy quá sớm từ CREATED
             (SessionState.CREATED, SessionState.ENDED, "CREATED không thể nhảy sang ENDED"),
             (SessionState.CREATED, SessionState.RECONNECTING, "CREATED không có network state"),
-            (SessionState.CREATED, SessionState.FEEDBACK_READY, "CREATED không thể nhảy sang FEEDBACK_READY"),
+            (
+                SessionState.CREATED,
+                SessionState.FEEDBACK_READY,
+                "CREATED không thể nhảy sang FEEDBACK_READY",
+            ),
             (SessionState.CREATED, SessionState.FAILED, "CREATED không thể nhảy sang FAILED"),
             # Từ ACTIVE không thể quay lui hoặc nhảy cóc
             (SessionState.ACTIVE, SessionState.CREATED, "ACTIVE không thể quay lại CREATED"),
             (SessionState.ACTIVE, SessionState.ENDED, "ACTIVE phải qua ENDING trước"),
-            (SessionState.ACTIVE, SessionState.FEEDBACK_READY, "ACTIVE không thể nhảy sang FEEDBACK_READY"),
-            (SessionState.ACTIVE, SessionState.INSUFFICIENT_DATA, "ACTIVE không thể sang INSUFFICIENT_DATA"),
+            (
+                SessionState.ACTIVE,
+                SessionState.FEEDBACK_READY,
+                "ACTIVE không thể nhảy sang FEEDBACK_READY",
+            ),
+            (
+                SessionState.ACTIVE,
+                SessionState.INSUFFICIENT_DATA,
+                "ACTIVE không thể sang INSUFFICIENT_DATA",
+            ),
             (SessionState.ACTIVE, SessionState.FAILED, "ACTIVE không thể nhảy sang FAILED"),
             # Từ ENDING chỉ được đến ENDED
             (SessionState.ENDING, SessionState.ACTIVE, "Không thể hoàn tác ENDING"),
@@ -323,9 +334,7 @@ class TestIllegalTransitions:
         assert from_state.value in str(error), (
             f"Lỗi phải nhắc tới trạng thái gốc '{from_state.value}'"
         )
-        assert to_state.value in str(error), (
-            f"Lỗi phải nhắc tới trạng thái đích '{to_state.value}'"
-        )
+        assert to_state.value in str(error), f"Lỗi phải nhắc tới trạng thái đích '{to_state.value}'"
 
     def test_error_attributes_are_populated(self) -> None:
         """InvalidSessionStateTransitionError phải có from_state và to_state attributes."""
