@@ -70,8 +70,10 @@ class Settings(BaseSettings):
             or self.DB_URL
         )
         if not raw_db_url:
+            from urllib.parse import quote_plus
+            enc_pass = quote_plus(self.POSTGRES_PASSWORD) if self.POSTGRES_PASSWORD else ""
             self.DATABASE_URL = (
-                f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+                f"postgresql+asyncpg://{self.POSTGRES_USER}:{enc_pass}"
                 f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
             )
         else:
@@ -80,6 +82,22 @@ class Settings(BaseSettings):
                 url = url.replace("postgres://", "postgresql+asyncpg://", 1)
             elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
                 url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+            # Safely handle unencoded special characters in password (especially @, #, $, etc.)
+            try:
+                if "://" in url and "@" in url:
+                    scheme, rest = url.split("://", 1)
+                    # The host is always after the LAST '@'
+                    auth_part, host_part = rest.rsplit("@", 1)
+                    if ":" in auth_part:
+                        user_part, pass_part = auth_part.split(":", 1)
+                        from urllib.parse import quote_plus, unquote_plus
+                        raw_pass = unquote_plus(pass_part)
+                        encoded_pass = quote_plus(raw_pass)
+                        url = f"{scheme}://{user_part}:{encoded_pass}@{host_part}"
+            except Exception:
+                pass
+
             self.DATABASE_URL = url
 
         raw_redis_url = self.REDIS_URL or self.REDIS_URI or self.UPSTASH_REDIS_URL

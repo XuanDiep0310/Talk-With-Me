@@ -69,8 +69,13 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
-    target_info = settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else settings.DATABASE_URL
-    print(f"[ALEMBIC] Connecting to DB target: {target_info}", flush=True)
+    from sqlalchemy.engine import make_url
+
+    parsed_url = make_url(settings.DATABASE_URL)
+    print(
+        f"[ALEMBIC] Resolved DB Host: '{parsed_url.host}', Port: {parsed_url.port}, User: '{parsed_url.username}'",
+        flush=True,
+    )
 
     connectable = create_async_engine(
         settings.DATABASE_URL,
