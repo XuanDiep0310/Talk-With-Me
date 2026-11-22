@@ -63,14 +63,10 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _assemble_database_and_redis_urls(self) -> "Settings":
-        raw_db_url = (
-            self.DATABASE_URL
-            or self.POSTGRES_URL
-            or self.DATABASE_URI
-            or self.DB_URL
-        )
+        raw_db_url = self.DATABASE_URL or self.POSTGRES_URL or self.DATABASE_URI or self.DB_URL
         if not raw_db_url:
             from urllib.parse import quote_plus
+
             enc_pass = quote_plus(self.POSTGRES_PASSWORD) if self.POSTGRES_PASSWORD else ""
             self.DATABASE_URL = (
                 f"postgresql+asyncpg://{self.POSTGRES_USER}:{enc_pass}"
@@ -92,6 +88,7 @@ class Settings(BaseSettings):
                     if ":" in auth_part:
                         user_part, pass_part = auth_part.split(":", 1)
                         from urllib.parse import quote_plus, unquote_plus
+
                         raw_pass = unquote_plus(pass_part)
                         encoded_pass = quote_plus(raw_pass)
                         url = f"{scheme}://{user_part}:{encoded_pass}@{host_part}"
