@@ -3,12 +3,14 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import Response
 
-from app.api.deps import get_tts_service
+from app.api.deps import get_current_user, get_tts_service
+from app.core.redis import get_redis_client
 from app.models.voice import TTSRequest, TTSResponse
 from app.services.tts import TTSService
+from app.services.ws_ticket import WsTicketService
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +25,7 @@ async def list_available_voices(
     return tts_service.AVAILABLE_VOICES
 
 
-@router.post("/tts", response_model=TTSResponse)
+@router.post("/tts", response_model=TTSResponse, dependencies=[Depends(get_current_user)])
 async def generate_tts(
     request: TTSRequest,
     tts_service: TTSService = Depends(get_tts_service),
@@ -39,7 +41,7 @@ async def generate_tts(
     )
 
 
-@router.post("/tts/stream")
+@router.post("/tts/stream", dependencies=[Depends(get_current_user)])
 async def generate_tts_stream(
     request: TTSRequest,
     tts_service: TTSService = Depends(get_tts_service),
@@ -52,6 +54,7 @@ async def generate_tts_stream(
 @router.websocket("/ws")
 async def voice_websocket_endpoint(
     websocket: WebSocket,
+    ticket: str | None = Query(None),
     tts_service: TTSService = Depends(get_tts_service),
 ) -> None:
     """WebSocket endpoint for real-time text-to-speech audio streaming.
@@ -61,6 +64,16 @@ async def voice_websocket_endpoint(
     Sends JSON output:
       {"type": "audio_response", "audio_b64": "...", "text": "...", "voice": "..."}
     """
+    if not ticket:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    async with get_redis_client() as redis:
+        user_id = await WsTicketService(redis).consume_ticket(ticket)
+    if user_id is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     await websocket.accept()
     logger.info("Voice WebSocket connected")
     try:

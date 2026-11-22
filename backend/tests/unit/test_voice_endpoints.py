@@ -1,14 +1,16 @@
 import base64
 import json
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
 from fastapi import WebSocket, WebSocketDisconnect
 from httpx import ASGITransport, AsyncClient
 
-from app.api.deps import get_tts_service
+from app.api.deps import get_current_user, get_tts_service
 from app.api.v1.endpoints.voice import voice_websocket_endpoint
 from app.main import app
+from app.models.auth import User
 from app.services.tts import TTSService
 
 
@@ -24,6 +26,11 @@ def mock_tts_service():
     return service
 
 
+@pytest.fixture
+def authenticated_user(monkeypatch):
+    monkeypatch.setitem(app.dependency_overrides, get_current_user, lambda: User(id=uuid4()))
+
+
 @pytest.mark.asyncio
 async def test_list_voices_endpoint(mock_tts_service):
     app.dependency_overrides[get_tts_service] = lambda: mock_tts_service
@@ -36,6 +43,7 @@ async def test_list_voices_endpoint(mock_tts_service):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("authenticated_user")
 async def test_tts_json_endpoint(mock_tts_service):
     app.dependency_overrides[get_tts_service] = lambda: mock_tts_service
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -51,6 +59,7 @@ async def test_tts_json_endpoint(mock_tts_service):
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("authenticated_user")
 async def test_tts_stream_endpoint(mock_tts_service):
     app.dependency_overrides[get_tts_service] = lambda: mock_tts_service
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -96,7 +105,13 @@ async def test_voice_websocket_endpoint(mock_tts_service):
 
     mock_tts_service.generate_audio_bytes.side_effect = mock_gen_audio
 
-    await voice_websocket_endpoint(websocket=mock_ws, tts_service=mock_tts_service)
+    with (
+        patch("app.api.v1.endpoints.voice.get_redis_client", return_value=AsyncMock()),
+        patch("app.api.v1.endpoints.voice.WsTicketService.consume_ticket", return_value=uuid4()),
+    ):
+        await voice_websocket_endpoint(
+            websocket=mock_ws, ticket="test", tts_service=mock_tts_service
+        )
 
     mock_ws.accept.assert_awaited_once()
     assert sent_messages[0] == {"type": "pong"}
@@ -107,3 +122,26 @@ async def test_voice_websocket_endpoint(mock_tts_service):
     assert sent_messages[5]["type"] == "audio_response"
     assert sent_messages[5]["text"] == "Hello WS"
     assert base64.b64decode(sent_messages[5]["audio_b64"]) == b"fake_mp3_binary_data"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("ticket", [None, "invalid-or-used"])
+async def test_voice_websocket_rejects_unauthenticated_connection(ticket, mock_tts_service):
+    websocket = AsyncMock(spec=WebSocket)
+    with (
+        patch("app.api.v1.endpoints.voice.get_redis_client", return_value=AsyncMock()),
+        patch("app.api.v1.endpoints.voice.WsTicketService.consume_ticket", return_value=None),
+    ):
+        await voice_websocket_endpoint(websocket, ticket=ticket, tts_service=mock_tts_service)
+
+    websocket.accept.assert_not_awaited()
+    websocket.close.assert_awaited_once_with(code=1008)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["/tts", "/tts/stream"])
+async def test_tts_http_rejects_unauthenticated_request(path):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(f"/api/v1/voice{path}", json={"text": "Hello"})
+
+    assert response.status_code == 401
