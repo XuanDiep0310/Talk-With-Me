@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     DB_MAX_OVERFLOW: int = 20
     DB_ECHO: bool = False
     DATABASE_URL: str = ""
+    POSTGRES_URL: str = ""
+    DATABASE_URI: str = ""
+    DB_URL: str = ""
 
     # Cache (Redis)
     REDIS_HOST: str = "localhost"
@@ -55,27 +58,38 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str = ""
     REDIS_DB: int = 0
     REDIS_URL: str = ""
+    REDIS_URI: str = ""
+    UPSTASH_REDIS_URL: str = ""
 
     @model_validator(mode="after")
     def _assemble_database_and_redis_urls(self) -> "Settings":
-        if not self.DATABASE_URL:
+        raw_db_url = (
+            self.DATABASE_URL
+            or self.POSTGRES_URL
+            or self.DATABASE_URI
+            or self.DB_URL
+        )
+        if not raw_db_url:
             self.DATABASE_URL = (
                 f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
                 f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
             )
         else:
-            url = self.DATABASE_URL
+            url = raw_db_url.strip().strip("'").strip('"')
             if url.startswith("postgres://"):
                 url = url.replace("postgres://", "postgresql+asyncpg://", 1)
             elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
                 url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
             self.DATABASE_URL = url
 
-        if not self.REDIS_URL:
+        raw_redis_url = self.REDIS_URL or self.REDIS_URI or self.UPSTASH_REDIS_URL
+        if not raw_redis_url:
             if self.REDIS_PASSWORD:
                 self.REDIS_URL = f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
             else:
                 self.REDIS_URL = f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+        else:
+            self.REDIS_URL = raw_redis_url.strip().strip("'").strip('"')
         return self
 
     # JWT

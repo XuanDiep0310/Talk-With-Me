@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import context
 from app.core.config import get_settings
@@ -69,9 +69,11 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    target_info = settings.DATABASE_URL.split("@")[-1] if "@" in settings.DATABASE_URL else settings.DATABASE_URL
+    print(f"[ALEMBIC] Connecting to DB target: {target_info}", flush=True)
+
+    connectable = create_async_engine(
+        settings.DATABASE_URL,
         poolclass=pool.NullPool,
     )
 
