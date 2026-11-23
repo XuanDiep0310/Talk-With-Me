@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import computed_field
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _CORE_DIR = Path(__file__).resolve().parent
@@ -47,27 +47,65 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
     DB_ECHO: bool = False
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def DATABASE_URL(self) -> str:
-        return (
-            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
-        )
+    DATABASE_URL: str = ""
+    POSTGRES_URL: str = ""
+    DATABASE_URI: str = ""
+    DB_URL: str = ""
 
     # Cache (Redis)
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str = ""
     REDIS_DB: int = 0
+    REDIS_URL: str = ""
+    REDIS_URI: str = ""
+    UPSTASH_REDIS_URL: str = ""
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def REDIS_URL(self) -> str:
-        if self.REDIS_PASSWORD:
-            return f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
-        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+    @model_validator(mode="after")
+    def _assemble_database_and_redis_urls(self) -> "Settings":
+        raw_db_url = self.DATABASE_URL or self.POSTGRES_URL or self.DATABASE_URI or self.DB_URL
+        if not raw_db_url:
+            from urllib.parse import quote_plus
+
+            enc_pass = quote_plus(self.POSTGRES_PASSWORD) if self.POSTGRES_PASSWORD else ""
+            self.DATABASE_URL = (
+                f"postgresql+asyncpg://{self.POSTGRES_USER}:{enc_pass}"
+                f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+            )
+        else:
+            url = raw_db_url.strip().strip("'").strip('"')
+            if url.startswith("postgres://"):
+                url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+                url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+            # Safely handle unencoded special characters in password (especially @, #, $, etc.)
+            try:
+                if "://" in url and "@" in url:
+                    scheme, rest = url.split("://", 1)
+                    # The host is always after the LAST '@'
+                    auth_part, host_part = rest.rsplit("@", 1)
+                    if ":" in auth_part:
+                        user_part, pass_part = auth_part.split(":", 1)
+                        from urllib.parse import quote_plus, unquote_plus
+
+                        raw_pass = unquote_plus(pass_part)
+                        encoded_pass = quote_plus(raw_pass)
+                        url = f"{scheme}://{user_part}:{encoded_pass}@{host_part}"
+            except Exception:
+                pass
+
+            self.DATABASE_URL = url
+
+        raw_redis_url = self.REDIS_URL or self.REDIS_URI or self.UPSTASH_REDIS_URL
+        if not raw_redis_url:
+            if self.REDIS_PASSWORD:
+                self.REDIS_URL = f"redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+            else:
+                self.REDIS_URL = f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
+        else:
+            self.REDIS_URL = raw_redis_url.strip().strip("'").strip('"')
+        return self
 
     # JWT
     JWT_SECRET_KEY: str = "change-me-in-production-use-long-random-string"

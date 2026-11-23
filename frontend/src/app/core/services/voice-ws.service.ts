@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, Subject, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, Subscription, firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface TTSResponseData {
@@ -15,6 +15,7 @@ export interface TTSResponseData {
 })
 export class VoiceWsService {
   private socket: WebSocket | null = null;
+  private ticketRequest: Subscription | null = null;
   private isConnectedSubject = new BehaviorSubject<boolean>(false);
   public isConnected$: Observable<boolean> = this.isConnectedSubject.asObservable();
 
@@ -27,22 +28,22 @@ export class VoiceWsService {
   constructor(private http: HttpClient) {}
 
   public connectWebSocket(): void {
-    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+    if ((this.ticketRequest && !this.ticketRequest.closed) ||
+        (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING))) {
       return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    let wsUrl: string;
+    this.ticketRequest = this.http.post<{ ticket: string }>(`${environment.apiUrl}/ws-tickets`, {}).subscribe({
+      next: ({ ticket }) => this.openSocket(ticket),
+      error: () => this.errorSubject.next('Không thể xác thực kết nối WebSocket')
+    });
+  }
 
-    if (environment.apiUrl.startsWith('http')) {
-      const urlObj = new URL(environment.apiUrl);
-      const wsProtocol = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
-      wsUrl = `${wsProtocol}//${urlObj.host}${urlObj.pathname}/voice/ws`;
-    } else {
-      wsUrl = `${protocol}//${window.location.host}${environment.apiUrl}/voice/ws`;
-    }
-
+  private openSocket(ticket: string): void {
     try {
+      const wsUrl = new URL(`${environment.apiUrl}/voice/ws`, window.location.origin);
+      wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl.searchParams.set('ticket', ticket);
       this.socket = new WebSocket(wsUrl);
 
       this.socket.onopen = () => {
@@ -123,9 +124,11 @@ export class VoiceWsService {
   }
 
   public disconnect(): void {
+    this.ticketRequest?.unsubscribe();
     if (this.socket) {
       this.socket.close();
       this.socket = null;
     }
+    this.isConnectedSubject.next(false);
   }
 }

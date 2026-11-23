@@ -188,7 +188,7 @@ jobs:
         run: |
           cd frontend
           npm ci
-          npm run build -- --configuration=production
+          npm run build -- --configuration=production,vercel
 
       - name: Validate Docker Compose Configuration
         run: |

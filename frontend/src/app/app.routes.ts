@@ -43,6 +43,7 @@ export const routes: Routes = [
   },
   {
     path: 'voice',
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/voice-demo/voice-demo.component').then(
         (m) => m.VoiceDemoComponent
