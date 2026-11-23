@@ -1,53 +1,48 @@
 <div class="page-heading">
   <h1>Quản lý bài học tình huống</h1>
-  <a class="action primary" routerLink="new">Tạo bài học</a>
+  <div class="actions">
+    <a class="action" routerLink="/admin/categories">Nhóm chủ đề</a>
+    <a class="action primary" routerLink="new">Tạo bài học</a>
+  </div>
 </div>
 
-<form class="panel filter-form" (ngSubmit)="search()">
-  <label>
-    Tìm bài học
-    <input name="q" type="search" maxlength="255" placeholder="Tên bài hoặc mã đường dẫn" [(ngModel)]="filters.q" />
-  </label>
-  <label>
-    Nhóm
-    <select name="category" [(ngModel)]="filters.category">
-      <option [ngValue]="undefined">Tất cả</option>
-      @for (item of categories | keyvalue; track item.key) {
-        <option [value]="item.key">{{ item.value }}</option>
-      }
-    </select>
-  </label>
-  <label>
-    CEFR
-    <select name="level" [(ngModel)]="filters.level">
-      <option [ngValue]="undefined">Tất cả</option>
-      @for (level of levels; track level) {
-        <option [value]="level">{{ level }}</option>
-      }
-    </select>
-  </label>
-  <label>
-    Trạng thái
-    <select name="status" [(ngModel)]="filters.status">
-      <option [ngValue]="undefined">Tất cả</option>
-      @for (item of statuses | keyvalue; track item.key) {
-        <option [value]="item.key">{{ item.value }}</option>
-      }
-    </select>
-  </label>
-  <button class="action" type="submit" [disabled]="loading()">Áp dụng</button>
-</form>
+<div class="actions mb-4" role="group" aria-label="Trạng thái bài học">
+  <button class="action pill" type="button" [attr.aria-pressed]="!filters.status" (click)="selectStatus()">Tất cả ({{ total() }})</button>
+  @for (tab of tabs; track tab) {
+    <button class="action pill" type="button" [attr.aria-pressed]="filters.status === tab" (click)="selectStatus(tab)">
+      {{ statuses[tab] }} ({{ counts()[tab] ?? 0 }})
+    </button>
+  }
+</div>
 
-@if (error()) {
-  <p class="feedback error" role="alert">{{ error() }}</p>
-}
+<div class="panel filter-form">
+  <label>Tìm bài học
+    <input name="q" type="search" maxlength="255" placeholder="Tên bài hoặc mã đường dẫn" [(ngModel)]="filters.q" (ngModelChange)="search(300)" />
+  </label>
+  <label>Nhóm
+    <select name="category" [(ngModel)]="filters.category" (ngModelChange)="search()">
+      <option [ngValue]="undefined">Tất cả</option>
+      @for (item of categoryNames() | keyvalue; track item.key) { <option [value]="item.key">{{ item.value }}</option> }
+    </select>
+  </label>
+  <label>CEFR
+    <select name="level" [(ngModel)]="filters.level" (ngModelChange)="search()">
+      <option [ngValue]="undefined">Tất cả</option>
+      @for (level of levels; track level) { <option [value]="level">{{ level }}</option> }
+    </select>
+  </label>
+</div>
+
+@if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+@if (notice()) { <p class="feedback" role="status">{{ notice() }}</p> }
 <section class="panel results" aria-label="Danh sách bài học" [attr.aria-busy]="loading()">
   @if (rows().length) {
     <div class="table-wrap" tabindex="0" role="region" aria-label="Bảng bài học">
       <table>
-        <thead>
-          <tr><th scope="col">Bài học</th><th scope="col">Nhóm</th><th scope="col">CEFR</th><th scope="col">Trạng thái</th><th scope="col">Cập nhật</th></tr>
-        </thead>
+        <thead><tr>
+          <th scope="col">Bài học</th><th scope="col">Nhóm</th><th scope="col">CEFR</th>
+          <th scope="col">Trạng thái</th><th scope="col">Cập nhật</th><th scope="col">Thao tác</th>
+        </tr></thead>
         <tbody>
           @for (row of rows(); track row.id) {
             <tr>
@@ -55,24 +50,45 @@
                 <a class="text-link" [routerLink]="[row.id]">{{ row.titleVi || row.titleEn || row.slug }}</a>
                 <span class="secondary">{{ row.slug }}</span>
               </th>
-              <td>{{ categories[row.category] }}</td>
-              <td>{{ row.level }}</td>
+              <td>{{ categoryNames()[row.category] || row.category }}</td><td>{{ row.level }}</td>
               <td><span class="status" [attr.data-status]="row.status">{{ statuses[row.status] }}</span></td>
               <td class="whitespace-nowrap">{{ formatDate(row.updatedAt) }}</td>
+              <td>
+                <div class="actions whitespace-nowrap">
+                  <button class="action" type="button" [disabled]="!!actionId()" (click)="openSummary(quickView, row)">Xem nhanh</button>
+                  <button class="action" type="button" [disabled]="!!actionId()" (click)="duplicate(row)">Nhân bản</button>
+                  @if (row.status === 'DRAFT') {
+                    <button class="action" type="button" [disabled]="!!actionId()" (click)="changeStatus(row)">Xuất bản</button>
+                  } @else {
+                    <button class="action" type="button" role="switch" [attr.aria-checked]="row.status === 'PUBLISHED'"
+                      [attr.aria-label]="'Hiển thị ' + (row.titleVi || row.slug) + ' trong thư viện'"
+                      [disabled]="!!actionId()" (click)="changeStatus(row)">{{ row.status === 'PUBLISHED' ? 'Đang hiển thị' : 'Đang ẩn' }}</button>
+                  }
+                </div>
+              </td>
             </tr>
           }
         </tbody>
       </table>
     </div>
-  } @else if (!loading() && !error()) {
-    <p class="p-5 text-slate-600">Không có bài học phù hợp.</p>
-  }
-  @if (loading()) {
-    <p class="px-5 py-4 text-slate-600" role="status">Đang tải bài học…</p>
-  }
+  } @else if (!loading() && !error()) { <p class="p-5 text-slate-600">Không có bài học phù hợp.</p> }
+  @if (loading()) { <p class="px-5 py-4 text-slate-600" role="status">Đang tải bài học…</p> }
   @if (cursor(); as next) {
-    <div class="p-4">
-      <button class="action" type="button" (click)="load(next)" [disabled]="loading()">Tải thêm</button>
-    </div>
+    <div class="p-4"><button class="action" type="button" (click)="loadMore(next)" [disabled]="loading()">Tải thêm</button></div>
   }
 </section>
+
+<dialog #quickView class="admin-dialog" aria-labelledby="quick-view-title">
+  @if (summary(); as lesson) {
+    <div class="section-heading">
+      <h2 id="quick-view-title">{{ lesson.titleVi || lesson.titleEn || lesson.slug }}</h2>
+      <form method="dialog"><button class="action">Đóng</button></form>
+    </div>
+    <p lang="en">{{ lesson.titleEn }}</p><p class="my-3">{{ lesson.context }}</p>
+    <p>{{ lesson.chunks.length }} cụm từ · {{ lesson.requirements.length }} yêu cầu roleplay</p>
+    <ul class="list-disc pl-6 my-3">
+      @for (chunk of lesson.chunks; track chunk.id) { <li><span lang="en">{{ chunk.text }}</span> · {{ chunk.meaningVi }}</li> }
+    </ul>
+    <a class="action primary" [routerLink]="[lesson.id]">Mở bài học</a>
+  }
+</dialog>
