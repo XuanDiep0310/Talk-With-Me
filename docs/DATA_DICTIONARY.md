@@ -539,3 +539,8 @@ Lưu response đã xử lý cho các request có `Idempotency-Key`, dùng chung 
 | `scenario_admin_audit.scenario_id` | UUID | Bài nhận thay đổi. |
 | `scenario_admin_audit.actor_id` | UUID | Tài khoản biên tập, có thể rỗng sau khi tài khoản bị xóa. |
 | `scenario_admin_audit.action`, `occurred_at`, `trace_id` | VARCHAR, TIMESTAMPTZ, TEXT | Thao tác, thời điểm UTC và mã truy vết request. |
+| `scenario_categories.id`, `code`, `name_vi` | UUID, VARCHAR, VARCHAR | Mã nhóm ổn định và tên hiển thị có thể đổi. `scenarios.category` tham chiếu `code`. |
+| `users.auth_version` | INTEGER | Tăng khi tài khoản bị khóa để thu hồi access token đã cấp trước đó. |
+| `account_admin_audit.actor_id`, `target_id` | UUID | Tài khoản thực hiện và tài khoản được thay đổi. |
+| `account_admin_audit.previous_role`, `new_role`, `previous_active`, `new_active` | VARCHAR, VARCHAR, BOOLEAN, BOOLEAN | Quyền và trạng thái trước và sau khi cập nhật. |
+| `account_admin_audit.occurred_at`, `trace_id` | TIMESTAMPTZ, TEXT | Thời điểm UTC và mã truy vết của thao tác. |

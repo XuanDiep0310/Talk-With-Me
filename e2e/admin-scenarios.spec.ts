@@ -3,7 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
-const api = 'http://127.0.0.1:8000/api/v1';
+const browserApi = 'http://localhost:8000/api/v1';
+const api = process.env.PLAYWRIGHT_API_URL ?? 'http://127.0.0.1:8000/api/v1';
 const password = 'TestPassword123!';
 
 async function register(request: APIRequestContext, prefix: string) {
@@ -23,6 +24,14 @@ async function logIn(page: Page, email: string) {
   await page.locator('#login-email').fill(email);
   await page.locator('#login-password').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+}
+
+async function prepareBrowser(page: Page) {
+  await page.route('https://**/*', (route) => route.abort());
+  if (process.env.PLAYWRIGHT_API_URL) {
+    await page.route(browserApi + '/**', (route) =>
+      route.continue({ url: route.request().url().replace(browserApi, api) }));
+  }
 }
 
 test('admin creates and replaces a scenario visible to a learner', async ({ page, browser, request, baseURL }) => {
@@ -55,7 +64,7 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
   expect(preferences.ok()).toBeTruthy();
   expect((await request.post(api + '/me/onboarding/complete', { headers: learner.headers })).ok()).toBeTruthy();
 
-  await page.route('https://**/*', (route) => route.abort());
+  await prepareBrowser(page);
   await page.goto('/admin/scenarios/new');
   await expect(page).toHaveURL(/\/login\?returnUrl=/);
   await logIn(page, admin.email);
@@ -64,12 +73,13 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   const slug = 'admin-lesson-' + randomUUID();
   const title = 'Bài học gọi món ' + slug.slice(-6);
-  await page.getByLabel('Mã đường dẫn').fill(slug);
   await page.getByLabel('Tiêu đề tiếng Việt').fill(title);
+  await expect(page.getByLabel('Mã đường dẫn')).toHaveValue('bai-hoc-goi-mon-' + slug.slice(-6));
+  await page.getByLabel('Mã đường dẫn').fill(slug);
   await page.getByLabel('Tiêu đề tiếng Anh').fill('Ordering at a restaurant');
   await page.getByLabel('Bối cảnh').fill('Bạn đang gọi món tại nhà hàng.');
-  await page.getByLabel('Vai người học').fill('Thực khách');
-  await page.getByLabel('Vai AI').fill('Waiter');
+  await page.getByRole('textbox', { name: 'Vai người học', exact: true }).fill('Thực khách');
+  await page.getByRole('textbox', { name: 'Vai AI', exact: true }).fill('Waiter');
   await page.getByRole('button', { name: 'Thêm mục tiêu' }).click();
   await page.getByLabel('Mục tiêu 1', { exact: true }).fill('Gọi món và cảm ơn');
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
@@ -107,7 +117,7 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
   const originalUrl = page.url();
 
   const learnerPage = await browser.newPage({ baseURL });
-  await learnerPage.route('https://**/*', (route) => route.abort());
+  await prepareBrowser(learnerPage);
   try {
     await learnerPage.goto('/login');
     await logIn(learnerPage, learner.email);
@@ -131,6 +141,40 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
     await expect(learnerPage.getByText('Không thể tải thông tin bài học.')).toBeVisible();
     await learnerPage.goto('/scenarios/' + slug + '-new');
     await expect(learnerPage.getByRole('heading', { name: 'Ordering at a restaurant' })).toBeVisible();
+
+    await page.goto('/admin/scenarios');
+    await page.getByRole('searchbox', { name: 'Tìm bài học' }).fill(slug);
+    await expect(page.getByRole('button', { name: 'Tất cả (2)', exact: true })).toBeVisible();
+    const original = page.getByRole('row').filter({ has: page.getByText(slug, { exact: true }) });
+    await original.getByRole('button', { name: 'Xem nhanh' }).click();
+    await expect(page.getByRole('dialog').getByRole('heading', { name: title })).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Đóng' }).click();
+    await original.getByRole('switch').click();
+    await expect(original.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
+
+    await page.goto('/admin');
+    await expect(page.getByRole('heading', { name: 'Tổng quan quản trị' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Buổi luyện đã kết thúc' })).toBeVisible();
+    await page.getByRole('link', { name: 'Tài khoản', exact: true }).first().click();
+    await page.getByRole('searchbox', { name: 'Tìm tài khoản' }).fill(learner.email);
+    const row = page.getByRole('row').filter({ hasText: learner.email });
+    await row.getByRole('button', { name: 'Cấp quyền admin' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
+    await expect(row.getByRole('button', { name: 'Thu hồi quyền' })).toBeVisible();
+    await row.getByRole('button', { name: 'Khóa', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
+    await expect(row.getByRole('button', { name: 'Mở khóa' })).toBeVisible();
+
+    await page.goto('/admin/scenarios/new');
+    await page.getByLabel('Chủ đề cho AI').fill('Đặt phòng khách sạn');
+    await page.getByRole('button', { name: 'B1', exact: true }).click();
+    await page.getByRole('button', { name: 'Tạo bài bằng AI' }).click();
+    await expect(page.getByLabel('Tiêu đề tiếng Việt')).toHaveValue('Đặt phòng khách sạn');
+    await page.getByRole('button', { name: 'Tiếp tục' }).click();
+    await expect(page.getByRole('heading', { name: 'Cụm từ (5/6)' })).toBeVisible();
+    await page.getByRole('button', { name: 'Gợi ý đáp án nhiễu' }).click();
+    await expect(page.getByRole('textbox', { name: 'Đáp án sai tiếng Anh 1', exact: true }))
+      .toHaveValue('Are you staying here?');
   } finally {
     await learnerPage.close();
   }

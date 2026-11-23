@@ -45,7 +45,7 @@ Tài liệu mô tả yêu cầu chức năng và phi chức năng của ứng d�
 - Phát âm chuẩn theo vùng (US/UK/AU) — dự kiến Phase 2.
 - Video hoặc Avatar 3D, Phòng tranh luận có trọng tài AI — dự kiến Phase 3.
 - AI tự sinh bài học tức thời từ tin tức thời sự (Real-time News Lessons) — dự kiến Phase 3.
-- Trình tạo bài học tự động cho Admin, thư viện tình huống do cộng đồng đóng góp — dự kiến Phase 2.
+- Thư viện tình huống do cộng đồng đóng góp — dự kiến Phase 2. Công cụ AI hỗ trợ biên tập nội bộ đã được bổ sung ở F-02.
 - Thuật toán nhắc lại theo lịch trình (spaced repetition) đầy đủ cho Chunk Bank — MVP chỉ lưu danh sách chunk cần luyện thêm.
 - Thử thách đấu trường giao tiếp 1v1 (Communication Arena), Leaderboard hàng tuần — dự kiến Phase 2/3.
 
@@ -159,7 +159,7 @@ Mỗi User Story gồm: **Story ID**, **User story** ("Là một [vai trò], tô
 - **Mục tiêu nghiệp vụ:** Giúp người học phản xạ giao tiếp qua tình huống, ghi nhớ theo khối cụm từ (chunk) có nghĩa.
 - **Danh mục tình huống (Scenario Library):** Daily Life, Social Talk, Travel & Shopping, Workplace.
 - **Cấu trúc bài học:** Situation Introduction → Useful Expressions (chunk) → Interactive Roleplay với AI → Mission Evaluation.
-- **Biên tập nội bộ:** Admin soạn, xem trước, xuất bản, ẩn, khôi phục và nhân bản bài học. Bài được thay thế bằng bản nhân có ID riêng để lịch sử luyện tập tiếp tục gắn với bài gốc. Xem [quy trình quản trị bài học](admin-scenarios.md).
+- **Biên tập nội bộ:** Admin soạn bài qua ba bước, có thể dùng AI để điền nháp và gợi ý đáp án nhiễu. Admin xem trước, xuất bản, ẩn, khôi phục, nhân bản và quản lý nhóm chủ đề. Bài được thay thế bằng bản nhân có ID riêng để lịch sử luyện tập tiếp tục gắn với bài gốc. Xem [quy trình quản trị bài học](admin-scenarios.md).
 - **User stories liên quan:** US-05, US-06, US-06b, US-07, US-08
 
 | ID | User Story | Acceptance Criteria (rút gọn) |

@@ -101,6 +101,14 @@ Các đường dẫn dưới đây dùng tiền tố `/api/v1` và yêu cầu t�
 | `PUT /admin/scenarios/{id}` | Thay nội dung bản nháp, gồm thứ tự cụm từ và yêu cầu trong mảng. Gửi kèm `revision`. |
 | `POST /admin/scenarios/{id}/duplicate` | Tạo bản nháp từ nội dung bài nguồn với `slug` mới. Trả `201`. |
 | `PATCH /admin/scenarios/{id}/status` | Gửi `status` là `PUBLISHED` hoặc `ARCHIVED` cùng `revision` hiện tại. |
+| `POST /admin/scenarios/generate` | Sinh nội dung nháp theo chủ đề, nhóm, CEFR và số cụm. Trả nội dung để biên tập trước khi lưu. |
+| `POST /admin/scenarios/generate-distractors` | Gợi ý ba đáp án nhiễu cho mỗi chiều dịch từ cụm tiếng Anh. |
+| `GET`, `POST /admin/scenario-categories` | Liệt kê hoặc thêm nhóm. |
+| `PATCH`, `DELETE /admin/scenario-categories/{code}` | Đổi tên hoặc xóa nhóm trống. |
+| `GET /admin/users`, `PATCH /admin/users/{id}` | Tìm tài khoản theo tên hoặc email, đổi quyền và trạng thái khóa. |
+| `GET /admin/overview` | Số liệu tổng quan tài khoản, phiên học và bài học. |
+
+Danh sách bài học trả thêm `counts` theo trạng thái cho bộ lọc nhóm, CEFR và từ khóa hiện tại, tính trên tất cả các trang.
 
 `GET /me` trả `role` là `LEARNER` hoặc `ADMIN`. Lỗi API admin dùng `code`, `message`, `traceId` và `details`. Mã HTTP `409` biểu thị xung đột slug, phiên sửa hoặc trạng thái. Mã `422` dùng cho dữ liệu sai, trong đó lỗi kiểm tra xuất bản trả thêm `details.fields` theo đường dẫn trường. Xem schema tại [OpenAPI](../openapi/openapi.json).
 

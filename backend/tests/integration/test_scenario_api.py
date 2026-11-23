@@ -40,10 +40,11 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 
 from app.api.deps import get_db, get_redis
 from app.core.config import Settings, get_settings
+from app.core.providers.llm_provider import FakeLlmProvider, get_llm_provider
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.models import ChunkBank, Scenario  # noqa: F401
-from app.models.auth import User, UserProfile
+from app.models.auth import AccountAdminAudit, User, UserProfile
 from app.models.base import Base
 from app.models.scenario import ScenarioAdminAudit, UserScenarioProgress
 from app.seeds.scenario_loader import load_all_scenarios_from_yaml, seed_scenarios
@@ -212,6 +213,145 @@ async def grant_scenario_admin(env: dict) -> dict[str, str]:
 
 
 @pytest.mark.integration
+async def test_accounts_can_only_be_changed_by_another_admin(scenario_test_env: dict) -> None:
+    env = scenario_test_env
+    client: AsyncClient = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    target = f"/api/v1/admin/users/{env['other_user_id']}"
+
+    assert (await client.get("/api/v1/admin/users", headers=learner)).status_code == 403
+    page = await client.get("/api/v1/admin/users", headers=admin, params={"q": "other@"})
+    assert page.status_code == 200
+    assert page.json()["items"][0]["cefrLevel"] == "A2"
+    assert page.json()["items"][0]["completedSessions"] == 0
+
+    own = await client.patch(
+        f"/api/v1/admin/users/{env['user_id']}", json={"isActive": False}, headers=admin
+    )
+    assert own.status_code == 409
+    assert (await client.patch(target, json={"role": "ADMIN"}, headers=admin)).status_code == 204
+    assert (await client.get("/api/v1/admin/overview", headers=learner)).json()[
+        "activeAccounts"
+    ] == 2
+    assert (await client.patch(target, json={"role": "LEARNER"}, headers=admin)).status_code == 204
+    assert (await client.get("/api/v1/admin/users", headers=learner)).status_code == 403
+
+    credentials = {
+        "email": "other@talkwithme.vn",
+        "password": "Pass1234",
+        "rememberMe": False,
+    }
+    previous = await client.post("/api/v1/auth/login", json=credentials)
+    assert previous.status_code == 200
+    previous_refresh = {"refreshToken": previous.json()["refreshToken"]}
+    assert (await client.patch(target, json={"isActive": False}, headers=admin)).status_code == 204
+    assert (await client.post("/api/v1/auth/refresh", json=previous_refresh)).status_code == 401
+    assert (await client.get("/api/v1/me", headers=learner)).status_code == 401
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "other@talkwithme.vn",
+            "password": "Pass1234",
+            "rememberMe": False,
+        },
+    )
+    assert login.status_code == 403
+    assert (await client.patch(target, json={"isActive": True}, headers=admin)).status_code == 204
+    assert (await client.post("/api/v1/auth/refresh", json=previous_refresh)).status_code == 401
+    assert (await client.get("/api/v1/me", headers=learner)).status_code == 401
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "other@talkwithme.vn",
+            "password": "Pass1234",
+            "rememberMe": False,
+        },
+    )
+    assert login.status_code == 200
+    new_headers = {"Authorization": "Bearer " + login.json()["accessToken"]}
+    assert (await client.get("/api/v1/me", headers=new_headers)).status_code == 200
+    async with env["db_factory"]() as db:
+        audit = list(await db.scalars(select(AccountAdminAudit)))
+        assert len(audit) == 4
+        assert all(
+            row.actor_id == env["user_id"] and row.target_id == env["other_user_id"]
+            for row in audit
+        )
+
+
+@pytest.mark.integration
+async def test_admin_catalog_tracks_renames_counts_and_referenced_categories(
+    scenario_test_env: dict,
+) -> None:
+    env = scenario_test_env
+    client: AsyncClient = env["client"]
+    admin = await grant_scenario_admin(env)
+    path = "/api/v1/admin/scenario-categories"
+    assert (
+        await client.post(path, json={"code": "INTERVIEWS", "nameVi": "Phỏng vấn"}, headers=admin)
+    ).status_code == 201
+    assert (
+        await client.post(path, json={"code": "EMPTY", "nameVi": "Nhóm trống"}, headers=admin)
+    ).status_code == 201
+    assert (await client.delete(path + "/EMPTY", headers=admin)).status_code == 204
+    assert (
+        await client.post(
+            ADMIN_SCENARIOS,
+            json={"slug": "interview-practice", "category": "INTERVIEWS"},
+            headers=admin,
+        )
+    ).status_code == 201
+    assert (await client.delete(path + "/INTERVIEWS", headers=admin)).status_code == 409
+    renamed = await client.patch(
+        path + "/INTERVIEWS", json={"nameVi": "Phỏng vấn việc làm"}, headers=admin
+    )
+    assert renamed.json()["lessonCount"] == 1
+    library = await client.get("/api/v1/scenarios", headers=admin)
+    assert any(item["nameVi"] == "Phỏng vấn việc làm" for item in library.json()["categories"])
+    page = await client.get(ADMIN_SCENARIOS, params={"status": "PUBLISHED"}, headers=admin)
+    assert page.json()["counts"] == {"PUBLISHED": 20, "DRAFT": 1, "ARCHIVED": 0}
+
+
+@pytest.mark.integration
+async def test_ai_suggestions_are_validated_without_creating_a_draft(
+    scenario_test_env: dict,
+) -> None:
+    env = scenario_test_env
+    client: AsyncClient = env["client"]
+    admin = await grant_scenario_admin(env)
+    app.dependency_overrides[get_llm_provider] = FakeLlmProvider
+    payload = {"topic": "Đặt phòng khách sạn", "level": "B1", "chunkCount": 5}
+    assert (await client.post(ADMIN_SCENARIOS + "/generate", json=payload)).status_code == 401
+    result = await client.post(ADMIN_SCENARIOS + "/generate", headers=admin, json=payload)
+    assert result.status_code == 200, result.text
+    draft = result.json()
+    assert draft["slug"] == "dat-phong-khach-san"
+    assert len(draft["chunks"]) == 5 and len(draft["requirements"]) == 2
+    assert (await client.get(ADMIN_SCENARIOS, headers=admin)).json()["counts"]["DRAFT"] == 0
+    options = await client.post(
+        ADMIN_SCENARIOS + "/generate-distractors",
+        headers=admin,
+        json={
+            "text": "Can I book here?",
+            "meaningVi": "Tôi đặt phòng ở đây được không?",
+            "level": "B1",
+        },
+    )
+    assert options.status_code == 200, options.text
+    assert len(options.json()["distractorsEn"]) == len(options.json()["distractorsVi"]) == 3
+
+    class BrokenProvider(FakeLlmProvider):
+        async def generate_editor_json(self, instruction: str, data: dict[str, object]) -> object:  # noqa: ARG002
+            return {"chunks": []}
+
+    app.dependency_overrides[get_llm_provider] = BrokenProvider
+    rejected = await client.post(ADMIN_SCENARIOS + "/generate", headers=admin, json=payload)
+    assert rejected.status_code == 502
+    assert rejected.json()["code"] == "EDITOR_AI_UNAVAILABLE"
+
+
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_admin_responses_match_the_exported_openapi(scenario_test_env: dict) -> None:
     client: AsyncClient = scenario_test_env["client"]
@@ -240,6 +380,15 @@ async def test_admin_responses_match_the_exported_openapi(scenario_test_env: dic
         operation = schema[path][method]
         case = operation.Case(path_parameters={"id": scenario_id} if suffix else None)
         case.validate_response(response, checks=checks)
+
+    for path in (
+        "/api/v1/admin/users",
+        "/api/v1/admin/overview",
+        "/api/v1/admin/scenario-categories",
+    ):
+        response = await client.get(path, headers=admin)
+        assert response.status_code == 200, response.text
+        schema[path]["GET"].Case().validate_response(response, checks=checks)
 
 
 @pytest.mark.integration

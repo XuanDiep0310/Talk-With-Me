@@ -48,3 +48,6 @@ Ghi lại mọi quyết định kỹ thuật và thiết kế quan trọng, đ�
 | D-42 | Quyền biên tập bài học | Dùng một vai trò nội bộ ADMIN. CLI cấp và thu hồi quyền cho tài khoản đã có. API quản trị đọc quyền trong PostgreSQL ở mỗi request và ghi nhật ký biên tập cùng transaction. | 8 | DECIDED |
 | D-43 | Vòng đời bài học | Bản nháp được sửa đến khi xuất bản. Bài đã xuất bản có thể ẩn, khôi phục hoặc nhân bản với ID mới. Roleplay đã tạo và lịch sử giữ nội dung gốc. Bản nhân bắt đầu với tiến độ riêng. | 8 | DECIDED |
 | D-44 | Nội dung khởi tạo | Bài cũ được giữ ID và đánh dấu đã xuất bản qua migration. Seed YAML chỉ thêm các slug còn thiếu. PostgreSQL giữ nội dung và trạng thái đã biên tập. | 8 | DECIDED |
+| D-45 | Nhóm chủ đề trong thư viện | Tên nhóm có thể sửa. Mã nhóm ổn định để giữ liên kết bài học và URL lọc. Chỉ xóa nhóm trống để bảo toàn bài đã xuất bản và lịch sử. | 9 | DECIDED |
+| D-46 | AI hỗ trợ biên tập | AI trả dữ liệu đã kiểm tra bằng schema và quy tắc xuất bản. Admin kiểm duyệt kết quả trong biểu mẫu trước khi lưu hoặc xuất bản. | 9 | DECIDED |
+| D-47 | Quản lý quyền và khóa tài khoản | Admin thay đổi tài khoản khác qua UI. API kiểm tra lại quyền trong transaction, ghi audit và thu hồi phiên xác thực khi khóa. Giữ CLI để cấp quyền quản trị viên đầu tiên. | 9 | DECIDED |
