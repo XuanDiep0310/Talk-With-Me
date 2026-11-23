@@ -89,6 +89,21 @@ Các endpoint tạo tài nguyên (session, transcript, claim reward) hỗ trợ 
 
 ## 1. LESSONS API (Scenario Lessons — F-02)
 
+### API biên tập nội bộ
+
+Các đường dẫn dưới đây dùng tiền tố `/api/v1` và yêu cầu tài khoản `ADMIN`.
+
+| Phương thức và đường dẫn | Hành vi |
+|---|---|
+| `GET /admin/scenarios` | Danh sách có `q`, `category`, `level`, `status`, `cursor`, `limit`. Trả `items` và `nextCursor`. |
+| `POST /admin/scenarios` | Tạo bản nháp. Trả `201`. |
+| `GET /admin/scenarios/{id}` | Trả chi tiết ở mọi trạng thái. |
+| `PUT /admin/scenarios/{id}` | Thay nội dung bản nháp, gồm thứ tự cụm từ và yêu cầu trong mảng. Gửi kèm `revision`. |
+| `POST /admin/scenarios/{id}/duplicate` | Tạo bản nháp từ nội dung bài nguồn với `slug` mới. Trả `201`. |
+| `PATCH /admin/scenarios/{id}/status` | Gửi `status` là `PUBLISHED` hoặc `ARCHIVED` cùng `revision` hiện tại. |
+
+`GET /me` trả `role` là `LEARNER` hoặc `ADMIN`. Lỗi API admin dùng `code`, `message`, `traceId` và `details`. Mã HTTP `409` biểu thị xung đột slug, phiên sửa hoặc trạng thái. Mã `422` dùng cho dữ liệu sai, trong đó lỗi kiểm tra xuất bản trả thêm `details.fields` theo đường dẫn trường. Xem schema tại [OpenAPI](../openapi/openapi.json).
+
 ### 1.1. Resource Model
 
 ```

@@ -159,6 +159,7 @@ Mỗi User Story gồm: **Story ID**, **User story** ("Là một [vai trò], tô
 - **Mục tiêu nghiệp vụ:** Giúp người học phản xạ giao tiếp qua tình huống, ghi nhớ theo khối cụm từ (chunk) có nghĩa.
 - **Danh mục tình huống (Scenario Library):** Daily Life, Social Talk, Travel & Shopping, Workplace.
 - **Cấu trúc bài học:** Situation Introduction → Useful Expressions (chunk) → Interactive Roleplay với AI → Mission Evaluation.
+- **Biên tập nội bộ:** Admin soạn, xem trước, xuất bản, ẩn, khôi phục và nhân bản bài học. Bài được thay thế bằng bản nhân có ID riêng để lịch sử luyện tập tiếp tục gắn với bài gốc. Xem [quy trình quản trị bài học](admin-scenarios.md).
 - **User stories liên quan:** US-05, US-06, US-06b, US-07, US-08
 
 | ID | User Story | Acceptance Criteria (rút gọn) |

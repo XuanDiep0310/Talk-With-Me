@@ -5,6 +5,7 @@ import { Observable, Subject, throwError } from 'rxjs';
 import { catchError, switchMap, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AppStateService } from './app-state.service';
+import { adminReturnUrl } from '../utils/admin-route';
 
 // ── Request / Response interfaces ──────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ export interface TokenResponse {
 
 export interface MeResponse {
   id: string;
+  role?: 'LEARNER' | 'ADMIN';
   email: string;
   fullName: string;
   avatarUrl: string | null;
@@ -143,7 +145,7 @@ export class AuthService {
     if (tokens) {
       this.storeTokens(tokens);
       await this.loadCurrentUser();
-      await this.router.navigateByUrl('/dashboard');
+      await this.navigateAfterLogin();
     }
   }
 
@@ -165,8 +167,15 @@ export class AuthService {
     if (tokens) {
       this.storeTokens(tokens);
       await this.loadCurrentUser();
-      await this.router.navigateByUrl('/dashboard');
+      await this.navigateAfterLogin();
     }
+  }
+
+  private async navigateAfterLogin(): Promise<void> {
+    const target = this.currentUser()?.role === 'ADMIN'
+      ? adminReturnUrl(this.router.parseUrl(this.router.url).queryParams['returnUrl'])
+      : null;
+    await this.router.navigateByUrl(target ?? '/dashboard');
   }
 
   async logout(): Promise<void> {

@@ -9,8 +9,8 @@ from typing import Any
 
 import yaml
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.models.scenario import Scenario, ScenarioChunk, ScenarioRequirement
 
@@ -121,112 +121,48 @@ def load_all_scenarios_from_yaml(seeds_dir: Path | None = None) -> list[dict[str
 
 
 async def seed_scenarios(db: AsyncSession, seeds_dir: Path | None = None) -> int:
-    """
-    Seed or update all scenarios into the database idempotently using deterministic UUIDs.
-    Returns the count of seeded/verified scenarios.
-    """
-    scenarios_data = load_all_scenarios_from_yaml(seeds_dir)
-
-    for s_dict in scenarios_data:
-        slug = s_dict["slug"]
-        s_id = uuid.uuid5(SCENARIO_NAMESPACE, f"scenario:{slug}")
-
-        stmt = (
-            select(Scenario)
-            .options(
-                selectinload(Scenario.requirements),
-                selectinload(Scenario.chunks),
-            )
-            .where(Scenario.slug == slug)
+    """Insert missing starter lessons while preserving editorial changes."""
+    inserted = 0
+    for item in load_all_scenarios_from_yaml(seeds_dir):
+        slug = item["slug"]
+        scenario_id = uuid.uuid5(SCENARIO_NAMESPACE, f"scenario:{slug}")
+        content = {
+            key: value for key, value in item.items() if key not in {"requirements", "chunks"}
+        }
+        statement = (
+            insert(Scenario)
+            .values(id=scenario_id, status="PUBLISHED", **content)
+            .on_conflict_do_nothing(index_elements=["slug"])
+            .returning(Scenario.id)
         )
-        res = await db.execute(stmt)
-        scenario = res.scalar_one_or_none()
+        if await db.scalar(statement) is None:
+            continue
 
-        is_new = False
-        if not scenario:
-            is_new = True
-            scenario = Scenario(
-                id=s_id,
-                slug=slug,
-                category=s_dict["category"],
-                title_vi=s_dict["title_vi"],
-                title_en=s_dict["title_en"],
-                level=s_dict["level"],
-                estimated_duration_minutes=s_dict["estimated_duration_minutes"],
-                context=s_dict["context"],
-                user_role=s_dict["user_role"],
-                ai_role=s_dict["ai_role"],
-                goals=s_dict["goals"],
-                sort_order=s_dict["sort_order"],
-            )
-            db.add(scenario)
-            await db.flush()
-        else:
-            scenario.category = s_dict["category"]
-            scenario.title_vi = s_dict["title_vi"]
-            scenario.title_en = s_dict["title_en"]
-            scenario.level = s_dict["level"]
-            scenario.estimated_duration_minutes = s_dict["estimated_duration_minutes"]
-            scenario.context = s_dict["context"]
-            scenario.user_role = s_dict["user_role"]
-            scenario.ai_role = s_dict["ai_role"]
-            scenario.goals = s_dict["goals"]
-            scenario.sort_order = s_dict["sort_order"]
-
-        # Requirements
-        existing_req_map = {} if is_new else {r.sort_order: r for r in scenario.requirements}
-        for r_dict in s_dict["requirements"]:
-            r_order = r_dict["sort_order"]
-            r_id = uuid.uuid5(SCENARIO_NAMESPACE, f"req:{slug}:{r_order}")
-            if r_order in existing_req_map:
-                req = existing_req_map[r_order]
-                req.description = r_dict["description"]
-                req.type = r_dict.get("type", "TASK")
-                req.expected_chunk_function = r_dict.get("expected_chunk_function")
-                req.is_mandatory = r_dict.get("is_mandatory", True)
-            else:
-                new_req = ScenarioRequirement(
-                    id=r_id,
-                    scenario_id=scenario.id,
-                    description=r_dict["description"],
-                    type=r_dict.get("type", "TASK"),
-                    expected_chunk_function=r_dict.get("expected_chunk_function"),
-                    is_mandatory=r_dict.get("is_mandatory", True),
-                    sort_order=r_order,
+        db.add_all(
+            [
+                ScenarioRequirement(
+                    id=uuid.uuid5(SCENARIO_NAMESPACE, f"req:{slug}:{requirement['sort_order']}"),
+                    scenario_id=scenario_id,
+                    **requirement,
                 )
-                db.add(new_req)
-
-        # Chunks
-        existing_chunk_map = {} if is_new else {c.sort_order: c for c in scenario.chunks}
-        for c_dict in s_dict["chunks"]:
-            c_order = c_dict["sort_order"]
-            c_id = uuid.uuid5(SCENARIO_NAMESPACE, f"chunk:{slug}:{c_order}")
-            if c_order in existing_chunk_map:
-                chk = existing_chunk_map[c_order]
-                chk.function_tag = c_dict["function_tag"]
-                chk.text = c_dict["text"]
-                chk.meaning_vi = c_dict["meaning_vi"]
-                chk.audio_url = c_dict.get("audio_url")
-                chk.example_sentence = c_dict["example_sentence"]
-                chk.accepted_variations = c_dict.get("accepted_variations", [])
-                chk.distractors_en = c_dict.get("distractors_en", [])
-                chk.distractors_vi = c_dict.get("distractors_vi", [])
-            else:
-                new_chunk = ScenarioChunk(
-                    id=c_id,
-                    scenario_id=scenario.id,
-                    function_tag=c_dict["function_tag"],
-                    text=c_dict["text"],
-                    meaning_vi=c_dict["meaning_vi"],
-                    audio_url=c_dict.get("audio_url"),
-                    example_sentence=c_dict["example_sentence"],
-                    accepted_variations=c_dict.get("accepted_variations", []),
-                    distractors_en=c_dict.get("distractors_en", []),
-                    distractors_vi=c_dict.get("distractors_vi", []),
-                    sort_order=c_order,
+                for requirement in item["requirements"]
+            ]
+            + [
+                ScenarioChunk(
+                    id=uuid.uuid5(SCENARIO_NAMESPACE, f"chunk:{slug}:{chunk['sort_order']}"),
+                    scenario_id=scenario_id,
+                    **chunk,
                 )
-                db.add(new_chunk)
+                for chunk in item["chunks"]
+            ]
+        )
+        inserted += 1
 
     await db.commit()
-    logger.info("Successfully seeded %d scenarios from YAML.", len(scenarios_data))
-    return len(scenarios_data)
+    logger.info("Inserted %d missing scenarios from YAML.", inserted)
+    return inserted
+
+
+async def seed_scenarios_if_empty(db: AsyncSession) -> None:
+    if await db.scalar(select(Scenario.id).limit(1)) is None:
+        await seed_scenarios(db)

@@ -8,6 +8,7 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL: 'http://localhost:4200',
+    channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     trace: 'on-first-retry',
     launchOptions: {
       args: [

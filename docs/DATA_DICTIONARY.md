@@ -528,3 +528,14 @@ Lưu response đã xử lý cho các request có `Idempotency-Key`, dùng chung 
 | Redis chỉ cache/state tạm thời, có thể mất mà không ảnh hưởng tính đúng đắn nghiệp vụ | `session:*`, `room:*:state`, `presence:*`, `ws:conn:*` |
 | Ràng buộc idempotency phải có ở **cả hai** tầng | Redis (`idempotency:*`, TTL ngắn hạn để chặn retry tức thời) + PostgreSQL (`UNIQUE (activity_type, source_id)` trong `xp_transactions`, để đảm bảo đúng ngay cả khi Redis bị mất dữ liệu) |
 | Mọi giá trị cache có TTL hoặc cơ chế dọn dẹp chủ động rõ ràng | Tránh rò rỉ bộ nhớ Redis khi session/room không đóng đúng quy trình |
+
+## 4. Dữ liệu biên tập bài học
+
+| Trường | Kiểu | Ý nghĩa |
+|---|---|---|
+| `users.role` | VARCHAR | `LEARNER` mặc định hoặc `ADMIN`. |
+| `scenarios.status` | VARCHAR | `DRAFT`, `PUBLISHED` hoặc `ARCHIVED`. |
+| `scenarios.revision` | INTEGER | Bắt đầu từ 1 và tăng khi lưu nháp hoặc đổi trạng thái. |
+| `scenario_admin_audit.scenario_id` | UUID | Bài nhận thay đổi. |
+| `scenario_admin_audit.actor_id` | UUID | Tài khoản biên tập, có thể rỗng sau khi tài khoản bị xóa. |
+| `scenario_admin_audit.action`, `occurred_at`, `trace_id` | VARCHAR, TIMESTAMPTZ, TEXT | Thao tác, thời điểm UTC và mã truy vết request. |

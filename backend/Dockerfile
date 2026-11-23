@@ -44,6 +44,7 @@ RUN addgroup --system --gid 1001 appgroup && \
 COPY --chown=appuser:appgroup alembic.ini .
 COPY --chown=appuser:appgroup alembic ./alembic
 COPY --chown=appuser:appgroup app ./app
+COPY --chown=appuser:appgroup scripts/admin_role.py scripts/seed.py ./scripts/
 COPY scripts/entrypoint.sh /app/entrypoint.sh
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 

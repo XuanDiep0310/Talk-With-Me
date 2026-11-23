@@ -256,3 +256,4 @@ Khi code được merge vào `main` hoặc `develop`:
 - 🗄 [`DATABASE_DESIGN.md`](./docs/DATABASE_DESIGN.md) — Thiết kế Schema & ERD chi tiết.
 - 🔌 [`EXTERNAL_APIS.md`](./docs/EXTERNAL_APIS.md) — Chiến lược tích hợp AI (Gemini Flash, TTS, STT).
 - 🐙 [`GITHUB_WORKFLOW_GUIDELINES.md`](./docs/GITHUB_WORKFLOW_GUIDELINES.md) — Quy tắc Git & PR.
+- [Quản trị bài học tình huống](./docs/admin-scenarios.md) — Cấp quyền, biên tập, xuất bản và kiểm thử.

@@ -12,9 +12,17 @@ Tables:
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,8 +32,12 @@ if TYPE_CHECKING:
     from app.models.gamification import GamificationProfile
 
 
+UserRole = Literal["LEARNER", "ADMIN"]
+
+
 class User(Base, TimestampMixin):
     __tablename__ = "users"
+    __table_args__ = (CheckConstraint("role IN ('LEARNER', 'ADMIN')", name="ck_users_role"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
@@ -33,6 +45,7 @@ class User(Base, TimestampMixin):
     full_name: Mapped[str] = mapped_column(String(120), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    role: Mapped[UserRole] = mapped_column(String(10), server_default="LEARNER", nullable=False)
 
     identities: Mapped[list["AuthIdentity"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

@@ -50,7 +50,7 @@ from app.models.session import Session, TranscriptSegment
 from app.repositories.scenario import ScenarioRepository
 from app.repositories.session import SessionRepository, TranscriptRepository
 from app.repositories.user import UserRepository
-from app.seeds.scenario_loader import seed_scenarios
+from app.seeds.scenario_loader import seed_scenarios_if_empty
 from app.services.chunk_matcher import ChunkMatcher
 from app.services.scoring.service import ScoringService
 from app.services.session_state_machine import SessionState, SessionStateMachine
@@ -76,12 +76,6 @@ class ScenarioService:
         self.clock = get_clock()
         self.chunk_matcher = ChunkMatcher()
 
-    async def ensure_scenarios_seeded(self) -> None:
-        """Seed scenarios from YAML files if table is empty."""
-        scenarios = await self.scenario_repo.list_scenarios()
-        if not scenarios:
-            await seed_scenarios(self.db)
-
     async def list_scenarios(
         self,
         user_id: uuid.UUID,
@@ -90,7 +84,7 @@ class ScenarioService:
         status_filter: str | None = None,
         q: str | None = None,
     ) -> ScenarioLibraryResponse:
-        await self.ensure_scenarios_seeded()
+        await seed_scenarios_if_empty(self.db)
 
         all_scenarios = await self.scenario_repo.list_scenarios(category=category, level=level, q=q)
         user_progress_list = await self.scenario_repo.list_user_progress(user_id)
@@ -128,7 +122,9 @@ class ScenarioService:
         # Overall completion statistics across all scenarios in library
         full_catalog = await self.scenario_repo.list_scenarios()
         total_count = len(full_catalog)
-        completed_count = sum(1 for p in user_progress_list if p.status == "COMPLETED")
+        completed_count = sum(
+            1 for s in full_catalog if (p := progress_map.get(s.id)) and p.status == "COMPLETED"
+        )
         total_progress_pct = (
             round((completed_count / max(1, total_count)) * 100) if total_count > 0 else 0
         )
@@ -165,7 +161,7 @@ class ScenarioService:
     async def get_scenario_detail(
         self, scenario_identifier: str | uuid.UUID, user_id: uuid.UUID
     ) -> ScenarioDetailResponse:
-        await self.ensure_scenarios_seeded()
+        await seed_scenarios_if_empty(self.db)
 
         scenario: Scenario | None = None
         if isinstance(scenario_identifier, uuid.UUID):
@@ -177,7 +173,7 @@ class ScenarioService:
             except ValueError:
                 scenario = await self.scenario_repo.get_by_slug(scenario_identifier)
 
-        if not scenario:
+        if not scenario or scenario.status != "PUBLISHED":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Scenario '{scenario_identifier}' not found",
@@ -244,7 +240,7 @@ class ScenarioService:
 
     async def get_scenario_chunks(self, scenario_id: uuid.UUID) -> ScenarioChunksResponse:
         scenario = await self.scenario_repo.get_by_id(scenario_id)
-        if not scenario:
+        if not scenario or scenario.status != "PUBLISHED":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Scenario {scenario_id} not found",
@@ -280,8 +276,8 @@ class ScenarioService:
         user_id: uuid.UUID,
         data: RecordDrillRequest,
     ) -> RecordDrillResponse:
-        chunk = await self.scenario_repo.get_chunk_by_id(data.chunk_id)
-        if not chunk or chunk.scenario_id != scenario_id:
+        scenario = await self.scenario_repo.lock_published(scenario_id)
+        if not scenario or all(chunk.id != data.chunk_id for chunk in scenario.chunks):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chunk not found for this scenario",
@@ -314,7 +310,7 @@ class ScenarioService:
     async def create_roleplay_session(
         self, scenario_id: uuid.UUID, user_id: uuid.UUID
     ) -> RoleplaySessionResponse:
-        scenario = await self.scenario_repo.get_by_id(scenario_id)
+        scenario = await self.scenario_repo.lock_published(scenario_id)
         if not scenario:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

@@ -1,0 +1,78 @@
+<div class="page-heading">
+  <h1>Quản lý bài học tình huống</h1>
+  <a class="action primary" routerLink="new">Tạo bài học</a>
+</div>
+
+<form class="panel filter-form" (ngSubmit)="search()">
+  <label>
+    Tìm bài học
+    <input name="q" type="search" maxlength="255" placeholder="Tên bài hoặc mã đường dẫn" [(ngModel)]="filters.q" />
+  </label>
+  <label>
+    Nhóm
+    <select name="category" [(ngModel)]="filters.category">
+      <option [ngValue]="undefined">Tất cả</option>
+      @for (item of categories | keyvalue; track item.key) {
+        <option [value]="item.key">{{ item.value }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    CEFR
+    <select name="level" [(ngModel)]="filters.level">
+      <option [ngValue]="undefined">Tất cả</option>
+      @for (level of levels; track level) {
+        <option [value]="level">{{ level }}</option>
+      }
+    </select>
+  </label>
+  <label>
+    Trạng thái
+    <select name="status" [(ngModel)]="filters.status">
+      <option [ngValue]="undefined">Tất cả</option>
+      @for (item of statuses | keyvalue; track item.key) {
+        <option [value]="item.key">{{ item.value }}</option>
+      }
+    </select>
+  </label>
+  <button class="action" type="submit" [disabled]="loading()">Áp dụng</button>
+</form>
+
+@if (error()) {
+  <p class="feedback error" role="alert">{{ error() }}</p>
+}
+<section class="panel results" aria-label="Danh sách bài học" [attr.aria-busy]="loading()">
+  @if (rows().length) {
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Bảng bài học">
+      <table>
+        <thead>
+          <tr><th scope="col">Bài học</th><th scope="col">Nhóm</th><th scope="col">CEFR</th><th scope="col">Trạng thái</th><th scope="col">Cập nhật</th></tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <th scope="row">
+                <a class="text-link" [routerLink]="[row.id]">{{ row.titleVi || row.titleEn || row.slug }}</a>
+                <span class="secondary">{{ row.slug }}</span>
+              </th>
+              <td>{{ categories[row.category] }}</td>
+              <td>{{ row.level }}</td>
+              <td><span class="status" [attr.data-status]="row.status">{{ statuses[row.status] }}</span></td>
+              <td class="whitespace-nowrap">{{ formatDate(row.updatedAt) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (!loading() && !error()) {
+    <p class="p-5 text-slate-600">Không có bài học phù hợp.</p>
+  }
+  @if (loading()) {
+    <p class="px-5 py-4 text-slate-600" role="status">Đang tải bài học…</p>
+  }
+  @if (cursor(); as next) {
+    <div class="p-4">
+      <button class="action" type="button" (click)="load(next)" [disabled]="loading()">Tải thêm</button>
+    </div>
+  }
+</section>
