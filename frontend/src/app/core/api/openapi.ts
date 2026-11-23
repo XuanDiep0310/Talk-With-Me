@@ -1112,6 +1112,42 @@ export interface paths {
         patch: operations["admin_set_scenario_status_api_v1_admin_scenarios__id__status_patch"];
         trace?: never;
     };
+    "/api/v1/admin/scenario-categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Categories */
+        get: operations["list_categories_api_v1_admin_scenario_categories_get"];
+        put?: never;
+        /** Create Category */
+        post: operations["create_category_api_v1_admin_scenario_categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/scenario-categories/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Category */
+        delete: operations["delete_category_api_v1_admin_scenario_categories__code__delete"];
+        options?: never;
+        head?: never;
+        /** Rename Category */
+        patch: operations["rename_category_api_v1_admin_scenario_categories__code__patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1272,11 +1308,8 @@ export interface components {
             titleVi: string;
             /** Titleen */
             titleEn: string;
-            /**
-             * Category
-             * @enum {string}
-             */
-            category: "DAILY_LIFE" | "SOCIAL" | "TRAVEL_SHOPPING" | "WORKPLACE";
+            /** Category */
+            category: string;
             /**
              * Level
              * @enum {string}
@@ -1336,9 +1369,8 @@ export interface components {
             /**
              * Category
              * @default DAILY_LIFE
-             * @enum {string}
              */
-            category: "DAILY_LIFE" | "SOCIAL" | "TRAVEL_SHOPPING" | "WORKPLACE";
+            category: string;
             /**
              * Level
              * @default A1
@@ -1393,6 +1425,10 @@ export interface components {
             items: components["schemas"]["AdminScenarioSummary"][];
             /** Nextcursor */
             nextCursor: string | null;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
         };
         /** AdminScenarioStatusUpdate */
         AdminScenarioStatusUpdate: {
@@ -1417,11 +1453,8 @@ export interface components {
             titleVi: string;
             /** Titleen */
             titleEn: string;
-            /**
-             * Category
-             * @enum {string}
-             */
-            category: "DAILY_LIFE" | "SOCIAL" | "TRAVEL_SHOPPING" | "WORKPLACE";
+            /** Category */
+            category: string;
             /**
              * Level
              * @enum {string}
@@ -1447,9 +1480,8 @@ export interface components {
             /**
              * Category
              * @default DAILY_LIFE
-             * @enum {string}
              */
-            category: "DAILY_LIFE" | "SOCIAL" | "TRAVEL_SHOPPING" | "WORKPLACE";
+            category: string;
             /**
              * Level
              * @default A1
@@ -1644,6 +1676,27 @@ export interface components {
         Body_upload_avatar_api_v1_me_avatar_post: {
             /** File */
             file: string;
+        };
+        /** CategoryCreate */
+        CategoryCreate: {
+            /** Namevi */
+            nameVi: string;
+            /** Code */
+            code: string;
+        };
+        /** CategoryDetail */
+        CategoryDetail: {
+            /** Namevi */
+            nameVi: string;
+            /** Code */
+            code: string;
+            /** Lessoncount */
+            lessonCount: number;
+        };
+        /** CategoryName */
+        CategoryName: {
+            /** Namevi */
+            nameVi: string;
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
@@ -4823,7 +4876,7 @@ export interface operations {
     admin_list_scenarios_api_v1_admin_scenarios_get: {
         parameters: {
             query?: {
-                category?: ("DAILY_LIFE" | "SOCIAL" | "TRAVEL_SHOPPING" | "WORKPLACE") | null;
+                category?: string | null;
                 level?: ("A1" | "A2" | "B1" | "B2" | "C1") | null;
                 status?: ("DRAFT" | "PUBLISHED" | "ARCHIVED") | null;
                 q?: string | null;
@@ -5201,6 +5254,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    list_categories_api_v1_admin_scenario_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryDetail"][];
+                };
+            };
+        };
+    };
+    create_category_api_v1_admin_scenario_categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_category_api_v1_admin_scenario_categories__code__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_category_api_v1_admin_scenario_categories__code__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryName"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

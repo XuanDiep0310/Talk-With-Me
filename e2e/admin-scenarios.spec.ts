@@ -70,27 +70,38 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
   await page.getByLabel('Bối cảnh').fill('Bạn đang gọi món tại nhà hàng.');
   await page.getByLabel('Vai người học').fill('Thực khách');
   await page.getByLabel('Vai AI').fill('Waiter');
-  await page.getByLabel('Mục tiêu học tập').fill('Gọi món và cảm ơn');
+  await page.getByRole('button', { name: 'Thêm mục tiêu' }).click();
+  await page.getByLabel('Mục tiêu 1', { exact: true }).fill('Gọi món và cảm ơn');
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
   for (let index = 1; index <= 4; index += 1) {
     await page.getByRole('button', { name: 'Thêm cụm từ' }).click();
     const group = page.getByRole('group', { name: 'Cụm từ ' + index, exact: true });
     await group.getByLabel('Cụm từ tiếng Anh').fill('Could I order dish ' + index + '?');
     await group.getByLabel('Nghĩa tiếng Việt').fill('Tôi gọi món số ' + index + ' được không?');
     await group.getByLabel('Câu mẫu tiếng Anh').fill('Could I order dish ' + index + ' with rice?');
-    await group.getByLabel('Biến thể chấp nhận').fill('May I order dish ' + index + '?');
-    await group.getByLabel('Ba đáp án nhiễu tiếng Anh').fill('Can you pay?\nWhere are you?\nGood evening.');
-    await group.getByLabel('Ba đáp án nhiễu tiếng Việt').fill('Bạn trả tiền được không?\nBạn ở đâu?\nChào buổi tối.');
+    await group.getByRole('button', { name: 'Thêm biến thể' }).click();
+    await group.getByLabel('Biến thể 1', { exact: true }).fill('May I order dish ' + index + '?');
+    for (const [option, text] of ['Can you pay?', 'Where are you?', 'Good evening.'].entries()) {
+      await group.getByLabel('Đáp án sai tiếng Anh ' + (option + 1)).fill(text);
+    }
+    for (const [option, text] of ['Bạn trả tiền được không?', 'Bạn ở đâu?', 'Chào buổi tối.'].entries()) {
+      await group.getByLabel('Đáp án sai tiếng Việt ' + (option + 1)).fill(text);
+    }
   }
+  await page.getByRole('button', { name: /Cụm từ 1 Could/ }).click();
+  await page.getByRole('button', { name: 'Đưa cụm từ 1 xuống' }).click();
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
   await page.getByRole('button', { name: 'Thêm yêu cầu' }).click();
   await page.getByLabel('Mô tả').fill('Gọi ít nhất một món.');
-  await page.getByRole('button', { name: 'Đưa cụm từ 1 xuống' }).click();
-  await page.getByRole('button', { name: 'Lưu bản nháp' }).click();
-  await expect(page).toHaveURL(/\/admin\/scenarios\/[\da-f-]{36}$/);
-  await page.getByRole('button', { name: 'Xem trước bản đã lưu' }).click();
-  await expect(page.getByRole('heading', { name: 'Xem trước bản đã lưu' })).toBeVisible();
-  await expect(page.getByRole('heading', { level: 4 })).toHaveText(
+  await page.getByRole('button', { name: 'Xem trước giao diện người học' }).click();
+  const preview = page.getByRole('dialog');
+  await expect(preview.getByRole('heading', { name: 'Ordering at a restaurant' })).toBeVisible();
+  await expect(preview.getByText(/Could I order dish/)).toHaveText(
     [2, 1, 3, 4].map((index) => 'Could I order dish ' + index + '?')
   );
+  await preview.getByRole('button', { name: 'Đóng', exact: true }).click();
+  await page.getByRole('button', { name: 'Lưu bản nháp' }).click();
+  await expect(page).toHaveURL(/\/admin\/scenarios\/[\da-f-]{36}$/);
   await page.getByRole('button', { name: 'Xuất bản', exact: true }).click();
   await expect(page.getByText('Đã xuất bản', { exact: true })).toBeVisible();
   const originalUrl = page.url();

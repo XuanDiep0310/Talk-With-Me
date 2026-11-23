@@ -107,3 +107,25 @@ tbody tr:last-child > * { border-bottom: 0; }
 .preview ul, .preview ol { padding-inline-start: 1.4rem; }
 .preview ul { list-style: disc; }
 .preview ol { list-style: decimal; }
+
+[hidden] { display: none !important; }
+.wizard-steps { display: flex; flex-wrap: wrap; gap: .5rem; margin-block-end: 1rem; }
+.wizard-steps [aria-current], .action[aria-pressed="true"] { border-color: #2563eb; color: #1e40af; background: #eff6ff; }
+.step-number { border-radius: 50%; background: #e2e8f0; padding: .1rem .5rem; margin-inline-end: .5rem; }
+.pill { border-radius: 999px; }
+.entries { display: grid; gap: .5rem; padding-block-start: .5rem; }
+.entries legend { font-weight: 600; font-size: .875rem; }
+.entries > button { justify-self: start; }
+.entry { display: flex; gap: .5rem; }
+.accordion-heading { display: flex; align-items: center; gap: .5rem; }
+.accordion-toggle { flex: 1; min-height: 44px; text-align: left; font-weight: 700; cursor: pointer; }
+.accordion-toggle span { margin-inline-start: .5rem; color: #475569; overflow-wrap: anywhere; font-weight: 400; }
+.drag-handle { cursor: grab; color: #475569; font-size: 1.3rem; padding: .35rem; }
+.check-link { text-align: left; min-height: 2.75rem; text-decoration: underline; }
+progress { width: 100%; accent-color: #2563eb; }
+.admin-dialog { width: min(94vw, 65rem); max-height: 90vh; margin: auto; border-radius: 1rem; padding: 1rem; background: white; }
+.admin-dialog::backdrop { background: rgb(15 23 42 / .55); }
+.learner-preview { background: #f1f5f9; border-radius: .75rem; overflow: auto; max-height: 68vh; }
+.learner-preview.phone { max-width: 390px; margin-inline: auto; }
+.metric { display: block; margin: 0; }
+.metric strong { display: block; font-size: 2rem; color: #1e40af; }

@@ -3,6 +3,8 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ScenarioDetailComponent } from '../scenarios/scenario-detail.component';
+import type { ScenarioDetail as LearnerScenario } from '../../core/services/scenario.service';
 import { Observable, firstValueFrom, of, switchMap, catchError } from 'rxjs';
 import {
   AdminScenarioService, ScenarioDetail, ScenarioInput, ScenarioStatusUpdate,
@@ -12,15 +14,24 @@ import {
 type ChunkInput = NonNullable<ScenarioInput['chunks']>[number];
 type RequirementInput = NonNullable<ScenarioInput['requirements']>[number];
 type ChunkForm = Omit<ChunkInput, 'acceptedVariations' | 'distractorsEn' | 'distractorsVi'> & {
-  acceptedVariations: string;
-  distractorsEn: string;
-  distractorsVi: string;
+  acceptedVariations: string[];
+  distractorsEn: string[];
+  distractorsVi: string[];
 };
 type DraftForm = Omit<ScenarioInput, 'goals' | 'chunks' | 'requirements'> & {
-  goals: string;
+  goals: string[];
   chunks: ChunkForm[];
   requirements: RequirementInput[];
 };
+
+function clean(values: string[]): string[] {
+  return values.map((item) => item.trim()).filter(Boolean);
+}
+
+export function lessonSlug(title: string): string {
+  return title.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100).replace(/-+$/, '');
+}
 
 const fieldLabels: Record<string, string> = {
   slug: 'Mã đường dẫn',
@@ -41,11 +52,11 @@ const fieldLabels: Record<string, string> = {
   distractorsVi: 'Đáp án nhiễu tiếng Việt'
 };
 
-function toForm(scenario: ScenarioDetail | null): DraftForm {
+function toForm(scenario: ScenarioInput | null): DraftForm {
   if (!scenario) return {
     slug: '', category: 'DAILY_LIFE', level: 'A1', titleVi: '', titleEn: '',
     context: '', userRole: '', aiRole: '', estimatedDurationMinutes: 10, sortOrder: 0,
-    goals: '', chunks: [], requirements: []
+    goals: [], chunks: [], requirements: []
   };
   return {
     slug: scenario.slug,
@@ -58,33 +69,29 @@ function toForm(scenario: ScenarioDetail | null): DraftForm {
     aiRole: scenario.aiRole,
     estimatedDurationMinutes: scenario.estimatedDurationMinutes,
     sortOrder: scenario.sortOrder,
-    goals: scenario.goals.join('\n'),
-    requirements: scenario.requirements.map((requirement) => ({
+    goals: [...(scenario.goals ?? [])],
+    requirements: (scenario.requirements ?? []).map((requirement) => ({
       description: requirement.description,
       type: requirement.type,
       expectedChunkFunction: requirement.expectedChunkFunction,
       isMandatory: requirement.isMandatory
     })),
-    chunks: scenario.chunks.map((chunk) => ({
+    chunks: (scenario.chunks ?? []).map((chunk) => ({
       functionTag: chunk.functionTag,
       text: chunk.text,
       meaningVi: chunk.meaningVi,
       exampleSentence: chunk.exampleSentence,
       audioUrl: chunk.audioUrl,
-      acceptedVariations: chunk.acceptedVariations?.join('\n') ?? '',
-      distractorsEn: chunk.distractorsEn?.join('\n') ?? '',
-      distractorsVi: chunk.distractorsVi?.join('\n') ?? ''
+      acceptedVariations: [...(chunk.acceptedVariations ?? [])],
+      distractorsEn: Array.from({ length: 3 }, (_, index) => chunk.distractorsEn?.[index] ?? ''),
+      distractorsVi: Array.from({ length: 3 }, (_, index) => chunk.distractorsVi?.[index] ?? '')
     }))
   };
 }
 
-function lines(value: string): string[] {
-  return value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-}
-
 @Component({
   selector: 'app-admin-editor',
-  imports: [FormsModule, KeyValuePipe, RouterLink],
+  imports: [FormsModule, KeyValuePipe, RouterLink, ScenarioDetailComponent],
   templateUrl: './admin-editor.component.html',
   styleUrl: './admin.scss'
 })
@@ -93,7 +100,7 @@ export class AdminEditorComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly categories = categories;
+  protected readonly categoryNames = signal(categories);
   protected readonly levels = levels;
   protected readonly statuses = statuses;
   protected readonly functions: Record<ChunkInput['functionTag'], string> = {
@@ -111,9 +118,102 @@ export class AdminEditorComponent {
   protected readonly confirmArchive = signal(false);
   protected readonly showDuplicate = signal(false);
   protected duplicateSlug = '';
+  protected step = 0;
+  protected openChunk = 0;
+  protected readonly steps = ['Thông tin chung', 'Cụm từ', 'Yêu cầu roleplay'];
+  protected previewData: LearnerScenario | null = null;
+  protected previewWidth: 'phone' | 'desktop' = 'phone';
+  private draggedChunk: number | null = null;
+  private slugEdited = false;
+
+  protected titleChanged(title: string): void {
+    this.draft.titleVi = title;
+    if (!this.slugEdited) this.draft.slug = lessonSlug(title);
+  }
+
+  protected slugChanged(slug: string): void {
+    this.slugEdited = true;
+    this.draft.slug = slug;
+  }
+
+  protected addEntry(values: string[], limit = 20): void {
+    if (values.length < limit) values.push('');
+    this.dirty.set(true);
+  }
+
+  protected startDrag(event: DragEvent, index: number): void {
+    this.draggedChunk = index;
+    event.dataTransfer?.setData('text/plain', String(index));
+  }
+
+  protected cancelDrag(): void { this.draggedChunk = null; }
+
+  protected completedChecks(): number { return this.checks().filter((check) => check.ok).length; }
+
+  protected dropChunk(event: DragEvent, index: number): void {
+    event.preventDefault();
+    const from = this.draggedChunk;
+    this.draggedChunk = null;
+    if (from === null || from === index) return;
+    const [chunk] = this.draft.chunks.splice(from, 1);
+    this.draft.chunks.splice(index, 0, chunk);
+    this.openChunk = index;
+    this.dirty.set(true);
+  }
+
+  protected checks(): { ok: boolean; label: string; step: number; chunk?: number }[] {
+    const draft = this.draft;
+    return [
+      { ok: [draft.titleVi, draft.titleEn, draft.context, draft.userRole, draft.aiRole].every((s) => !!s?.trim())
+          && clean(draft.goals).length > 0, label: 'Thông tin bài học và mục tiêu', step: 0 },
+      { ok: draft.chunks.length >= 4, label: 'Có ít nhất 4 cụm từ (' + draft.chunks.length + '/6)', step: 1 },
+      ...draft.chunks.map((chunk, index) => {
+        const optionsValid = (values: string[], answer = '') => {
+          const options = new Set(clean(values).map((value) => value.toLowerCase()));
+          return options.size === 3 && !options.has(answer.trim().toLowerCase());
+        };
+        const hasOptions = optionsValid(chunk.distractorsEn, chunk.text) && optionsValid(chunk.distractorsVi, chunk.meaningVi);
+        const complete = [chunk.text, chunk.meaningVi, chunk.exampleSentence].every((s) => !!s?.trim())
+          && clean(chunk.acceptedVariations).length > 0;
+        return { ok: hasOptions && complete, label: 'Cụm từ ' + (index + 1)
+          + (!hasOptions ? ' cần đủ đáp án nhiễu ở hai ngôn ngữ' : complete ? ' đã hoàn thiện' : ' cần thêm nội dung'),
+          step: 1, chunk: index };
+      }),
+      { ok: draft.requirements.some((item) => item.isMandatory) &&
+          draft.requirements.every((item) => !!item.description?.trim()),
+        label: 'Có ít nhất một yêu cầu roleplay bắt buộc và mô tả cho từng yêu cầu', step: 2 }
+    ];
+  }
+
+  protected openPreview(dialog: HTMLDialogElement): void {
+    const draft = this.draft;
+    this.previewData = {
+      id: '', slug: draft.slug, category: draft.category ?? 'DAILY_LIFE', level: draft.level ?? 'A1',
+      titleVi: draft.titleVi || 'Bài học chưa có tiêu đề', titleEn: draft.titleEn || 'Untitled lesson',
+      context: draft.context ?? '', userRole: draft.userRole ?? '', aiRole: draft.aiRole ?? '',
+      goals: clean(draft.goals), estimatedDurationMinutes: draft.estimatedDurationMinutes ?? 10,
+      sortOrder: draft.sortOrder ?? 0, status: 'NOT_STARTED', highestScore: null, xpReward: 100,
+      practicedChunks: [],
+      chunks: draft.chunks.map((chunk, index) => ({
+        ...chunk, id: String(index), sortOrder: index, text: chunk.text ?? '',
+        meaningVi: chunk.meaningVi ?? '', exampleSentence: chunk.exampleSentence ?? '',
+        acceptedVariations: clean(chunk.acceptedVariations), distractorsEn: clean(chunk.distractorsEn),
+        distractorsVi: clean(chunk.distractorsVi)
+      })),
+      requirements: draft.requirements.map((item, index) => ({
+        ...item, id: String(index), sortOrder: index, description: item.description ?? '',
+        type: item.type ?? 'TASK', isMandatory: item.isMandatory ?? true
+      }))
+    };
+    dialog.showModal();
+  }
   protected draft = toForm(null);
 
   constructor() {
+    this.api.listCategories().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (items) => this.categoryNames.set(Object.fromEntries(items.map((item) => [item.code, item.nameVi]))),
+      error: (error: unknown) => this.error.set(scenarioError(error))
+    });
     this.route.paramMap.pipe(
       switchMap((params) => {
         this.loading.set(true);
@@ -135,6 +235,9 @@ export class AdminEditorComponent {
       }),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe((scenario) => {
+      this.step = 0;
+      this.openChunk = 0;
+      this.slugEdited = !!scenario;
       this.setSaved(scenario);
       this.preview.set(!!scenario && scenario.status !== 'DRAFT');
       this.loading.set(false);
@@ -146,13 +249,13 @@ export class AdminEditorComponent {
     const input: ScenarioInput = {
       ...this.draft,
       slug: this.draft.slug.trim(),
-      goals: lines(this.draft.goals),
+      goals: clean(this.draft.goals),
       chunks: this.draft.chunks.map((chunk) => ({
         ...chunk,
         audioUrl: chunk.audioUrl?.trim() || null,
-        acceptedVariations: lines(chunk.acceptedVariations),
-        distractorsEn: lines(chunk.distractorsEn),
-        distractorsVi: lines(chunk.distractorsVi)
+        acceptedVariations: clean(chunk.acceptedVariations),
+        distractorsEn: clean(chunk.distractorsEn),
+        distractorsVi: clean(chunk.distractorsVi)
       }))
     };
     const saved = await this.run(scenario
@@ -191,8 +294,9 @@ export class AdminEditorComponent {
   protected addChunk(): void {
     this.draft.chunks.push({
       functionTag: 'REQUEST', text: '', meaningVi: '', exampleSentence: '',
-      audioUrl: null, acceptedVariations: '', distractorsEn: '', distractorsVi: ''
+      audioUrl: null, acceptedVariations: [], distractorsEn: ['', '', ''], distractorsVi: ['', '', '']
     });
+    this.openChunk = this.draft.chunks.length - 1;
     this.dirty.set(true);
   }
 

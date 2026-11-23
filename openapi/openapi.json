@@ -2601,13 +2601,9 @@
             "schema": {
               "anyOf": [
                 {
-                  "enum": [
-                    "DAILY_LIFE",
-                    "SOCIAL",
-                    "TRAVEL_SHOPPING",
-                    "WORKPLACE"
-                  ],
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 50,
+                  "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$"
                 },
                 {
                   "type": "null"
@@ -3194,6 +3190,179 @@
           }
         }
       }
+    },
+    "/api/v1/admin/scenario-categories": {
+      "get": {
+        "tags": [
+          "Admin Scenario Categories"
+        ],
+        "summary": "List Categories",
+        "operationId": "list_categories_api_v1_admin_scenario_categories_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryDetail"
+                  },
+                  "type": "array",
+                  "title": "Response List Categories Api V1 Admin Scenario Categories Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Admin Scenario Categories"
+        ],
+        "summary": "Create Category",
+        "operationId": "create_category_api_v1_admin_scenario_categories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/scenario-categories/{code}": {
+      "patch": {
+        "tags": [
+          "Admin Scenario Categories"
+        ],
+        "summary": "Rename Category",
+        "operationId": "rename_category_api_v1_admin_scenario_categories__code__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 50,
+              "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
+              "title": "Code"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryName"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Scenario Categories"
+        ],
+        "summary": "Delete Category",
+        "operationId": "delete_category_api_v1_admin_scenario_categories__code__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 50,
+              "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
+              "title": "Code"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3518,12 +3687,8 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "DAILY_LIFE",
-              "SOCIAL",
-              "TRAVEL_SHOPPING",
-              "WORKPLACE"
-            ],
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
             "title": "Category"
           },
           "level": {
@@ -3673,12 +3838,8 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "DAILY_LIFE",
-              "SOCIAL",
-              "TRAVEL_SHOPPING",
-              "WORKPLACE"
-            ],
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
             "title": "Category",
             "default": "DAILY_LIFE"
           },
@@ -3790,12 +3951,27 @@
               }
             ],
             "title": "Nextcursor"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ]
+            },
+            "type": "object",
+            "title": "Counts"
           }
         },
         "type": "object",
         "required": [
           "items",
-          "nextCursor"
+          "nextCursor",
+          "counts"
         ],
         "title": "AdminScenarioPage"
       },
@@ -3843,12 +4019,8 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "DAILY_LIFE",
-              "SOCIAL",
-              "TRAVEL_SHOPPING",
-              "WORKPLACE"
-            ],
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
             "title": "Category"
           },
           "level": {
@@ -3905,12 +4077,8 @@
           },
           "category": {
             "type": "string",
-            "enum": [
-              "DAILY_LIFE",
-              "SOCIAL",
-              "TRAVEL_SHOPPING",
-              "WORKPLACE"
-            ],
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
             "title": "Category",
             "default": "DAILY_LIFE"
           },
@@ -4345,6 +4513,70 @@
           "file"
         ],
         "title": "Body_upload_avatar_api_v1_me_avatar_post"
+      },
+      "CategoryCreate": {
+        "properties": {
+          "nameVi": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Namevi"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nameVi",
+          "code"
+        ],
+        "title": "CategoryCreate"
+      },
+      "CategoryDetail": {
+        "properties": {
+          "nameVi": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Namevi"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
+            "title": "Code"
+          },
+          "lessonCount": {
+            "type": "integer",
+            "title": "Lessoncount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nameVi",
+          "code",
+          "lessonCount"
+        ],
+        "title": "CategoryDetail"
+      },
+      "CategoryName": {
+        "properties": {
+          "nameVi": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Namevi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nameVi"
+        ],
+        "title": "CategoryName"
       },
       "ChangePasswordRequest": {
         "properties": {

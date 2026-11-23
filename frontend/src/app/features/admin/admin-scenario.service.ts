@@ -10,6 +10,7 @@ export type ScenarioSummary = Schemas['AdminScenarioSummary'];
 export type ScenarioStatus = ScenarioSummary['status'];
 export type ScenarioStatusUpdate = Schemas['AdminScenarioStatusUpdate'];
 export type ScenarioFilters = NonNullable<paths['/api/v1/admin/scenarios']['get']['parameters']['query']>;
+export type CategoryDetail = Schemas['CategoryDetail'];
 
 export const categories: Record<ScenarioSummary['category'], string> = {
   DAILY_LIFE: 'Đời sống hằng ngày',
@@ -30,6 +31,23 @@ export const levels = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
 export class AdminScenarioService {
   private readonly http = inject(HttpClient);
   private readonly url = `${environment.apiUrl}/admin/scenarios`;
+  private readonly catalog = `${environment.apiUrl}/admin/scenario-categories`;
+
+  listCategories() {
+    return this.http.get<CategoryDetail[]>(this.catalog);
+  }
+
+  createCategory(body: Schemas['CategoryCreate']) {
+    return this.http.post<CategoryDetail>(this.catalog, body);
+  }
+
+  renameCategory(code: string, nameVi: string) {
+    return this.http.patch<CategoryDetail>(`${this.catalog}/${code}`, { nameVi });
+  }
+
+  deleteCategory(code: string) {
+    return this.http.delete<void>(`${this.catalog}/${code}`);
+  }
 
   list(filters: ScenarioFilters) {
     let params = new HttpParams();
@@ -71,6 +89,12 @@ export function scenarioError(error: unknown): { message: string; fields: Record
     (body?.details?.errors ?? []).map(({ loc, msg }) => [loc.slice(1).join('.'), msg])
   );
   switch (body?.code) {
+    case 'CATEGORY_NOT_FOUND':
+      return { message: 'Nhóm chủ đề không còn khả dụng.', fields };
+    case 'CATEGORY_EXISTS':
+      return { message: 'Mã nhóm này đã có trong thư viện.', fields };
+    case 'CATEGORY_IN_USE':
+      return { message: 'Nhóm này đang có bài học nên chưa thể xóa.', fields };
     case 'SCENARIO_NOT_READY':
       return { message: 'Hãy kiểm tra các trường sau trước khi xuất bản.', fields };
     case 'VALIDATION_ERROR':
