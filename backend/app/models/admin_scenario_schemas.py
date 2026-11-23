@@ -9,7 +9,9 @@ from pydantic import AfterValidator, Field, StringConstraints, field_validator
 from app.models.scenario import ScenarioStatus
 from app.models.scenario_schemas import BaseScenarioSchema
 
-ScenarioCategory = Literal["DAILY_LIFE", "SOCIAL", "TRAVEL_SHOPPING", "WORKPLACE"]
+ScenarioCategory = Annotated[
+    str, StringConstraints(pattern=r"^[A-Z0-9]+(?:_[A-Z0-9]+)*$", max_length=50)
+]
 CefrLevel = Literal["A1", "A2", "B1", "B2", "C1"]
 ChunkFunction = Literal["OPENING", "REQUEST", "CLARIFY", "AGREE_DECLINE", "CLOSING"]
 
@@ -120,6 +122,19 @@ class AdminScenarioDetail(AdminScenarioSummary):
 class AdminScenarioPage(BaseScenarioSchema):
     items: list[AdminScenarioSummary]
     next_cursor: uuid.UUID | None
+    counts: dict[ScenarioStatus, int]
+
+
+class CategoryName(BaseScenarioSchema):
+    name_vi: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+
+
+class CategoryCreate(CategoryName):
+    code: ScenarioCategory
+
+
+class CategoryDetail(CategoryCreate):
+    lesson_count: int
 
 
 class AdminScenarioError(BaseScenarioSchema):

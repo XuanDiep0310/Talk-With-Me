@@ -48,6 +48,7 @@ from app.models.scenario_schemas import (
 )
 from app.models.session import Session, TranscriptSegment
 from app.repositories.scenario import ScenarioRepository
+from app.repositories.scenario_category import ScenarioCategoryRepository
 from app.repositories.session import SessionRepository, TranscriptRepository
 from app.repositories.user import UserRepository
 from app.seeds.scenario_loader import seed_scenarios_if_empty
@@ -56,13 +57,6 @@ from app.services.scoring.service import ScoringService
 from app.services.session_state_machine import SessionState, SessionStateMachine
 
 logger = logging.getLogger(__name__)
-
-CATEGORY_NAMES_VI = {
-    "DAILY_LIFE": "Đời sống hằng ngày",
-    "SOCIAL": "Giao tiếp xã hội",
-    "TRAVEL_SHOPPING": "Du lịch & Mua sắm",
-    "WORKPLACE": "Nơi làm việc",
-}
 
 
 class ScenarioService:
@@ -131,7 +125,8 @@ class ScenarioService:
 
         # Categorized counts
         category_summaries: list[ScenarioCategorySummary] = []
-        for cat_code, cat_name in CATEGORY_NAMES_VI.items():
+        for category_row, _ in await ScenarioCategoryRepository(self.db).list_with_counts():
+            cat_code, cat_name = category_row.code, category_row.name_vi
             cat_total = sum(1 for s in full_catalog if s.category == cat_code)
             cat_completed = sum(
                 1

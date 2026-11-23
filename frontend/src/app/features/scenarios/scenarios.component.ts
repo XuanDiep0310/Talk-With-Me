@@ -132,7 +132,7 @@ const CATEGORY_META: Record<string, { label: string; icon: string }> = {
         >
           Tất cả nhóm
         </button>
-        @for (cat of categoryOptions; track cat.id) {
+        @for (cat of categoryOptions(); track cat.id) {
           <button
             type="button"
             class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer border flex items-center gap-2"
@@ -289,12 +289,8 @@ export class ScenariosComponent implements OnInit {
     { value: 'NOT_STARTED', label: 'Chưa học' },
   ] as const;
 
-  readonly categoryOptions = [
-    { id: 'DAILY_LIFE', label: 'Đời sống hằng ngày' },
-    { id: 'SOCIAL', label: 'Giao tiếp xã hội' },
-    { id: 'TRAVEL_SHOPPING', label: 'Du lịch & Mua sắm' },
-    { id: 'WORKPLACE', label: 'Nơi làm việc' },
-  ] as const;
+  readonly categoryOptions = computed(() => (this.libraryData()?.categories ?? [])
+    .map((category) => ({ id: category.category, label: category.nameVi })));
 
   readonly totalCount = computed(() => this.libraryData()?.totalCount ?? 0);
   readonly completedCount = computed(() => this.libraryData()?.completedCount ?? 0);
@@ -324,7 +320,7 @@ export class ScenariosComponent implements OnInit {
         const meta = CATEGORY_META[s.category] || { label: s.category, icon: 'folder' };
         categoryGroups[s.category] = {
           category: s.category,
-          label: meta.label,
+          label: data.categories.find((item) => item.category === s.category)?.nameVi ?? meta.label,
           completedCount: 0,
           items: [],
         };

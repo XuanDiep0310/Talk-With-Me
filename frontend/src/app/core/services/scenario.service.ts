@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-export type ScenarioCategory = 'DAILY_LIFE' | 'SOCIAL' | 'TRAVEL_SHOPPING' | 'WORKPLACE';
+export type ScenarioCategory = string;
 export type ScenarioStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 export type ChunkFunctionalTag = 'OPENING' | 'REQUEST' | 'CLARIFY' | 'AGREE_DECLINE' | 'CLOSING';
 

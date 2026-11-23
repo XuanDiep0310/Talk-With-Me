@@ -23,10 +23,11 @@ from app.models.scenario import (
     ScenarioStatus,
 )
 from app.repositories.admin_scenario import AdminScenarioRepository
+from app.repositories.scenario_category import ScenarioCategoryRepository
 from app.seeds.scenario_loader import seed_scenarios_if_empty
 
 
-def publish_errors(content: Scenario) -> dict[str, str]:
+def publish_errors(content: Scenario | AdminScenarioInput) -> dict[str, str]:
     errors: dict[str, str] = {}
     for key, value in {
         "titleVi": content.title_vi,
@@ -101,6 +102,7 @@ class AdminScenarioService:
         return AdminScenarioPage(
             items=[AdminScenarioSummary.model_validate(scenario) for scenario in scenarios[:limit]],
             next_cursor=scenarios[limit - 1].id if len(scenarios) > limit else None,
+            counts=await self.repo.status_counts(category, level, q),
         )
 
     async def _get(self, scenario_id: uuid.UUID, *, lock: bool = False) -> Scenario:
@@ -118,6 +120,7 @@ class AdminScenarioService:
     async def create(self, body: AdminScenarioInput, action: str = "CREATE") -> AdminScenarioDetail:
         if action == "CREATE":
             await seed_scenarios_if_empty(self.db)
+        await self._require_category(body.category)
         scenario = Scenario(id=uuid.uuid4(), status="DRAFT", revision=1)
         self._apply_content(scenario, body)
         self.db.add(scenario)
@@ -130,6 +133,7 @@ class AdminScenarioService:
         self._check_revision(scenario, body.revision)
         if scenario.status != "DRAFT":
             raise _conflict("SCENARIO_IMMUTABLE", "Only drafts can be edited.")
+        await self._require_category(body.category)
         self._apply_content(scenario, body)
         scenario.revision += 1
         return await self._commit(scenario, "UPDATE")
@@ -138,6 +142,12 @@ class AdminScenarioService:
         source = await self._get(scenario_id, lock=True)
         content = AdminScenarioInput.model_validate(source).model_copy(update={"slug": slug})
         return await self.create(content, "DUPLICATE")
+
+    async def _require_category(self, category: str) -> None:
+        if not await ScenarioCategoryRepository(self.db).get(category):
+            raise HTTPException(
+                422, detail={"code": "CATEGORY_NOT_FOUND", "message": "Category not found."}
+            )
 
     async def change_status(
         self, scenario_id: uuid.UUID, body: AdminScenarioStatusUpdate
@@ -206,5 +216,11 @@ class AdminScenarioService:
             await self.db.rollback()
             if getattr(exc.orig, "sqlstate", None) == "23505":
                 raise _conflict("SCENARIO_SLUG_CONFLICT", "This slug is already in use.") from exc
+            if (
+                getattr(exc.orig, "sqlstate", None) == "23503"
+                and getattr(getattr(exc.orig, "__cause__", None), "constraint_name", None)
+                == "fk_scenarios_category"
+            ):
+                raise _conflict("CATEGORY_NOT_FOUND", "Category is no longer available.") from exc
             raise
         return response

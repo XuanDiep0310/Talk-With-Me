@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scenario import Scenario, ScenarioChunk, ScenarioRequirement
+from app.models.scenario_category import STARTER_CATEGORIES, ScenarioCategory
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,13 @@ def load_all_scenarios_from_yaml(seeds_dir: Path | None = None) -> list[dict[str
 async def seed_scenarios(db: AsyncSession, seeds_dir: Path | None = None) -> int:
     """Insert missing starter lessons while preserving editorial changes."""
     inserted = 0
+    categories = [
+        {"id": uuid.uuid4(), "code": code, "name_vi": name}
+        for code, name in STARTER_CATEGORIES.items()
+    ]
+    await db.execute(
+        insert(ScenarioCategory).values(categories).on_conflict_do_nothing(index_elements=["code"])
+    )
     for item in load_all_scenarios_from_yaml(seeds_dir):
         slug = item["slug"]
         scenario_id = uuid.uuid5(SCENARIO_NAMESPACE, f"scenario:{slug}")
