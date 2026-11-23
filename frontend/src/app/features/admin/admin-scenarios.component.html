@@ -1,0 +1,177 @@
+<div class="page-heading">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Bài học tình huống</h1>
+    <p class="text-sm text-slate-500 mt-1">Quản lý kịch bản luyện nói, cụm từ và nhiệm vụ hội thoại</p>
+  </div>
+  <div class="actions">
+    <a class="action primary flex items-center gap-2" routerLink="new">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+      <span>Tạo bài học</span>
+    </a>
+  </div>
+</div>
+
+<div class="actions mb-4" role="group" aria-label="Trạng thái bài học">
+  <button class="action pill" type="button" [attr.aria-pressed]="!filters.status" (click)="selectStatus()">
+    Tất cả ({{ total() }})
+  </button>
+  @for (tab of tabs; track tab) {
+    <button class="action pill" type="button" [attr.aria-pressed]="filters.status === tab" (click)="selectStatus(tab)">
+      {{ statuses[tab] }} ({{ counts()[tab] ?? 0 }})
+    </button>
+  }
+</div>
+
+<div class="panel catalog-filters">
+  <label>Tìm bài học
+    <input name="q" type="search" maxlength="255" placeholder="Tên bài hoặc mã đường dẫn..." [(ngModel)]="filters.q" (ngModelChange)="search(300)" />
+  </label>
+  <details class="disclosure" [open]="!!filters.category || !!filters.level">
+    <summary>Lọc theo nhóm hoặc trình độ</summary>
+    <div class="form-grid mt-3">
+      <label>Nhóm
+        <select name="category" [(ngModel)]="filters.category" (ngModelChange)="search()">
+          <option [ngValue]="undefined">Tất cả nhóm</option>
+          @for (item of categoryNames() | keyvalue; track item.key) { <option [value]="item.key">{{ item.value }}</option> }
+        </select>
+      </label>
+      <label>Trình độ CEFR
+        <select name="level" [(ngModel)]="filters.level" (ngModelChange)="search()">
+          <option [ngValue]="undefined">Tất cả trình độ</option>
+          @for (level of levels; track level) { <option [value]="level">{{ level }}</option> }
+        </select>
+      </label>
+    </div>
+  </details>
+</div>
+
+@if (error()) {
+  <div class="feedback error" role="alert">
+    <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    <p>{{ error() }}</p>
+  </div>
+}
+@if (notice()) {
+  <div class="feedback" role="status">
+    <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+    <span>{{ notice() }}</span>
+  </div>
+}
+
+<section class="panel results" aria-label="Danh sách bài học" [attr.aria-busy]="loading()">
+  @if (rows().length) {
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Bảng bài học">
+      <table class="catalog-table" role="table">
+        <thead role="rowgroup"><tr role="row">
+          <th scope="col" role="columnheader">Bài học</th>
+          <th scope="col" role="columnheader">Nhóm</th>
+          <th scope="col" role="columnheader">CEFR</th>
+          <th scope="col" role="columnheader">Trạng thái</th>
+          <th scope="col" role="columnheader">Cập nhật</th>
+          <th scope="col" role="columnheader">Thao tác</th>
+        </tr></thead>
+        <tbody role="rowgroup">
+          @for (row of rows(); track row.id) {
+            <tr role="row">
+              <th scope="row" role="rowheader" class="catalog-title">
+                <a class="text-link text-base font-semibold" [routerLink]="[row.id]">{{ row.titleVi || row.titleEn || row.slug }}</a>
+                @if (row.titleVi && row.titleEn) { <span class="secondary italic" lang="en">{{ row.titleEn }}</span> }
+              </th>
+              <td role="cell">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700">
+                  {{ categoryNames()[row.category] || row.category }}
+                </span>
+              </td>
+              <td role="cell">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                  {{ row.level }}
+                </span>
+              </td>
+              <td role="cell"><span class="status" [attr.data-status]="row.status">{{ statuses[row.status] }}</span></td>
+              <td role="cell" class="whitespace-nowrap text-xs text-slate-500">{{ formatDate(row.updatedAt) }}</td>
+              <td role="cell" class="catalog-actions">
+                <div class="actions">
+                  <button class="action icon-action" type="button" [disabled]="!!actionId()" (click)="openSummary(quickView, row)">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                    Xem nhanh
+                  </button>
+                  <button class="action icon-action" type="button" [disabled]="!!actionId()" (click)="duplicate(row)">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                    Nhân bản
+                  </button>
+                  @if (row.status === 'DRAFT') {
+                    <a class="action primary" [routerLink]="[row.id]" [queryParams]="{review: '1'}">Kiểm tra để xuất bản</a>
+                  } @else {
+                    <button class="action icon-action" type="button" role="switch" [attr.aria-checked]="row.status === 'PUBLISHED'"
+                      [attr.aria-label]="'Hiển thị ' + (row.titleVi || row.slug) + ' trong thư viện'"
+                      [disabled]="!!actionId()" (click)="changeStatus(row)">
+                      <span class="switch-track" aria-hidden="true"></span>
+                      <span>{{ row.status === 'PUBLISHED' ? 'Đang hiển thị' : 'Đang ẩn' }}</span>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (!loading() && !error()) {
+    <div class="p-8 text-center text-slate-500">
+      <svg class="w-12 h-12 mx-auto mb-3 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+      <p class="font-medium">Không có bài học phù hợp.</p>
+      <p class="text-xs text-slate-400 mt-1">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc.</p>
+    </div>
+  }
+  @if (loading()) {
+    <div class="p-6 text-center text-slate-500 flex items-center justify-center gap-2" role="status">
+      <svg class="w-4 h-4 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+      <span>Đang tải bài học…</span>
+    </div>
+  }
+  @if (cursor(); as next) {
+    <div class="p-4 border-t border-slate-100 text-center">
+      <button class="action" type="button" (click)="loadMore(next)" [disabled]="loading()">Tải thêm</button>
+    </div>
+  }
+</section>
+
+<dialog #quickView class="admin-dialog" aria-labelledby="quick-view-title">
+  @if (summary(); as lesson) {
+    <div class="section-heading border-b border-slate-100 pb-3 mb-4">
+      <div>
+        <h2 id="quick-view-title" class="text-lg font-bold text-slate-900">{{ lesson.titleVi || lesson.titleEn || lesson.slug }}</h2>
+        @if (lesson.titleVi && lesson.titleEn) { <p class="text-sm text-slate-500 italic mt-0.5" lang="en">{{ lesson.titleEn }}</p> }
+      </div>
+      <form method="dialog"><button class="action">Đóng</button></form>
+    </div>
+    <div class="space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="status" [attr.data-status]="lesson.status">{{ statuses[lesson.status] }}</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700">{{ lesson.level }}</span>
+        <span class="text-xs text-slate-500">{{ categoryNames()[lesson.category] || lesson.category }}</span>
+      </div>
+      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
+        <h4 class="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Bối cảnh</h4>
+        <p class="text-sm text-slate-800">{{ lesson.context }}</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
+          <span class="text-xs text-slate-500">Vai người học</span>
+          <p class="text-sm font-semibold text-slate-800">{{ lesson.userRole }}</p>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200/80">
+          <span class="text-xs text-slate-500">Vai AI</span>
+          <p class="text-sm font-semibold text-slate-800">{{ lesson.aiRole }}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 text-xs text-slate-600 pt-2 border-t border-slate-100">
+        <span class="font-semibold text-slate-800">{{ lesson.chunks.length }} cụm từ</span>
+        <span>·</span>
+        <span class="font-semibold text-slate-800">{{ lesson.requirements.length }} yêu cầu roleplay</span>
+        <span>·</span>
+        <span>{{ lesson.estimatedDurationMinutes }} phút</span>
+      </div>
+    </div>
+  }
+</dialog>

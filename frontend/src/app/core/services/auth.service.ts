@@ -5,6 +5,7 @@ import { Observable, Subject, throwError } from 'rxjs';
 import { catchError, switchMap, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AppStateService } from './app-state.service';
+import { adminReturnUrl } from '../utils/admin-route';
 
 // ── Request / Response interfaces ──────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ export interface TokenResponse {
 
 export interface MeResponse {
   id: string;
+  role?: 'LEARNER' | 'ADMIN';
   email: string;
   fullName: string;
   avatarUrl: string | null;
@@ -69,6 +71,8 @@ export function mapApiError(err: unknown): string {
         return 'Email hoặc mật khẩu không đúng.';
       case 'ACCOUNT_LOCKED':
         return 'Tài khoản tạm khóa do nhập sai quá nhiều lần.';
+      case 'ACCOUNT_INACTIVE':
+        return 'Tài khoản đã bị khóa.';
       case 'EMAIL_ALREADY_EXISTS':
         return 'Email này đã có tài khoản.';
       case 'TERMS_NOT_ACCEPTED':
@@ -143,7 +147,7 @@ export class AuthService {
     if (tokens) {
       this.storeTokens(tokens);
       await this.loadCurrentUser();
-      await this.router.navigateByUrl('/dashboard');
+      await this.navigateAfterLogin();
     }
   }
 
@@ -165,8 +169,15 @@ export class AuthService {
     if (tokens) {
       this.storeTokens(tokens);
       await this.loadCurrentUser();
-      await this.router.navigateByUrl('/dashboard');
+      await this.navigateAfterLogin();
     }
+  }
+
+  private async navigateAfterLogin(): Promise<void> {
+    const target = this.currentUser()?.role === 'ADMIN'
+      ? adminReturnUrl(this.router.parseUrl(this.router.url).queryParams['returnUrl'])
+      : null;
+    await this.router.navigateByUrl(target ?? '/dashboard');
   }
 
   async logout(): Promise<void> {

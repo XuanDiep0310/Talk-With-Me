@@ -112,3 +112,7 @@ User B (Angular) ◄── WebSocket Broadcast ◄── FastAPI Worker 2 ◄─
 1. **Authentication**: JWT (JSON Web Tokens) được truyền qua Header `Authorization: Bearer <token>` đối với REST API và qua Query Parameter `ws://localhost:8000/ws/... ?token=<token>` đối với WebSocket.
 2. **CORS & Rate Limiting**: Cấu hình CORS mở đúng origin của Angular client; sử dụng `slowapi` trong FastAPI để giới hạn số lượng request tránh làm quá tải API.
 3. **API Key Isolation**: Mọi API Key thứ 3 (Gemini, Groq) đều nằm an toàn tại Backend `.env`, Client không bao giờ trực tiếp lộ key.
+
+### Quyền quản trị nội dung
+
+Angular tải khu vực `/admin` theo route riêng sau khi kiểm tra vai trò từ `/api/v1/me`. FastAPI xác thực Bearer token và kiểm tra `users.role` trong PostgreSQL trước mỗi thao tác tại `/api/v1/admin/scenarios`. Thay đổi nội dung đi qua service và repository. Các lần lưu, xuất bản, ẩn và khôi phục được tuần tự hóa theo từng bài và ghi cùng transaction với nhật ký biên tập. Xem [quản trị bài học tình huống](admin-scenarios.md).

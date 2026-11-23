@@ -8,7 +8,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.core.config import Settings
-from app.models.auth import RefreshToken
+from app.models.auth import RefreshToken, User
 from app.services.auth import AuthService
 
 
@@ -122,6 +122,9 @@ async def test_refresh_reuse_detection_revokes_chain(auth_settings: Settings) ->
 
     with (
         patch.object(service._auth_repo, "get_refresh_token_by_hash", return_value=revoked_token),
+        patch.object(
+            service._user_repo, "lock_for_auth", return_value=User(id=user_id, is_active=True)
+        ),
         patch.object(
             service._auth_repo, "revoke_all_user_tokens", new_callable=AsyncMock
         ) as mock_revoke_all,

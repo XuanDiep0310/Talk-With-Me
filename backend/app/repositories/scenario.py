@@ -26,6 +26,16 @@ class ScenarioRepository:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
+    async def lock_published(self, scenario_id: uuid.UUID) -> Scenario | None:
+        stmt = (
+            select(Scenario)
+            .where(Scenario.id == scenario_id, Scenario.status == "PUBLISHED")
+            .options(selectinload(Scenario.chunks), selectinload(Scenario.requirements))
+            .with_for_update(read=True)
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def list_scenarios(
         self,
         category: str | None = None,
@@ -34,6 +44,7 @@ class ScenarioRepository:
     ) -> Sequence[Scenario]:
         stmt = (
             select(Scenario)
+            .where(Scenario.status == "PUBLISHED")
             .options(
                 selectinload(Scenario.requirements),
                 selectinload(Scenario.chunks),
@@ -81,11 +92,6 @@ class ScenarioRepository:
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
-
-    async def get_chunk_by_id(self, chunk_id: uuid.UUID) -> ScenarioChunk | None:
-        stmt = select(ScenarioChunk).where(ScenarioChunk.id == chunk_id)
-        res = await self.db.execute(stmt)
-        return res.scalar_one_or_none()
 
     async def get_user_progress(
         self, user_id: uuid.UUID, scenario_id: uuid.UUID

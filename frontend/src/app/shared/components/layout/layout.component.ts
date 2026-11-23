@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { AppStateService } from '../../../core/services/app-state.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { GamificationService } from '../../../core/services/gamification.service';
@@ -16,7 +16,7 @@ interface NavItem {
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-screen overflow-hidden bg-slate-50">
@@ -116,6 +116,11 @@ interface NavItem {
               </span>
               <span class="font-medium text-sm">{{ item.label }}</span>
             </button>
+          }
+          @if (authService.currentUser()?.role === 'ADMIN') {
+            <a routerLink="/admin" class="sidebar-link block px-4 py-3 font-medium text-sm">
+              Quản trị bài học
+            </a>
           }
         </nav>
 

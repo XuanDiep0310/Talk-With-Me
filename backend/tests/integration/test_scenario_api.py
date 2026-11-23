@@ -12,14 +12,23 @@ Covers:
 """
 
 import asyncio
+import os
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
+from schemathesis import openapi
+from schemathesis.checks import (
+    content_type_conformance,
+    response_schema_conformance,
+    status_code_conformance,
+)
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -27,15 +36,20 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.schema import CreateSchema, DropSchema
 
 from app.api.deps import get_db, get_redis
 from app.core.config import Settings, get_settings
+from app.core.providers.llm_provider import FakeLlmProvider, get_llm_provider
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.models import ChunkBank, Scenario  # noqa: F401
-from app.models.auth import User, UserProfile
+from app.models.auth import AccountAdminAudit, User, UserProfile
 from app.models.base import Base
+from app.models.scenario import ScenarioAdminAudit, UserScenarioProgress
 from app.seeds.scenario_loader import load_all_scenarios_from_yaml, seed_scenarios
+
+ADMIN_SCENARIOS = "/api/v1/admin/scenarios"
 
 
 class FakeRedis:
@@ -60,29 +74,38 @@ class FakeRedis:
 
 
 @pytest_asyncio.fixture
-async def scenario_db() -> AsyncGenerator[async_sessionmaker[AsyncSession], None]:
-    engine: AsyncEngine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
-        future=True,
-        echo=False,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+async def scenario_db(
+    request: pytest.FixtureRequest, test_settings: Settings
+) -> AsyncGenerator[async_sessionmaker[AsyncSession], None]:
+    schema = None
+    if getattr(request, "param", None) == "postgresql":
+        if os.getenv("RUN_INTEGRATION_TESTS") != "true":
+            pytest.skip("PostgreSQL integration tests are disabled")
+        schema = f"scenario_test_{uuid.uuid4().hex}"
+        engine: AsyncEngine = create_async_engine(
+            test_settings.DATABASE_URL,
+            connect_args={"server_settings": {"search_path": schema}},
+        )
+    else:
+        engine = create_async_engine(
+            "sqlite+aiosqlite:///:memory:",
+            poolclass=StaticPool,
+            connect_args={"check_same_thread": False},
+        )
 
-    session_factory = async_sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autoflush=False,
-    )
-
-    yield session_factory
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
+    try:
+        async with engine.begin() as conn:
+            if schema:
+                await conn.execute(CreateSchema(schema))
+            await conn.run_sync(Base.metadata.create_all)
+        yield async_sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
+    finally:
+        async with engine.begin() as conn:
+            if schema:
+                await conn.execute(DropSchema(schema, cascade=True, if_exists=True))
+            else:
+                await conn.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
 
 
 @pytest_asyncio.fixture
@@ -180,6 +203,400 @@ async def scenario_test_env(
         }
 
     app.dependency_overrides.clear()
+
+
+async def grant_scenario_admin(env: dict) -> dict[str, str]:
+    async with env["db_factory"].begin() as db:
+        user = await db.get(User, env["user_id"])
+        user.role = "ADMIN"
+    return {"Authorization": f"Bearer {env['token']}", "X-Trace-Id": "admin-scenario-test"}
+
+
+@pytest.mark.integration
+async def test_accounts_can_only_be_changed_by_another_admin(scenario_test_env: dict) -> None:
+    env = scenario_test_env
+    client: AsyncClient = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    target = f"/api/v1/admin/users/{env['other_user_id']}"
+
+    assert (await client.get("/api/v1/admin/users", headers=learner)).status_code == 403
+    page = await client.get("/api/v1/admin/users", headers=admin, params={"q": "other@"})
+    assert page.status_code == 200
+    assert page.json()["items"][0]["cefrLevel"] == "A2"
+    assert page.json()["items"][0]["completedSessions"] == 0
+
+    own = await client.patch(
+        f"/api/v1/admin/users/{env['user_id']}", json={"isActive": False}, headers=admin
+    )
+    assert own.status_code == 409
+    assert (await client.patch(target, json={"role": "ADMIN"}, headers=admin)).status_code == 204
+    assert (await client.get("/api/v1/admin/overview", headers=learner)).json()[
+        "activeAccounts"
+    ] == 2
+    assert (await client.patch(target, json={"role": "LEARNER"}, headers=admin)).status_code == 204
+    assert (await client.get("/api/v1/admin/users", headers=learner)).status_code == 403
+
+    credentials = {
+        "email": "other@talkwithme.vn",
+        "password": "Pass1234",
+        "rememberMe": False,
+    }
+    previous = await client.post("/api/v1/auth/login", json=credentials)
+    assert previous.status_code == 200
+    previous_refresh = {"refreshToken": previous.json()["refreshToken"]}
+    assert (await client.patch(target, json={"isActive": False}, headers=admin)).status_code == 204
+    assert (await client.post("/api/v1/auth/refresh", json=previous_refresh)).status_code == 401
+    assert (await client.get("/api/v1/me", headers=learner)).status_code == 401
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "other@talkwithme.vn",
+            "password": "Pass1234",
+            "rememberMe": False,
+        },
+    )
+    assert login.status_code == 403
+    assert (await client.patch(target, json={"isActive": True}, headers=admin)).status_code == 204
+    assert (await client.post("/api/v1/auth/refresh", json=previous_refresh)).status_code == 401
+    assert (await client.get("/api/v1/me", headers=learner)).status_code == 401
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "other@talkwithme.vn",
+            "password": "Pass1234",
+            "rememberMe": False,
+        },
+    )
+    assert login.status_code == 200
+    new_headers = {"Authorization": "Bearer " + login.json()["accessToken"]}
+    assert (await client.get("/api/v1/me", headers=new_headers)).status_code == 200
+    async with env["db_factory"]() as db:
+        audit = list(await db.scalars(select(AccountAdminAudit)))
+        assert len(audit) == 4
+        assert all(
+            row.actor_id == env["user_id"] and row.target_id == env["other_user_id"]
+            for row in audit
+        )
+
+
+@pytest.mark.integration
+async def test_admin_catalog_tracks_renames_counts_and_referenced_categories(
+    scenario_test_env: dict,
+) -> None:
+    env = scenario_test_env
+    client: AsyncClient = env["client"]
+    admin = await grant_scenario_admin(env)
+    path = "/api/v1/admin/scenario-categories"
+    assert (
+        await client.post(path, json={"code": "INTERVIEWS", "nameVi": "Phỏng vấn"}, headers=admin)
+    ).status_code == 201
+    assert (
+        await client.post(path, json={"code": "EMPTY", "nameVi": "Nhóm trống"}, headers=admin)
+    ).status_code == 201
+    assert (await client.delete(path + "/EMPTY", headers=admin)).status_code == 204
+    assert (
+        await client.post(
+            ADMIN_SCENARIOS,
+            json={"slug": "interview-practice", "category": "INTERVIEWS"},
+            headers=admin,
+        )
+    ).status_code == 201
+    assert (await client.delete(path + "/INTERVIEWS", headers=admin)).status_code == 409
+    renamed = await client.patch(
+        path + "/INTERVIEWS", json={"nameVi": "Phỏng vấn việc làm"}, headers=admin
+    )
+    assert renamed.json()["lessonCount"] == 1
+    library = await client.get("/api/v1/scenarios", headers=admin)
+    assert any(item["nameVi"] == "Phỏng vấn việc làm" for item in library.json()["categories"])
+    page = await client.get(ADMIN_SCENARIOS, params={"status": "PUBLISHED"}, headers=admin)
+    assert page.json()["counts"] == {"PUBLISHED": 20, "DRAFT": 1, "ARCHIVED": 0}
+
+
+@pytest.mark.integration
+async def test_ai_suggestions_are_validated_without_creating_a_draft(
+    scenario_test_env: dict,
+) -> None:
+    env = scenario_test_env
+    client: AsyncClient = env["client"]
+    admin = await grant_scenario_admin(env)
+    app.dependency_overrides[get_llm_provider] = FakeLlmProvider
+    payload = {"topic": "Đặt phòng khách sạn", "level": "B1", "chunkCount": 5}
+    assert (await client.post(ADMIN_SCENARIOS + "/generate", json=payload)).status_code == 401
+    result = await client.post(ADMIN_SCENARIOS + "/generate", headers=admin, json=payload)
+    assert result.status_code == 200, result.text
+    draft = result.json()
+    assert draft["slug"] == "dat-phong-khach-san"
+    assert len(draft["chunks"]) == 5 and len(draft["requirements"]) == 2
+    assert (await client.get(ADMIN_SCENARIOS, headers=admin)).json()["counts"]["DRAFT"] == 0
+    options = await client.post(
+        ADMIN_SCENARIOS + "/generate-distractors",
+        headers=admin,
+        json={
+            "text": "Can I book here?",
+            "meaningVi": "Tôi đặt phòng ở đây được không?",
+            "level": "B1",
+        },
+    )
+    assert options.status_code == 200, options.text
+    assert len(options.json()["distractorsEn"]) == len(options.json()["distractorsVi"]) == 3
+
+    class BrokenProvider(FakeLlmProvider):
+        async def generate_editor_json(self, instruction: str, data: dict[str, object]) -> object:  # noqa: ARG002
+            return {"chunks": []}
+
+    app.dependency_overrides[get_llm_provider] = BrokenProvider
+    rejected = await client.post(ADMIN_SCENARIOS + "/generate", headers=admin, json=payload)
+    assert rejected.status_code == 502
+    assert rejected.json()["code"] == "EDITOR_AI_UNAVAILABLE"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_admin_responses_match_the_exported_openapi(scenario_test_env: dict) -> None:
+    client: AsyncClient = scenario_test_env["client"]
+    admin = await grant_scenario_admin(scenario_test_env)
+    schema = openapi.from_path(Path(__file__).resolve().parents[3] / "openapi/openapi.json")
+    checks = [status_code_conformance, content_type_conformance, response_schema_conformance]
+
+    created = await client.post(ADMIN_SCENARIOS, headers=admin, json={"slug": "contract-lesson"})
+    assert created.status_code == 201, created.text
+    schema[ADMIN_SCENARIOS]["POST"].Case().validate_response(created, checks=checks)
+    scenario_id = created.json()["id"]
+    for method, suffix, status_code, payload, headers in [
+        ("GET", "", 200, None, admin),
+        ("GET", "", 401, None, {}),
+        ("GET", "/{id}", 200, None, admin),
+        ("PUT", "/{id}", 200, {"slug": "contract-lesson", "revision": 1}, admin),
+        ("PUT", "/{id}", 409, {"slug": "contract-lesson", "revision": 1}, admin),
+        ("PATCH", "/{id}/status", 422, {"status": "PUBLISHED", "revision": 2}, admin),
+        ("POST", "/{id}/duplicate", 201, {"slug": "contract-copy"}, admin),
+    ]:
+        path = ADMIN_SCENARIOS + suffix
+        response = await client.request(
+            method, path.format(id=scenario_id), json=payload, headers=headers
+        )
+        assert response.status_code == status_code, response.text
+        operation = schema[path][method]
+        case = operation.Case(path_parameters={"id": scenario_id} if suffix else None)
+        case.validate_response(response, checks=checks)
+
+    for path in (
+        "/api/v1/admin/users",
+        "/api/v1/admin/overview",
+        "/api/v1/admin/scenario-categories",
+    ):
+        response = await client.get(path, headers=admin)
+        assert response.status_code == 200, response.text
+        schema[path]["GET"].Case().validate_response(response, checks=checks)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_admin_routes_check_database_role_on_every_request(scenario_test_env: dict) -> None:
+    env = scenario_test_env
+    client: AsyncClient = env["client"]
+    learner = {"Authorization": f"Bearer {env['token']}"}
+    scenario_id = uuid.uuid4()
+    path = f"{ADMIN_SCENARIOS}/{scenario_id}"
+
+    for method, url, body in [
+        ("GET", ADMIN_SCENARIOS, None),
+        ("POST", ADMIN_SCENARIOS, {"slug": "new-lesson"}),
+        ("GET", path, None),
+        ("PUT", path, {"slug": "new-lesson", "revision": 1}),
+        ("PATCH", f"{path}/status", {"status": "PUBLISHED", "revision": 1}),
+        ("POST", f"{path}/duplicate", {"slug": "new-copy"}),
+    ]:
+        assert (await client.request(method, url, json=body)).status_code == 401
+        response = await client.request(method, url, json=body, headers=learner)
+        assert response.status_code == 403
+        assert response.json()["code"] == "ADMIN_REQUIRED"
+
+    admin = await grant_scenario_admin(env)
+    assert (await client.get("/api/v1/me", headers=admin)).json()["role"] == "ADMIN"
+    assert (await client.get(ADMIN_SCENARIOS, headers=admin)).status_code == 200
+    async with env["db_factory"].begin() as db:
+        user = await db.get(User, env["user_id"])
+        user.role = "LEARNER"
+    assert (await client.get(ADMIN_SCENARIOS, headers=admin)).status_code == 403
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_admin_replaces_lesson_without_breaking_existing_roleplay(
+    scenario_test_env: dict,
+) -> None:
+    env = scenario_test_env
+    client: AsyncClient = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+
+    response = await client.post(ADMIN_SCENARIOS, headers=admin, json={"slug": "incomplete"})
+    assert response.status_code == 201, response.text
+    draft = response.json()
+    incomplete = await client.patch(
+        f"{ADMIN_SCENARIOS}/{draft['id']}/status",
+        headers=admin,
+        json={"status": "PUBLISHED", "revision": draft["revision"]},
+    )
+    assert incomplete.status_code == 422
+    assert "titleVi" in incomplete.json()["details"]["fields"]
+    assert (await client.get("/api/v1/scenarios/incomplete", headers=learner)).status_code == 404
+
+    source = (await client.get("/api/v1/scenarios/supermarket-shopping", headers=learner)).json()
+    source_id = source["id"]
+    source_admin = (await client.get(f"{ADMIN_SCENARIOS}/{source_id}", headers=admin)).json()
+    copied = await client.post(
+        f"{ADMIN_SCENARIOS}/{source_id}/duplicate", headers=admin, json={"slug": "new-market"}
+    )
+    assert copied.status_code == 201, copied.text
+    copy = copied.json()
+    assert copy["status"] == "DRAFT"
+    assert copy["id"] != source_id
+    assert copy["chunks"][0]["id"] != source["chunks"][0]["id"]
+    assert copy["requirements"][0]["id"] != source["requirements"][0]["id"]
+    assert copy["chunks"][0]["distractorsEn"] == source_admin["chunks"][0]["distractorsEn"]
+
+    copy_path = f"{ADMIN_SCENARIOS}/{copy['id']}"
+    updated = await client.put(
+        copy_path, headers=admin, json={**copy, "titleVi": "Mua sắm: bài mới"}
+    )
+    assert updated.status_code == 200, updated.text
+    publish = await client.patch(
+        f"{copy_path}/status",
+        headers=admin,
+        json={"status": "PUBLISHED", "revision": updated.json()["revision"]},
+    )
+    assert publish.status_code == 200, publish.text
+    immutable = await client.put(copy_path, headers=admin, json=publish.json())
+    assert immutable.status_code == 409
+    assert immutable.json()["code"] == "SCENARIO_IMMUTABLE"
+
+    started = await client.post(f"/api/v1/scenarios/{source_id}/roleplays", headers=learner)
+    assert started.status_code == 201, started.text
+    session_id = started.json()["sessionId"]
+    transcript = f"/api/v1/roleplays/{session_id}/transcript"
+    first_turn = {
+        "id": str(uuid.uuid4()),
+        "speaker": "USER",
+        "text": "Excuse me, where can I find the fresh organic produce section?",
+        "startMs": 1000,
+        "endMs": 8000,
+        "confidence": 0.95,
+        "isFinal": True,
+    }
+    assert (await client.post(transcript, headers=learner, json=first_turn)).status_code == 201
+    archived = await client.patch(
+        f"{ADMIN_SCENARIOS}/{source_id}/status",
+        headers=admin,
+        json={"status": "ARCHIVED", "revision": source_admin["revision"]},
+    )
+    assert archived.status_code == 200, archived.text
+    for path in [source_id, "supermarket-shopping", f"{source_id}/chunks"]:
+        hidden = await client.get(f"/api/v1/scenarios/{path}", headers=learner)
+        assert hidden.status_code == 404
+    drill = await client.post(
+        f"/api/v1/scenarios/{source_id}/drills",
+        headers=learner,
+        json={"chunkId": source["chunks"][0]["id"], "isSkipped": False},
+    )
+    assert drill.status_code == 404
+    assert (
+        await client.post(f"/api/v1/scenarios/{source_id}/roleplays", headers=learner)
+    ).status_code == 404
+
+    turn = await client.post(
+        transcript,
+        headers=learner,
+        json={
+            **first_turn,
+            "id": str(uuid.uuid4()),
+            "text": "How much is this bottle of olive oil? Do you accept credit cards?",
+            "startMs": 9000,
+            "endMs": 16000,
+        },
+    )
+    assert turn.status_code == 201, turn.text
+    assert (
+        await client.post(f"/api/v1/roleplays/{session_id}/end", headers=learner)
+    ).status_code == 200
+    evaluation = await client.get(f"/api/v1/roleplays/{session_id}/evaluation", headers=learner)
+    assert evaluation.status_code == 200, evaluation.text
+    assert evaluation.json()["scenarioId"] == source_id
+    assert (await client.get("/api/v1/me/chunk-bank", headers=learner)).json()["totalCount"] >= 1
+    history = await client.get("/api/v1/progress/history", headers=learner)
+    assert history.status_code == 200, history.text
+    assert session_id in history.text
+
+    catalog = (await client.get("/api/v1/scenarios", headers=learner)).json()
+    assert catalog["totalCount"] == 20
+    assert catalog["completedCount"] == 0
+    replacement = next(row for row in catalog["scenarios"] if row["id"] == copy["id"])
+    assert replacement["status"] == "NOT_STARTED"
+    assert not any(row["id"] == source_id for row in catalog["scenarios"])
+    async with env["db_factory"]() as db:
+        assert await seed_scenarios(db) == 0
+        original = await db.get(Scenario, uuid.UUID(source_id))
+        assert original.status == "ARCHIVED"
+        assert await db.scalar(
+            select(UserScenarioProgress.id).where(
+                UserScenarioProgress.user_id == env["other_user_id"],
+                UserScenarioProgress.scenario_id == uuid.UUID(source_id),
+            )
+        )
+        audit = await db.scalar(
+            select(ScenarioAdminAudit).where(
+                ScenarioAdminAudit.scenario_id == uuid.UUID(source_id),
+                ScenarioAdminAudit.action == "ARCHIVE",
+            )
+        )
+        assert audit.actor_id == env["user_id"]
+        assert audit.trace_id == "admin-scenario-test"
+
+    restored = await client.patch(
+        f"{ADMIN_SCENARIOS}/{source_id}/status",
+        headers=admin,
+        json={"status": "PUBLISHED", "revision": archived.json()["revision"]},
+    )
+    assert restored.status_code == 200, restored.text
+    assert (await client.get(f"/api/v1/scenarios/{source_id}", headers=learner)).status_code == 200
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_admin_prevents_concurrent_overwrites_and_duplicate_slugs(
+    scenario_test_env: dict,
+) -> None:
+    client: AsyncClient = scenario_test_env["client"]
+    headers = await grant_scenario_admin(scenario_test_env)
+    created = await client.post(ADMIN_SCENARIOS, headers=headers, json={"slug": "concurrent"})
+    assert created.status_code == 201, created.text
+    draft = created.json()
+    path = f"{ADMIN_SCENARIOS}/{draft['id']}"
+    responses = await asyncio.gather(
+        client.put(path, headers=headers, json={**draft, "titleEn": "First edit"}),
+        client.put(path, headers=headers, json={**draft, "titleEn": "Second edit"}),
+    )
+    assert sorted(response.status_code for response in responses) == [200, 409]
+    failed = next(response for response in responses if response.status_code == 409)
+    assert failed.json()["code"] == "SCENARIO_REVISION_CONFLICT"
+    duplicated = await client.post(ADMIN_SCENARIOS, headers=headers, json={"slug": draft["slug"]})
+    assert duplicated.status_code == 409
+    assert duplicated.json()["code"] == "SCENARIO_SLUG_CONFLICT"
+
+    page = await client.get(ADMIN_SCENARIOS, headers=headers, params={"limit": 1})
+    assert page.status_code == 200
+    first = page.json()
+    second = await client.get(
+        ADMIN_SCENARIOS, headers=headers, params={"limit": 1, "cursor": first["nextCursor"]}
+    )
+    assert second.json()["items"][0]["id"] != first["items"][0]["id"]
+    filtered = await client.get(
+        ADMIN_SCENARIOS, headers=headers, params={"q": "concurrent", "status": "DRAFT"}
+    )
+    assert [row["id"] for row in filtered.json()["items"]] == [draft["id"]]
 
 
 @pytest.mark.asyncio
