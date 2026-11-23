@@ -1,8 +1,12 @@
 <a class="text-link inline-block mb-4" routerLink="/admin/scenarios">Về danh sách bài học</a>
 
-<div class="page-heading">
-  <h1>{{ saved()?.titleVi || saved()?.titleEn || saved()?.slug || 'Tạo bài học' }}</h1>
-  <button class="action mb-4" type="button" (click)="openPreview(learnerPreview)">Xem trước giao diện người học</button>
+<div class="editor-heading">
+  <div class="actions">
+    <h1>{{ draft.titleVi || draft.titleEn || 'Tạo bài học' }}</h1>
+    @if (saved(); as current) {
+      <span class="status" [attr.data-status]="current.status">{{ statuses[current.status] }}</span>
+    }
+  </div>
   <dialog #learnerPreview class="admin-dialog" aria-labelledby="learner-preview-title" (close)="previewData = null">
     <header class="section-heading">
       <h2 id="learner-preview-title">Xem trước giao diện người học</h2>
@@ -18,20 +22,31 @@
       </div>
     }
   </dialog>
-  @if (saved(); as current) {
-    <span class="status" [attr.data-status]="current.status">{{ statuses[current.status] }}</span>
-  }
 </div>
 
 @if (notice()) { <p class="feedback" role="status">{{ notice() }}</p> }
 @if (error(); as issue) {
   <div class="feedback error" role="alert">
     <p>{{ issue.message }}</p>
-    <ul class="mt-1 list-disc ps-5">
-      @for (field of issue.fields | keyvalue; track field.key) {
-        <li><strong>{{ fieldLabel(field.key) }}</strong> · {{ fieldMessage(field.value) }}</li>
+    @if (issue.fields | keyvalue: null; as fields) {
+      @if (fields[0]; as first) {
+        <button class="check-link" type="button" (click)="fixField(first.key)">
+          <strong>{{ fieldLabel(first.key) }}</strong> · {{ fieldMessage(first.value) }}
+        </button>
       }
-    </ul>
+      @if (fields.length > 1) {
+        <details>
+          <summary>Xem {{ fields.length - 1 }} mục còn lại</summary>
+          <ul class="ps-4">
+            @for (field of fields.slice(1); track field.key) {
+              <li><button class="check-link" type="button" (click)="fixField(field.key)">
+                <strong>{{ fieldLabel(field.key) }}</strong> · {{ fieldMessage(field.value) }}
+              </button></li>
+            }
+          </ul>
+        </details>
+      }
+    }
   </div>
 }
 
@@ -39,20 +54,18 @@
   <p role="status">Đang tải bài học…</p>
 } @else if (!loadFailed()) {
   @if (saved(); as current) {
-    <div class="panel actions">
-      @if (current.status === 'DRAFT') {
-        <button class="action primary" type="button" (click)="changeStatus('PUBLISHED')" [disabled]="busy() || aiBusy() || dirty()">
-          Xuất bản
-        </button>
-        @if (dirty()) { <span class="secondary">Lưu thay đổi trước khi xuất bản.</span> }
-      } @else if (current.status === 'PUBLISHED') {
-        <button class="action" type="button" (click)="confirmArchive.set(true)" [disabled]="busy()">Ẩn bài học</button>
-      } @else {
-        <button class="action primary" type="button" (click)="changeStatus('PUBLISHED')" [disabled]="busy()">Khôi phục bài học</button>
-      }
-      <button class="action" type="button" (click)="showDuplicate.set(!showDuplicate())"
-        aria-controls="duplicate-form" [attr.aria-expanded]="showDuplicate()" [disabled]="busy()">Nhân bản</button>
-    </div>
+    @if (preview()) {
+      <div class="actions mb-4">
+        <button class="action primary" type="button" (click)="duplicate()" [disabled]="busy()">Tạo bản chỉnh sửa</button>
+        <button class="action" type="button" (click)="openPreview(learnerPreview)">Xem trước giao diện người học</button>
+        @if (current.status === 'PUBLISHED') {
+          <button class="action" type="button" (click)="confirmArchive.set(true)" [disabled]="busy()">Ẩn bài học</button>
+        } @else {
+          <button class="action" type="button" (click)="changeStatus('PUBLISHED')" [disabled]="busy()">Khôi phục bài học</button>
+        }
+        <p class="secondary wide">Bản chỉnh sửa được lưu riêng để các buổi luyện cũ giữ đúng nội dung.</p>
+      </div>
+    }
     @if (confirmArchive()) {
       <section class="panel" aria-labelledby="archive-title">
         <h2 id="archive-title">Ẩn bài học này?</h2>
@@ -63,19 +76,9 @@
         </div>
       </section>
     }
-    @if (showDuplicate()) {
-      <form class="panel filter-form" id="duplicate-form" #copyForm="ngForm" (ngSubmit)="duplicate()">
-        <label class="wide">
-          Mã đường dẫn bản nhân
-          <input name="duplicateSlug" required maxlength="100" pattern="[a-z0-9]+(-[a-z0-9]+)*"
-            [(ngModel)]="duplicateSlug" placeholder="vi-du-moi" />
-        </label>
-        <button class="action primary" type="submit" [disabled]="copyForm.invalid || busy()">Tạo bản nhân</button>
-      </form>
-    }
     @if (preview()) {
       <article class="panel preview" aria-labelledby="preview-title">
-        <h2 id="preview-title">{{ current.status === 'DRAFT' ? 'Xem trước bản đã lưu' : 'Nội dung bài học' }}</h2>
+        <h2 id="preview-title">Nội dung bài học</h2>
         <p class="secondary">{{ categoryNames()[current.category] || current.category }} · {{ current.level }} · {{ current.estimatedDurationMinutes }} phút</p>
         <h3 class="mt-4">{{ current.titleVi }}</h3>
         <p lang="en">{{ current.titleEn }}</p>
@@ -125,40 +128,25 @@
         <form method="dialog"><button class="action">Hủy</button></form>
       </div>
     </dialog>
-    <form #editorForm="ngForm" (ngSubmit)="save()" (input)="dirty.set(true)" (change)="dirty.set(true)">
+    <form class="lesson-editor" (ngSubmit)="save()" (input)="dirty.set(true)" (change)="dirty.set(true)">
       <fieldset [disabled]="busy() || aiBusy()">
         <nav class="wizard-steps" aria-label="Các bước soạn bài">
           @for (label of steps; track label; let index = $index) {
-            <button class="action" type="button" [attr.aria-current]="step === index ? 'step' : null" (click)="step = index">
+            <button class="action" type="button" [attr.aria-current]="step === index ? 'step' : null" (click)="goToStep(index)">
               <span class="step-number">{{ index + 1 }}</span>{{ label }}
             </button>
           }
         </nav>
         <section class="panel" aria-labelledby="info-title" [hidden]="step !== 0">
-          <h2 id="info-title" class="mb-4">Thông tin bài học</h2>
-          <div class="ai-panel form-grid mb-5" (input)="$event.stopPropagation()" (change)="$event.stopPropagation()">
-            <label>Chủ đề cho AI<input name="aiTopic" maxlength="255" placeholder="Đặt phòng khách sạn tại Đà Nẵng" [(ngModel)]="aiTopic" /></label>
-            <label>Số cụm từ
-              <select name="aiCount" [(ngModel)]="aiCount">
-                @for (count of [4, 5, 6]; track count) { <option [ngValue]="count">{{ count }}</option> }
-              </select>
-            </label>
-            <button class="action primary" type="button" [disabled]="!aiTopic.trim()" (click)="generateOrConfirm(replaceDraft)">Tạo bài bằng AI</button>
-          </div>
+          <h2 id="info-title" class="mb-4" tabindex="-1" data-step="0">Thông tin bài học</h2>
           <div class="form-grid">
-            <label>
-              Mã đường dẫn
-              <input name="slug" required maxlength="100" pattern="[a-z0-9]+(-[a-z0-9]+)*" [ngModel]="draft.slug" (ngModelChange)="slugChanged($event)"
-                placeholder="vi-du-bai-hoc" aria-describedby="slug-hint" />
-              <span id="slug-hint" class="secondary">Dùng chữ thường, số và dấu gạch ngang.</span>
-            </label>
             <fieldset class="wide entries">
               <legend>Nhóm chủ đề</legend>
               <div class="actions">
-              @for (item of categoryNames() | keyvalue; track item.key) {
-                <button class="action pill" type="button" [attr.aria-pressed]="draft.category === item.key"
-                  (click)="draft.category = item.key; dirty.set(true)">{{ item.value }}</button>
-              }
+                @for (item of categoryNames() | keyvalue; track item.key) {
+                  <button class="action pill" type="button" [attr.aria-pressed]="draft.category === item.key"
+                    (click)="draft.category = item.key; dirty.set(true)">{{ item.value }}</button>
+                }
               </div>
             </fieldset>
             <fieldset class="wide entries">
@@ -170,25 +158,38 @@
                 }
               </div>
             </fieldset>
-            <label>Thời lượng (phút)<input name="duration" type="number" min="1" required [(ngModel)]="draft.estimatedDurationMinutes" /></label>
-            <label>Thứ tự trong thư viện<input name="sortOrder" type="number" min="0" required [(ngModel)]="draft.sortOrder" /></label>
           </div>
+          <details class="assist-box" [open]="!saved()">
+            <summary>Soạn nhanh với AI</summary>
+            <div class="form-grid assist-grid" (input)="$event.stopPropagation()" (change)="$event.stopPropagation()">
+              <label>Chủ đề cho AI<input name="aiTopic" maxlength="255" placeholder="Đặt phòng khách sạn tại Đà Nẵng" [(ngModel)]="aiTopic" /></label>
+              <label>Số cụm từ
+                <select name="aiCount" [(ngModel)]="aiCount">
+                  @for (count of [4, 5, 6]; track count) { <option [ngValue]="count">{{ count }}</option> }
+                </select>
+              </label>
+              <button class="action primary" type="button" [disabled]="!aiTopic.trim()" (click)="generateOrConfirm(replaceDraft)">Tạo bài bằng AI</button>
+            </div>
+          </details>
           <div class="form-grid mt-4">
-            <label>Tiêu đề tiếng Việt<input name="titleVi" maxlength="255" [ngModel]="draft.titleVi" (ngModelChange)="titleChanged($event)" /></label>
-            <label>Tiêu đề tiếng Anh<input name="titleEn" lang="en" maxlength="255" [(ngModel)]="draft.titleEn" /></label>
-            <div class="wide actions" aria-label="Vai người học gợi ý">
-              @for (role of ['Khách hàng', 'Khách du lịch', 'Đồng nghiệp']; track role) {
-                <button class="action pill" type="button" [attr.aria-pressed]="draft.userRole === role" (click)="draft.userRole = role; dirty.set(true)">{{ role }}</button>
-              }
-            </div>
-            <div class="wide actions" aria-label="Vai AI gợi ý">
-              @for (role of ['Nhân viên phục vụ', 'Nhân viên lễ tân', 'Người phỏng vấn']; track role) {
-                <button class="action pill" type="button" [attr.aria-pressed]="draft.aiRole === role" (click)="draft.aiRole = role; dirty.set(true)">{{ role }}</button>
-              }
-            </div>
-            <label>Vai người học<input name="userRole" maxlength="255" [(ngModel)]="draft.userRole" /></label>
-            <label>Vai AI<input name="aiRole" maxlength="255" [(ngModel)]="draft.aiRole" /></label>
-            <label class="wide">Bối cảnh<textarea name="context" rows="3" maxlength="4000" [(ngModel)]="draft.context"></textarea></label>
+            <label>Tiêu đề tiếng Việt<input name="titleVi" data-field="titleVi" maxlength="255" [ngModel]="draft.titleVi" (ngModelChange)="titleChanged($event)" /></label>
+            <label>Tiêu đề tiếng Anh<input name="titleEn" data-field="titleEn" lang="en" maxlength="255" [(ngModel)]="draft.titleEn" /></label>
+            <label>Vai người học<input name="userRole" data-field="userRole" maxlength="255" [(ngModel)]="draft.userRole" /></label>
+            <label>Vai AI<input name="aiRole" data-field="aiRole" maxlength="255" [(ngModel)]="draft.aiRole" /></label>
+            <details class="wide disclosure">
+              <summary>Gợi ý vai</summary>
+              <div class="actions mb-2" aria-label="Vai người học gợi ý">
+                @for (role of ['Khách hàng', 'Khách du lịch', 'Đồng nghiệp']; track role) {
+                  <button class="action pill" type="button" [attr.aria-pressed]="draft.userRole === role" (click)="draft.userRole = role; dirty.set(true)">{{ role }}</button>
+                }
+              </div>
+              <div class="actions mb-2" aria-label="Vai AI gợi ý">
+                @for (role of ['Nhân viên phục vụ', 'Nhân viên lễ tân', 'Người phỏng vấn']; track role) {
+                  <button class="action pill" type="button" [attr.aria-pressed]="draft.aiRole === role" (click)="draft.aiRole = role; dirty.set(true)">{{ role }}</button>
+                }
+              </div>
+            </details>
+            <label class="wide">Bối cảnh<textarea name="context" data-field="context" rows="3" maxlength="4000" [(ngModel)]="draft.context"></textarea></label>
             <fieldset class="wide entries">
               <legend>Mục tiêu học tập</legend>
               @for (goal of draft.goals; track $index; let item = $index) {
@@ -196,14 +197,27 @@
                   <button class="action" type="button" (click)="remove(draft.goals, item)" [attr.aria-label]="'Xóa mục tiêu ' + (item + 1)">Xóa</button>
                 </div>
               }
-              <button class="action" type="button" [disabled]="draft.goals.length >= 20" (click)="addEntry(draft.goals)">Thêm mục tiêu</button>
+              <button class="action" type="button" [disabled]="draft.goals.length >= 20" data-field="goals" (click)="addEntry(draft.goals)">Thêm mục tiêu</button>
             </fieldset>
           </div>
+          <details class="disclosure mt-4">
+            <summary>Thiết lập nâng cao</summary>
+            <div class="form-grid mt-3">
+              <label>
+                Mã đường dẫn
+                <input name="slug" data-field="slug" required maxlength="100" pattern="[a-z0-9]+(-[a-z0-9]+)*" [ngModel]="draft.slug" (ngModelChange)="slugChanged($event)"
+                  placeholder="vi-du-bai-hoc" aria-describedby="slug-hint" />
+                <span id="slug-hint" class="secondary">Dùng chữ thường, số và dấu gạch ngang.</span>
+              </label>
+              <label>Thời lượng (phút)<input name="duration" data-field="estimatedDurationMinutes" type="number" min="1" required [(ngModel)]="draft.estimatedDurationMinutes" /></label>
+              <label>Thứ tự trong thư viện<input name="sortOrder" data-field="sortOrder" type="number" min="0" required [(ngModel)]="draft.sortOrder" /></label>
+            </div>
+          </details>
         </section>
         <section class="panel" aria-labelledby="chunks-title" [hidden]="step !== 1">
           <div class="section-heading">
-            <h2 id="chunks-title">Cụm từ ({{ draft.chunks.length }}/6)</h2>
-            <button class="action" type="button" (click)="addChunk()" [disabled]="draft.chunks.length >= 6">Thêm cụm từ</button>
+            <h2 id="chunks-title" tabindex="-1" data-step="1">Cụm từ ({{ draft.chunks.length }}/6)</h2>
+            <button class="action" type="button" data-field="chunks" (click)="addChunk()" [disabled]="draft.chunks.length >= 6">Thêm cụm từ</button>
           </div>
           @for (chunk of draft.chunks; track $index; let index = $index) {
             <fieldset class="group-item" (dragover)="$event.preventDefault()" (drop)="dropChunk($event, index)">
@@ -217,57 +231,59 @@
               </div>
               <div [id]="'chunk-panel-' + index" [hidden]="openChunk !== index">
 
-              <div class="actions mb-3">
-                <button class="action" type="button" (click)="move(draft.chunks, index, -1)" [disabled]="$first" [attr.aria-label]="'Đưa cụm từ ' + (index + 1) + ' lên'">Lên</button>
-                <button class="action" type="button" (click)="move(draft.chunks, index, 1)" [disabled]="$last" [attr.aria-label]="'Đưa cụm từ ' + (index + 1) + ' xuống'">Xuống</button>
-                <button class="action" type="button" (click)="remove(draft.chunks, index)" [attr.aria-label]="'Xóa cụm từ ' + (index + 1)">Xóa</button>
-              </div>
-              <div class="form-grid">
-                <label>
-                  Chức năng giao tiếp
-                  <select [name]="'function' + index" [(ngModel)]="chunk.functionTag">
-                    @for (item of functions | keyvalue; track item.key) { <option [value]="item.key">{{ item.value }}</option> }
-                  </select>
-                </label>
-                <label>Cụm từ tiếng Anh<input [name]="'text' + index" lang="en" maxlength="4000" [(ngModel)]="chunk.text" /></label>
-                <label>Nghĩa tiếng Việt<input [name]="'meaning' + index" maxlength="4000" [(ngModel)]="chunk.meaningVi" /></label>
-                <label>Câu mẫu tiếng Anh<input [name]="'example' + index" lang="en" maxlength="4000" [(ngModel)]="chunk.exampleSentence" /></label>
-                <label class="wide">Đường dẫn audio mẫu (tùy chọn)<input [name]="'audio' + index" maxlength="500" [(ngModel)]="chunk.audioUrl" /></label>
-                <fieldset class="wide entries">
-                  <legend>Biến thể chấp nhận</legend>
-                  @for (variation of chunk.acceptedVariations; track $index; let item = $index) {
-                    <div class="entry"><input [name]="'variation' + index + '-' + item" lang="en" maxlength="4000"
-                      [attr.aria-label]="'Biến thể ' + (item + 1)" [(ngModel)]="chunk.acceptedVariations[item]" />
-                      <button class="action" type="button" [attr.aria-label]="'Xóa biến thể ' + (item + 1)" (click)="remove(chunk.acceptedVariations, item)">Xóa</button>
-                    </div>
-                  }
-                  <button class="action" type="button" [disabled]="chunk.acceptedVariations.length >= 20" (click)="addEntry(chunk.acceptedVariations)">Thêm biến thể</button>
-                </fieldset>
-                <fieldset class="entries">
-                  <legend>Đáp án nhiễu tiếng Anh</legend>
-                  @for (option of chunk.distractorsEn; track $index; let item = $index) {
-                    <input [name]="'en' + index + '-' + item" lang="en" maxlength="4000" [attr.aria-label]="'Đáp án sai tiếng Anh ' + (item + 1)" [(ngModel)]="chunk.distractorsEn[item]" />
-                  }
-                </fieldset>
-                <div class="wide actions">
-                  <button class="action" type="button" [disabled]="!chunk.text.trim()" (click)="suggestDistractors(chunk)">Gợi ý đáp án nhiễu</button>
-                  @if (hasDistractors(chunk)) { <span class="secondary">Gợi ý mới sẽ thay sáu ô đáp án.</span> }
+                <div class="actions mb-3">
+                  <button class="action" type="button" (click)="move(draft.chunks, index, -1)" [disabled]="$first" [attr.aria-label]="'Đưa cụm từ ' + (index + 1) + ' lên'">Lên</button>
+                  <button class="action" type="button" (click)="move(draft.chunks, index, 1)" [disabled]="$last" [attr.aria-label]="'Đưa cụm từ ' + (index + 1) + ' xuống'">Xuống</button>
+                  <button class="action" type="button" (click)="remove(draft.chunks, index)" [attr.aria-label]="'Xóa cụm từ ' + (index + 1)">Xóa</button>
                 </div>
-                <fieldset class="entries">
-                  <legend>Đáp án nhiễu tiếng Việt</legend>
-                  @for (option of chunk.distractorsVi; track $index; let item = $index) {
-                    <input [name]="'vi' + index + '-' + item" maxlength="4000" [attr.aria-label]="'Đáp án sai tiếng Việt ' + (item + 1)" [(ngModel)]="chunk.distractorsVi[item]" />
-                  }
-                </fieldset>
-              </div>
+                <div class="form-grid">
+                  <label>
+                    Chức năng giao tiếp
+                    <select [name]="'function' + index" [(ngModel)]="chunk.functionTag">
+                      @for (item of functions | keyvalue; track item.key) { <option [value]="item.key">{{ item.value }}</option> }
+                    </select>
+                  </label>
+                  <label>Cụm từ tiếng Anh<input [name]="'text' + index" [attr.data-field]="'chunks.' + index + '.text'" lang="en" maxlength="4000" [(ngModel)]="chunk.text" /></label>
+                  <label>Nghĩa tiếng Việt<input [name]="'meaning' + index" [attr.data-field]="'chunks.' + index + '.meaningVi'" maxlength="4000" [(ngModel)]="chunk.meaningVi" /></label>
+                  <label>Câu mẫu tiếng Anh<input [name]="'example' + index" [attr.data-field]="'chunks.' + index + '.exampleSentence'" lang="en" maxlength="4000" [(ngModel)]="chunk.exampleSentence" /></label>
+                  <details class="wide disclosure"><summary>Âm thanh mẫu</summary>
+                  <label class="mt-2">Đường dẫn audio mẫu (tùy chọn)<input [name]="'audio' + index" maxlength="500" [(ngModel)]="chunk.audioUrl" /></label>
+                  </details>
+                  <fieldset class="wide entries">
+                    <legend>Biến thể chấp nhận</legend>
+                    @for (variation of chunk.acceptedVariations; track $index; let item = $index) {
+                      <div class="entry"><input [name]="'variation' + index + '-' + item" lang="en" maxlength="4000"
+                        [attr.aria-label]="'Biến thể ' + (item + 1)" [(ngModel)]="chunk.acceptedVariations[item]" />
+                        <button class="action" type="button" [attr.aria-label]="'Xóa biến thể ' + (item + 1)" (click)="remove(chunk.acceptedVariations, item)">Xóa</button>
+                      </div>
+                    }
+                    <button class="action" type="button" [disabled]="chunk.acceptedVariations.length >= 20" [attr.data-field]="'chunks.' + index + '.acceptedVariations'" (click)="addEntry(chunk.acceptedVariations)">Thêm biến thể</button>
+                  </fieldset>
+                  <div class="wide actions">
+                    <button class="action" type="button" [disabled]="!chunk.text.trim()" (click)="suggestDistractors(chunk)">Gợi ý đáp án nhiễu</button>
+                    @if (hasDistractors(chunk)) { <span class="secondary">Gợi ý mới sẽ thay sáu ô đáp án.</span> }
+                  </div>
+                  <fieldset class="entries">
+                    <legend>Đáp án nhiễu tiếng Anh</legend>
+                    @for (option of chunk.distractorsEn; track $index; let item = $index) {
+                      <input [name]="'en' + index + '-' + item" [attr.data-field]="item === 0 ? 'chunks.' + index + '.distractorsEn' : null" lang="en" maxlength="4000" [attr.aria-label]="'Đáp án sai tiếng Anh ' + (item + 1)" [(ngModel)]="chunk.distractorsEn[item]" />
+                    }
+                  </fieldset>
+                  <fieldset class="entries">
+                    <legend>Đáp án nhiễu tiếng Việt</legend>
+                    @for (option of chunk.distractorsVi; track $index; let item = $index) {
+                      <input [name]="'vi' + index + '-' + item" [attr.data-field]="item === 0 ? 'chunks.' + index + '.distractorsVi' : null" maxlength="4000" [attr.aria-label]="'Đáp án sai tiếng Việt ' + (item + 1)" [(ngModel)]="chunk.distractorsVi[item]" />
+                    }
+                  </fieldset>
+                </div>
               </div>
             </fieldset>
           }
         </section>
         <section class="panel" aria-labelledby="requirements-title" [hidden]="step !== 2">
           <div class="section-heading">
-            <h2 id="requirements-title">Yêu cầu roleplay</h2>
-            <button class="action" type="button" (click)="addRequirement()" [disabled]="draft.requirements.length >= 20">Thêm yêu cầu</button>
+            <h2 id="requirements-title" tabindex="-1" data-step="2">Nhiệm vụ hội thoại</h2>
+            <button class="action" type="button" data-field="requirements" (click)="addRequirement()" [disabled]="draft.requirements.length >= 20">Thêm yêu cầu</button>
           </div>
           @for (requirement of draft.requirements; track $index; let index = $index) {
             <fieldset class="group-item">
@@ -278,7 +294,7 @@
                 <button class="action" type="button" (click)="remove(draft.requirements, index)" [attr.aria-label]="'Xóa yêu cầu ' + (index + 1)">Xóa</button>
               </div>
               <div class="form-grid">
-                <label class="wide">Mô tả<textarea [name]="'description' + index" rows="2" maxlength="4000" [(ngModel)]="requirement.description"></textarea></label>
+                <label class="wide">Mô tả<textarea [name]="'description' + index" [attr.data-field]="'requirements.' + index + '.description'" rows="2" maxlength="4000" [(ngModel)]="requirement.description"></textarea></label>
                 <label>
                   Chức năng cần dùng
                   <select [name]="'expected' + index" [(ngModel)]="requirement.expectedChunkFunction">
@@ -293,23 +309,36 @@
         </section>
         @if (step === 2) {
           <section class="panel" aria-labelledby="checks-title">
-            <h2 id="checks-title">Điều kiện xuất bản</h2>
-            <progress aria-label="Mức độ hoàn thiện" [value]="completedChecks()" [max]="checks().length"></progress>
-            <ul>
-              @for (check of checks(); track $index) {
-                <li><button class="check-link" type="button" (click)="step = check.step; openChunk = check.chunk ?? 0">
-                  <span [class.text-emerald-700]="check.ok">{{ check.ok ? 'Đạt' : 'Cần bổ sung' }}</span> · {{ check.label }}
-                </button></li>
+            <h2 id="checks-title">Kiểm tra trước khi xuất bản</h2>
+            @if (publicationIssues(); as issues) {
+              @if (issues.length) {
+                <p class="secondary mt-2">Chọn một mục để đến chỗ cần sửa.</p>
+                <ul class="review-list mt-2">
+                  @for (issue of issues; track issue.path) {
+                    <li><button class="check-link" type="button" (click)="fixField(issue.path)">
+                      <strong>{{ fieldLabel(issue.path) }}</strong> · {{ fieldMessage(issue.message) }}
+                    </button></li>
+                  }
+                </ul>
+              } @else {
+                <p class="feedback">Đã đủ nội dung để xuất bản.</p>
               }
-            </ul>
+            }
           </section>
         }
-        <div class="actions">
-          @if (step > 0) { <button class="action" type="button" (click)="step = step - 1">Quay lại</button> }
-          @if (step < 2) { <button class="action primary" type="button" (click)="step = step + 1">Tiếp tục</button> }
-          <button class="action" type="submit" [disabled]="editorForm.invalid || busy()">Lưu bản nháp</button>
-          @if (busy()) { <span role="status">Đang lưu…</span> }
-        </div>
+        <footer class="editor-footer" aria-label="Thao tác soạn bài">
+          <div class="editor-footer-meta">
+            <span>Bước {{ step + 1 }}/3</span>
+            <span aria-live="polite">{{ aiBusy() ? 'AI đang soạn…' : busy() ? 'Đang xử lý…' : dirty() ? 'Chưa lưu' : saved() ? 'Đã lưu' : 'Bài mới' }}</span>
+          </div>
+          <div class="actions editor-footer-actions">
+            @if (step > 0) { <button class="action" type="button" (click)="goToStep(step - 1)">Quay lại</button> }
+            <button class="action" type="button" aria-label="Xem trước giao diện người học" (click)="openPreview(learnerPreview)">Xem trước</button>
+            <button class="action" type="submit">Lưu bản nháp</button>
+            @if (step < 2) { <button class="action primary" type="button" (click)="goToStep(step + 1)">Tiếp tục</button> }
+            @else { <button class="action primary" type="button" (click)="save(true)">Xuất bản</button> }
+          </div>
+        </footer>
       </fieldset>
     </form>
     @if (aiBusy()) { <p class="feedback" role="status">AI đang soạn nội dung…</p> }

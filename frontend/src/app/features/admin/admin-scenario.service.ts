@@ -27,6 +27,11 @@ export const statuses: Record<ScenarioStatus, string> = {
 
 export const levels = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
 
+export function lessonSlug(title: string): string {
+  return title.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100).replace(/-+$/, '');
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminScenarioService {
   private readonly http = inject(HttpClient);
@@ -81,6 +86,11 @@ export class AdminScenarioService {
     return this.http.post<ScenarioDetail>(`${this.url}/${id}/duplicate`, body);
   }
 
+  createCopy(source: Pick<ScenarioSummary, 'id' | 'slug'>) {
+    const slug = source.slug.slice(0, 82).replace(/-+$/, '') + '-ban-sao-' + crypto.randomUUID().slice(0, 8);
+    return this.duplicate(source.id, { slug });
+  }
+
   setStatus(id: string, body: ScenarioStatusUpdate) {
     return this.http.patch<ScenarioDetail>(`${this.url}/${id}/status`, body);
   }
@@ -116,7 +126,7 @@ export function scenarioError(error: unknown): { message: string; fields: Record
     case 'SCENARIO_REVISION_CONFLICT':
       return { message: 'Bài học đã thay đổi trong phiên khác. Sao chép nội dung đang nhập trước khi tải lại.', fields };
     case 'SCENARIO_SLUG_CONFLICT':
-      return { message: 'Mã đường dẫn này đã được sử dụng.', fields };
+      return { message: 'Mã đường dẫn này đã được sử dụng.', fields: { slug: 'Slug conflict.' } };
     case 'ADMIN_REQUIRED':
       return { message: 'Tài khoản hiện không có quyền quản trị.', fields };
     case 'SCENARIO_NOT_FOUND':

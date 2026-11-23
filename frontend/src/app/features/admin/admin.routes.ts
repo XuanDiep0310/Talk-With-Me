@@ -1,4 +1,11 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { CanDeactivateFn, Routes } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+import type { AdminEditorComponent } from './admin-editor.component';
+
+const confirmUnsavedChanges: CanDeactivateFn<AdminEditorComponent> = (editor) =>
+  !inject(AuthService).isAuthenticated() || !editor.hasUnsavedChanges() ||
+  window.confirm('Bạn có thay đổi chưa lưu. Rời trình soạn bài?');
 
 export const adminRoutes: Routes = [
   {
@@ -23,10 +30,12 @@ export const adminRoutes: Routes = [
       },
       {
         path: 'scenarios/new',
+        canDeactivate: [confirmUnsavedChanges],
         loadComponent: () => import('./admin-editor.component').then((m) => m.AdminEditorComponent)
       },
       {
         path: 'scenarios/:id',
+        canDeactivate: [confirmUnsavedChanges],
         loadComponent: () => import('./admin-editor.component').then((m) => m.AdminEditorComponent)
       },
       { path: '**', redirectTo: 'scenarios' }

@@ -1,5 +1,5 @@
 import { KeyValuePipe } from '@angular/common';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, Injector, afterNextRender, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -8,7 +8,7 @@ import type { ScenarioDetail as LearnerScenario } from '../../core/services/scen
 import { Observable, firstValueFrom, of, switchMap, catchError } from 'rxjs';
 import {
   AdminScenarioService, ScenarioDetail, ScenarioInput, ScenarioStatusUpdate,
-  categories, levels, scenarioError, statuses
+  categories, lessonSlug, levels, scenarioError, statuses
 } from './admin-scenario.service';
 
 type ChunkInput = NonNullable<ScenarioInput['chunks']>[number];
@@ -28,13 +28,10 @@ function clean(values: string[]): string[] {
   return values.map((item) => item.trim()).filter(Boolean);
 }
 
-export function lessonSlug(title: string): string {
-  return title.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/đ/g, 'd')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 100).replace(/-+$/, '');
-}
-
 const fieldLabels: Record<string, string> = {
   slug: 'Mã đường dẫn',
+  estimatedDurationMinutes: 'Thời lượng',
+  sortOrder: 'Thứ tự trong thư viện',
   titleVi: 'Tiêu đề tiếng Việt',
   titleEn: 'Tiêu đề tiếng Anh',
   context: 'Bối cảnh',
@@ -100,6 +97,8 @@ export class AdminEditorComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
+  private readonly editor = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly categoryNames = signal(categories);
   protected readonly levels = levels;
   protected readonly statuses = statuses;
@@ -119,15 +118,45 @@ export class AdminEditorComponent {
   protected readonly error = signal<ReturnType<typeof scenarioError> | null>(null);
   protected readonly notice = signal('');
   protected readonly confirmArchive = signal(false);
-  protected readonly showDuplicate = signal(false);
-  protected duplicateSlug = '';
   protected step = 0;
   protected openChunk = 0;
-  protected readonly steps = ['Thông tin chung', 'Cụm từ', 'Yêu cầu roleplay'];
+  protected readonly steps = ['Thông tin bài', 'Cụm từ', 'Nhiệm vụ & kiểm tra'];
   protected previewData: LearnerScenario | null = null;
   protected previewWidth: 'phone' | 'desktop' = 'phone';
   private draggedChunk: number | null = null;
   private slugEdited = false;
+
+  hasUnsavedChanges(): boolean {
+    return this.dirty();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  protected warnBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.hasUnsavedChanges()) event.preventDefault();
+  }
+
+  protected goToStep(index: number): void {
+    this.step = index;
+    afterNextRender(() => {
+      this.editor.nativeElement.querySelector<HTMLElement>(`[data-step="${index}"]`)?.focus();
+    }, { injector: this.injector });
+  }
+
+  protected fixField(path: string): void {
+    const [group, index] = path.split('.');
+    if (group === 'chunks' && index !== undefined) this.openChunk = Number(index);
+    this.step = group === 'chunks' ? 1 : group === 'requirements' ? 2 : 0;
+    afterNextRender(() => {
+      const root = this.editor.nativeElement;
+      const target = root.querySelector<HTMLElement>(`[data-field="${CSS.escape(path)}"]`) ??
+        root.querySelector<HTMLElement>(`[data-field="${CSS.escape(group)}"]`) ??
+        root.querySelector<HTMLElement>(`[data-step="${this.step}"]`);
+      for (let details = target?.closest('details'); details; details = details.parentElement?.closest('details')) {
+        details.open = true;
+      }
+      target?.focus();
+    }, { injector: this.injector });
+  }
 
   protected titleChanged(title: string): void {
     this.draft.titleVi = title;
@@ -151,8 +180,6 @@ export class AdminEditorComponent {
 
   protected cancelDrag(): void { this.draggedChunk = null; }
 
-  protected completedChecks(): number { return this.checks().filter((check) => check.ok).length; }
-
   protected dropChunk(event: DragEvent, index: number): void {
     event.preventDefault();
     const from = this.draggedChunk;
@@ -164,28 +191,38 @@ export class AdminEditorComponent {
     this.dirty.set(true);
   }
 
-  protected checks(): { ok: boolean; label: string; step: number; chunk?: number }[] {
+  protected publicationIssues(): { path: string; message: string }[] {
     const draft = this.draft;
-    return [
-      { ok: [draft.titleVi, draft.titleEn, draft.context, draft.userRole, draft.aiRole].every((s) => !!s?.trim())
-          && clean(draft.goals).length > 0, label: 'Thông tin bài học và mục tiêu', step: 0 },
-      { ok: draft.chunks.length >= 4, label: 'Có ít nhất 4 cụm từ (' + draft.chunks.length + '/6)', step: 1 },
-      ...draft.chunks.map((chunk, index) => {
-        const optionsValid = (values: string[], answer = '') => {
-          const options = new Set(clean(values).map((value) => value.toLowerCase()));
-          return options.size === 3 && !options.has(answer.trim().toLowerCase());
-        };
-        const hasOptions = optionsValid(chunk.distractorsEn, chunk.text) && optionsValid(chunk.distractorsVi, chunk.meaningVi);
-        const complete = [chunk.text, chunk.meaningVi, chunk.exampleSentence].every((s) => !!s?.trim())
-          && clean(chunk.acceptedVariations).length > 0;
-        return { ok: hasOptions && complete, label: 'Cụm từ ' + (index + 1)
-          + (!hasOptions ? ' cần đủ đáp án nhiễu ở hai ngôn ngữ' : complete ? ' đã hoàn thiện' : ' cần thêm nội dung'),
-          step: 1, chunk: index };
-      }),
-      { ok: draft.requirements.some((item) => item.isMandatory) &&
-          draft.requirements.every((item) => !!item.description?.trim()),
-        label: 'Có ít nhất một yêu cầu roleplay bắt buộc và mô tả cho từng yêu cầu', step: 2 }
-    ];
+    const issues: { path: string; message: string }[] = [];
+    const required = (path: string, value?: string) => {
+      if (!value?.trim()) issues.push({ path, message: 'Required for publishing.' });
+    };
+    for (const key of ['titleVi', 'titleEn', 'context', 'userRole', 'aiRole'] as const) {
+      required(key, draft[key]);
+    }
+    if (!clean(draft.goals).length) issues.push({ path: 'goals', message: 'Add at least one non-empty learning goal.' });
+    if (draft.chunks.length < 4) issues.push({ path: 'chunks', message: 'Add between four and six chunks.' });
+    draft.chunks.forEach((chunk, index) => {
+      const path = `chunks.${index}`;
+      for (const key of ['text', 'meaningVi', 'exampleSentence'] as const) required(`${path}.${key}`, chunk[key]);
+      if (!clean(chunk.acceptedVariations).length) {
+        issues.push({ path: `${path}.acceptedVariations`, message: 'Add at least one non-empty variation.' });
+      }
+      for (const [key, options, answer] of [
+        ['distractorsEn', chunk.distractorsEn, chunk.text],
+        ['distractorsVi', chunk.distractorsVi, chunk.meaningVi]
+      ] as const) {
+        const values = new Set(clean(options).map((option) => option.toLowerCase()));
+        if (values.size !== 3 || values.has(answer.trim().toLowerCase())) {
+          issues.push({ path: `${path}.${key}`, message: 'Add three distinct incorrect answers.' });
+        }
+      }
+    });
+    if (!draft.requirements.some((item) => item.isMandatory)) {
+      issues.push({ path: 'requirements', message: 'Add at least one mandatory requirement.' });
+    }
+    draft.requirements.forEach((item, index) => required(`requirements.${index}.description`, item.description));
+    return issues;
   }
 
   protected openPreview(dialog: HTMLDialogElement): void {
@@ -264,6 +301,7 @@ export class AdminEditorComponent {
   }
 
   constructor() {
+    const resumeStep = this.router.getCurrentNavigation()?.extras.state?.['editorStep'];
     this.api.listCategories().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (items) => this.categoryNames.set(Object.fromEntries(items.map((item) => [item.code, item.nameVi]))),
       error: (error: unknown) => this.error.set(scenarioError(error))
@@ -274,9 +312,7 @@ export class AdminEditorComponent {
         this.loadFailed.set(false);
         this.error.set(null);
         this.notice.set('');
-        this.showDuplicate.set(false);
         this.confirmArchive.set(false);
-        this.duplicateSlug = '';
         const id = params.get('id');
         const request: Observable<ScenarioDetail | null> = id ? this.api.get(id) : of(null);
         return request.pipe(
@@ -290,16 +326,33 @@ export class AdminEditorComponent {
       takeUntilDestroyed(this.destroyRef)
     ).subscribe((scenario) => {
       this.step = 0;
+      if (scenario?.status === 'DRAFT') {
+        if (this.route.snapshot.queryParamMap.get('review') === '1') this.step = 2;
+        else if (resumeStep === 1 || resumeStep === 2) this.step = resumeStep;
+      }
       this.openChunk = 0;
-      this.slugEdited = !!scenario;
       this.setSaved(scenario);
       this.preview.set(!!scenario && scenario.status !== 'DRAFT');
       this.loading.set(false);
     });
   }
 
-  protected async save(): Promise<void> {
-    const scenario = this.saved();
+  protected async save(publish = false): Promise<void> {
+    if (this.busy() || this.aiBusy()) return;
+    this.error.set(null);
+    this.notice.set('');
+    let scenario = this.saved();
+    if (publish) {
+      const issues = this.publicationIssues();
+      if (issues.length) {
+        this.error.set({
+          message: 'Bài học còn thiếu nội dung trước khi xuất bản.',
+          fields: Object.fromEntries(issues.map(({ path, message }) => [path, message]))
+        });
+        this.fixField(issues[0].path);
+        return;
+      }
+    }
     const input: ScenarioInput = {
       ...this.draft,
       slug: this.draft.slug.trim(),
@@ -312,16 +365,46 @@ export class AdminEditorComponent {
         distractorsVi: clean(chunk.distractorsVi)
       }))
     };
-    const saved = await this.run(scenario
-      ? this.api.update(scenario.id, { ...input, revision: scenario.revision })
-      : this.api.create(input));
-    if (!saved) return;
-    if (!scenario) {
-      await this.router.navigate(['/admin/scenarios', saved.id], { replaceUrl: true });
+    const draftErrors: Record<string, string> = {};
+    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(input.slug)) draftErrors['slug'] = 'Invalid slug.';
+    if (!Number.isInteger(input.estimatedDurationMinutes) || (input.estimatedDurationMinutes ?? 0) < 1) {
+      draftErrors['estimatedDurationMinutes'] = 'Invalid duration.';
+    }
+    if (!Number.isInteger(input.sortOrder) || (input.sortOrder ?? -1) < 0) draftErrors['sortOrder'] = 'Invalid sort order.';
+    const [firstError] = Object.keys(draftErrors);
+    if (firstError) {
+      this.error.set({ message: 'Kiểm tra thông tin trước khi lưu.', fields: draftErrors });
+      this.fixField(firstError);
       return;
     }
-    this.setSaved(saved);
-    this.notice.set('Đã lưu bản nháp.');
+    if (!scenario || this.dirty()) {
+      scenario = await this.run(scenario
+        ? this.api.update(scenario.id, { ...input, revision: scenario.revision })
+        : this.api.create(input));
+      if (!scenario) {
+        const [field] = Object.keys(this.error()?.fields ?? {});
+        if (field) this.fixField(field);
+        return;
+      }
+      this.setSaved(scenario);
+    }
+    if (publish) {
+      await this.changeStatus('PUBLISHED');
+      if (this.error()) {
+        this.notice.set('Đã lưu bản nháp.');
+        const [field] = Object.keys(this.error()?.fields ?? {});
+        if (field) this.fixField(field);
+        return;
+      }
+    } else {
+      this.notice.set('Đã lưu bản nháp.');
+    }
+    if (!this.route.snapshot.paramMap.has('id')) {
+      await this.router.navigate(['/admin/scenarios', scenario.id], {
+        replaceUrl: true,
+        state: { editorStep: this.step }
+      });
+    }
   }
 
   protected async changeStatus(status: ScenarioStatusUpdate['status']): Promise<void> {
@@ -341,7 +424,7 @@ export class AdminEditorComponent {
   protected async duplicate(): Promise<void> {
     const current = this.saved();
     if (!current) return;
-    const saved = await this.run(this.api.duplicate(current.id, { slug: this.duplicateSlug.trim() }));
+    const saved = await this.run(this.api.createCopy(current));
     if (saved) await this.router.navigate(['/admin/scenarios', saved.id]);
   }
 
@@ -352,6 +435,7 @@ export class AdminEditorComponent {
     });
     this.openChunk = this.draft.chunks.length - 1;
     this.dirty.set(true);
+    this.fixField(`chunks.${this.openChunk}.text`);
   }
 
   protected addRequirement(): void {
@@ -359,10 +443,12 @@ export class AdminEditorComponent {
       description: '', type: 'TASK', expectedChunkFunction: null, isMandatory: true
     });
     this.dirty.set(true);
+    this.fixField(`requirements.${this.draft.requirements.length - 1}.description`);
   }
 
   protected remove(items: unknown[], index: number): void {
     items.splice(index, 1);
+    if (items === this.draft.chunks && this.openChunk >= items.length) this.openChunk = items.length - 1;
     this.dirty.set(true);
   }
 
@@ -370,6 +456,7 @@ export class AdminEditorComponent {
     const destination = index + step;
     if (destination < 0 || destination >= items.length) return;
     [items[index], items[destination]] = [items[destination], items[index]];
+    if (items === this.draft.chunks) this.openChunk = destination;
     this.dirty.set(true);
   }
 
@@ -384,6 +471,10 @@ export class AdminEditorComponent {
   protected fieldMessage(message: string): string {
     const messages: Record<string, string> = {
       'Required for publishing.': 'Cần nhập trước khi xuất bản.',
+      'Invalid slug.': 'Nhập tiêu đề tiếng Việt để tạo đường dẫn, hoặc sửa trong phần nâng cao.',
+      'Invalid duration.': 'Nhập thời lượng ít nhất 1 phút.',
+      'Invalid sort order.': 'Nhập số nguyên từ 0 trở lên.',
+      'Slug conflict.': 'Đường dẫn đã có bài sử dụng. Chọn đường dẫn khác.',
       'Add at least one non-empty learning goal.': 'Thêm ít nhất một mục tiêu học tập.',
       'Add at least one mandatory requirement.': 'Đánh dấu ít nhất một yêu cầu bắt buộc.',
       'Add between four and six chunks.': 'Thêm từ 4 đến 6 cụm từ.',
@@ -411,6 +502,7 @@ export class AdminEditorComponent {
   private setSaved(scenario: ScenarioDetail | null): void {
     this.saved.set(scenario);
     this.draft = toForm(scenario);
+    this.slugEdited = !!scenario;
     this.dirty.set(false);
   }
 }
