@@ -1,7 +1,6 @@
 <div class="page-heading">
-  <h1>Quản lý bài học tình huống</h1>
+  <h1>Bài học tình huống</h1>
   <div class="actions">
-    <a class="action" routerLink="/admin/categories">Nhóm chủ đề</a>
     <a class="action primary" routerLink="new">Tạo bài học</a>
   </div>
 </div>
@@ -15,22 +14,27 @@
   }
 </div>
 
-<div class="panel filter-form">
+<div class="panel catalog-filters">
   <label>Tìm bài học
     <input name="q" type="search" maxlength="255" placeholder="Tên bài hoặc mã đường dẫn" [(ngModel)]="filters.q" (ngModelChange)="search(300)" />
   </label>
-  <label>Nhóm
-    <select name="category" [(ngModel)]="filters.category" (ngModelChange)="search()">
-      <option [ngValue]="undefined">Tất cả</option>
-      @for (item of categoryNames() | keyvalue; track item.key) { <option [value]="item.key">{{ item.value }}</option> }
-    </select>
-  </label>
-  <label>CEFR
-    <select name="level" [(ngModel)]="filters.level" (ngModelChange)="search()">
-      <option [ngValue]="undefined">Tất cả</option>
-      @for (level of levels; track level) { <option [value]="level">{{ level }}</option> }
-    </select>
-  </label>
+  <details class="disclosure" [open]="!!filters.category || !!filters.level">
+    <summary>Lọc theo nhóm hoặc trình độ</summary>
+    <div class="form-grid">
+      <label>Nhóm
+        <select name="category" [(ngModel)]="filters.category" (ngModelChange)="search()">
+          <option [ngValue]="undefined">Tất cả</option>
+          @for (item of categoryNames() | keyvalue; track item.key) { <option [value]="item.key">{{ item.value }}</option> }
+        </select>
+      </label>
+      <label>Trình độ CEFR
+        <select name="level" [(ngModel)]="filters.level" (ngModelChange)="search()">
+          <option [ngValue]="undefined">Tất cả</option>
+          @for (level of levels; track level) { <option [value]="level">{{ level }}</option> }
+        </select>
+      </label>
+    </div>
+  </details>
 </div>
 
 @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
@@ -38,23 +42,23 @@
 <section class="panel results" aria-label="Danh sách bài học" [attr.aria-busy]="loading()">
   @if (rows().length) {
     <div class="table-wrap" tabindex="0" role="region" aria-label="Bảng bài học">
-      <table>
-        <thead><tr>
-          <th scope="col">Bài học</th><th scope="col">Nhóm</th><th scope="col">CEFR</th>
-          <th scope="col">Trạng thái</th><th scope="col">Cập nhật</th><th scope="col">Thao tác</th>
+      <table class="catalog-table" role="table">
+        <thead role="rowgroup"><tr role="row">
+          <th scope="col" role="columnheader">Bài học</th><th scope="col" role="columnheader">Nhóm</th><th scope="col" role="columnheader">CEFR</th>
+          <th scope="col" role="columnheader">Trạng thái</th><th scope="col" role="columnheader">Cập nhật</th><th scope="col" role="columnheader">Thao tác</th>
         </tr></thead>
-        <tbody>
+        <tbody role="rowgroup">
           @for (row of rows(); track row.id) {
-            <tr>
-              <th scope="row">
+            <tr role="row">
+              <th scope="row" role="rowheader" class="catalog-title">
                 <a class="text-link" [routerLink]="[row.id]">{{ row.titleVi || row.titleEn || row.slug }}</a>
-                <span class="secondary">{{ row.slug }}</span>
+                @if (row.titleVi && row.titleEn) { <span class="secondary" lang="en">{{ row.titleEn }}</span> }
               </th>
-              <td>{{ categoryNames()[row.category] || row.category }}</td><td>{{ row.level }}</td>
-              <td><span class="status" [attr.data-status]="row.status">{{ statuses[row.status] }}</span></td>
-              <td class="whitespace-nowrap">{{ formatDate(row.updatedAt) }}</td>
-              <td>
-                <div class="actions whitespace-nowrap">
+              <td role="cell">{{ categoryNames()[row.category] || row.category }}</td><td role="cell">{{ row.level }}</td>
+              <td role="cell"><span class="status" [attr.data-status]="row.status">{{ statuses[row.status] }}</span></td>
+              <td role="cell" class="whitespace-nowrap">{{ formatDate(row.updatedAt) }}</td>
+              <td role="cell" class="catalog-actions">
+                <div class="actions">
                   <button class="action icon-action" type="button" [disabled]="!!actionId()" (click)="openSummary(quickView, row)">
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
                     Xem nhanh
@@ -64,7 +68,7 @@
                     Nhân bản
                   </button>
                   @if (row.status === 'DRAFT') {
-                    <button class="action" type="button" [disabled]="!!actionId()" (click)="changeStatus(row)">Xuất bản</button>
+                    <a class="action" [routerLink]="[row.id]" [queryParams]="{review: '1'}">Kiểm tra để xuất bản</a>
                   } @else {
                     <button class="action icon-action" type="button" role="switch" [attr.aria-checked]="row.status === 'PUBLISHED'"
                       [attr.aria-label]="'Hiển thị ' + (row.titleVi || row.slug) + ' trong thư viện'"

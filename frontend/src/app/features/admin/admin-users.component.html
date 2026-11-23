@@ -9,18 +9,20 @@
 <section class="panel results" aria-label="Danh sách tài khoản" [attr.aria-busy]="loading()">
   @if (rows().length) {
     <div class="table-wrap" tabindex="0" role="region" aria-label="Bảng tài khoản">
-      <table>
-        <thead><tr>
-          <th scope="col">Tài khoản</th><th scope="col">Đăng ký</th><th scope="col">CEFR</th>
-          <th scope="col">Buổi đã kết thúc</th><th scope="col">Quyền và trạng thái</th><th scope="col">Thao tác</th>
+      <table class="catalog-table" role="table">
+        <thead role="rowgroup"><tr role="row">
+          <th scope="col" role="columnheader">Tài khoản</th><th scope="col" role="columnheader">Đăng ký</th><th scope="col" role="columnheader">CEFR</th>
+          <th scope="col" role="columnheader">Buổi đã kết thúc</th><th scope="col" role="columnheader">Quyền và trạng thái</th><th scope="col" role="columnheader">Thao tác</th>
         </tr></thead>
-        <tbody>
+        <tbody role="rowgroup">
           @for (account of rows(); track account.id) {
-            <tr>
-              <th scope="row">{{ account.fullName }} <span class="secondary">{{ account.email }}</span></th>
-              <td>{{ formatDate(account.createdAt) }}</td><td>{{ account.cefrLevel || 'Chưa xếp' }}</td><td>{{ account.completedSessions }}</td>
-              <td>{{ account.role === 'ADMIN' ? 'Quản trị' : 'Học viên' }} <span class="secondary">{{ account.isActive ? 'Đang hoạt động' : 'Đã khóa' }}</span></td>
-              <td>
+            <tr role="row">
+              <th scope="row" role="rowheader" class="catalog-title">{{ account.fullName }} <span class="secondary">{{ account.email }}</span></th>
+              <td role="cell"><span class="narrow-label" aria-hidden="true">Đăng ký</span>{{ formatDate(account.createdAt) }}</td>
+              <td role="cell"><span class="narrow-label" aria-hidden="true">CEFR</span>{{ account.cefrLevel || 'Chưa xếp' }}</td>
+              <td role="cell"><span class="narrow-label" aria-hidden="true">Buổi đã kết thúc</span>{{ account.completedSessions }}</td>
+              <td role="cell">{{ account.role === 'ADMIN' ? 'Quản trị' : 'Học viên' }} <span class="secondary">{{ account.isActive ? 'Đang hoạt động' : 'Đã khóa' }}</span></td>
+              <td role="cell" class="catalog-actions">
                 @if (auth.currentUser()?.id === account.id) {
                   <span class="secondary">Tài khoản của bạn</span>
                 } @else {

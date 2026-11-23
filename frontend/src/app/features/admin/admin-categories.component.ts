@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { AdminScenarioService, CategoryDetail, scenarioError } from './admin-scenario.service';
+import { AdminScenarioService, CategoryDetail, lessonSlug, scenarioError } from './admin-scenario.service';
 
 @Component({
   selector: 'app-admin-categories',
@@ -13,15 +13,18 @@ import { AdminScenarioService, CategoryDetail, scenarioError } from './admin-sce
     <div class="page-heading"><h1>Nhóm chủ đề</h1></div>
     @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
     @if (notice()) { <p class="feedback" role="status">{{ notice() }}</p> }
-    <form class="panel filter-form" (ngSubmit)="create()">
-      <label>Mã nhóm<input name="code" maxlength="50" placeholder="VI_DU" [(ngModel)]="code" /></label>
+    <form class="panel form-grid" (ngSubmit)="create()">
       <label>Tên nhóm<input name="newName" maxlength="120" [(ngModel)]="name" /></label>
-      <button class="action primary" type="submit" [disabled]="busy() || !code.trim() || !name.trim()">Thêm nhóm</button>
+      <div class="self-end"><button class="action primary" type="submit" [disabled]="busy() || !name.trim()">Thêm nhóm</button></div>
+      <details class="wide disclosure">
+        <summary>Mã nhóm tùy chỉnh</summary>
+        <label>Mã nhóm<input name="code" maxlength="50" placeholder="Tự tạo từ tên nhóm" [(ngModel)]="code" /></label>
+      </details>
     </form>
     <section class="panel" aria-label="Danh sách nhóm chủ đề" [attr.aria-busy]="busy()">
       @for (row of rows(); track row.code) {
         <form class="group-item filter-form" (ngSubmit)="rename(row)">
-          <div><strong>{{ row.code }}</strong><span class="secondary">{{ row.lessonCount }} bài học</span></div>
+          <div><strong>{{ row.lessonCount }} bài học</strong><span class="secondary">{{ row.code }}</span></div>
           <label>Tên nhóm<input name="name" maxlength="120" [(ngModel)]="row.nameVi" /></label>
           <div class="actions">
             <button class="action" type="submit" [disabled]="busy() || !row.nameVi.trim()">Lưu tên</button>
@@ -56,7 +59,10 @@ export class AdminCategoriesComponent {
 
   protected async create(): Promise<void> {
     await this.run(async () => {
-      await firstValueFrom(this.api.createCategory({ code: this.code.trim().toUpperCase(), nameVi: this.name.trim() }));
+      const name = this.name.trim();
+      const generatedCode = lessonSlug(name).slice(0, 50).replace(/-+$/, '').replace(/-/g, '_').toUpperCase();
+      const code = this.code.trim().toUpperCase() || generatedCode || 'NHOM_' + crypto.randomUUID().slice(0, 8).toUpperCase();
+      await firstValueFrom(this.api.createCategory({ code, nameVi: name }));
       this.code = '';
       this.name = '';
       this.notice.set('Đã thêm nhóm.');

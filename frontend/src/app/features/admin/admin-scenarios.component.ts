@@ -101,8 +101,7 @@ export class AdminScenariosComponent {
 
   protected async duplicate(row: ScenarioSummary): Promise<void> {
     await this.run(row, async () => {
-      const slug = row.slug.slice(0, 82).replace(/-+$/, '') + '-ban-sao-' + crypto.randomUUID().slice(0, 8);
-      const draft = await firstValueFrom(this.api.duplicate(row.id, { slug }));
+      const draft = await firstValueFrom(this.api.createCopy(row));
       await this.router.navigate(['/admin/scenarios', draft.id]);
     });
   }
