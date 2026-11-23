@@ -19,3 +19,5 @@ Danh sách bài có tìm kiếm tức thì, tab trạng thái kèm số lượng
 ## Quyết định và việc còn lại
 
 D-45 đến D-47 ghi nhận mã nhóm ổn định, chặn xóa nhóm còn bài, kiểm duyệt nội dung AI trước khi xuất bản và ghi audit khi quản trị tài khoản. Kết nối thoại đã thiết lập có thể tiếp tục tới khi ngắt kết nối. Còn bước kiểm tra bằng khóa Gemini hoặc Groq của môi trường staging khi phát hành. Xem [hướng dẫn vận hành](../admin-scenarios.md) và [bài học kỹ thuật](../../learning/sprint-9-admin-editor-and-accounts.md).
+
+Log Playwright ghi nhận xung đột khóa chính khi dashboard học viên khởi tạo hồ sơ gamification đồng thời. Luồng admin đã chạy qua các bước kiểm thử. Lỗi thuộc luồng dashboard học viên và được ghi lại để theo dõi.
