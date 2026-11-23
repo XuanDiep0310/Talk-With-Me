@@ -154,7 +154,7 @@ class Settings(BaseSettings):
     # LLM provider for placement level evaluation and AI Coach
     LLM_PROVIDER: str = "fake"  # "fake" | "openai" | "gemini"
     LLM_API_KEY: str = ""
-    LLM_MODEL: str = "gemini-1.5-flash"
+    LLM_MODEL: str = "gemini-3.5-flash-lite"
 
     # Placement Test thresholds
     # Minimum answers required before we attempt level estimation

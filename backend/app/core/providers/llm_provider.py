@@ -606,7 +606,7 @@ class GeminiLlmProvider:
     Activated when LLM_PROVIDER=gemini and LLM_API_KEY is configured.
     """
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-3.5-flash-lite") -> None:
         self.api_key = api_key
         self.model = model
         self.endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
