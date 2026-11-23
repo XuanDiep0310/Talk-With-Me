@@ -9,37 +9,66 @@ import { AdminScenarioService, CategoryDetail, lessonSlug, scenarioError } from 
   imports: [FormsModule, RouterLink],
   styleUrl: './admin.scss',
   template: `
-    <a class="text-link inline-block mb-4" routerLink="/admin/scenarios">Về danh sách bài học</a>
-    <div class="page-heading"><h1>Nhóm chủ đề</h1></div>
-    @if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
-    @if (notice()) { <p class="feedback" role="status">{{ notice() }}</p> }
+    <a class="text-link inline-flex items-center gap-1.5 mb-4 text-sm font-medium" routerLink="/admin/scenarios">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+      <span>Về danh sách bài học</span>
+    </a>
+    <div class="page-heading">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Nhóm chủ đề</h1>
+        <p class="text-sm text-slate-500 mt-1">Phân loại các bài học tình huống theo nhóm ngữ cảnh giao tiếp</p>
+      </div>
+    </div>
+    @if (error()) {
+      <div class="feedback error" role="alert">
+        <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <p>{{ error() }}</p>
+      </div>
+    }
+    @if (notice()) {
+      <div class="feedback" role="status">
+        <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+        <span>{{ notice() }}</span>
+      </div>
+    }
     <form class="panel form-grid" (ngSubmit)="create()">
-      <label>Tên nhóm<input name="newName" maxlength="120" [(ngModel)]="name" /></label>
-      <div class="self-end"><button class="action primary" type="submit" [disabled]="busy() || !name.trim()">Thêm nhóm</button></div>
+      <label>Tên nhóm<input name="newName" maxlength="120" placeholder="Ví dụ: Du lịch & Đặt phòng" [(ngModel)]="name" /></label>
+      <div class="self-end"><button class="action primary flex items-center gap-1.5" type="submit" [disabled]="busy() || !name.trim()">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+        <span>Thêm nhóm</span>
+      </button></div>
       <details class="wide disclosure">
         <summary>Mã nhóm tùy chỉnh</summary>
-        <label>Mã nhóm<input name="code" maxlength="50" placeholder="Tự tạo từ tên nhóm" [(ngModel)]="code" /></label>
+        <label class="mt-2">Mã nhóm<input name="code" maxlength="50" placeholder="Tự tạo từ tên nhóm nếu để trống" [(ngModel)]="code" /></label>
       </details>
     </form>
     <section class="panel" aria-label="Danh sách nhóm chủ đề" [attr.aria-busy]="busy()">
-      @for (row of rows(); track row.code) {
-        <form class="group-item filter-form" (ngSubmit)="rename(row)">
-          <div><strong>{{ row.lessonCount }} bài học</strong><span class="secondary">{{ row.code }}</span></div>
-          <label>Tên nhóm<input name="name" maxlength="120" [(ngModel)]="row.nameVi" /></label>
-          <div class="actions">
-            <button class="action" type="submit" [disabled]="busy() || !row.nameVi.trim()">Lưu tên</button>
-            <button class="action" type="button" [disabled]="busy() || row.lessonCount > 0"
-              (click)="confirmDelete(deletion, row)">Xóa nhóm</button>
-          </div>
-        </form>
-      } @empty {
-        @if (!busy()) { <p>Chưa có nhóm chủ đề.</p> }
-      }
+      <div class="space-y-3">
+        @for (row of rows(); track row.code) {
+          <form class="group-item filter-form shadow-sm" (ngSubmit)="rename(row)">
+            <div>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-700 mb-1">{{ row.lessonCount }} bài học</span>
+              <span class="secondary font-mono text-xs">{{ row.code }}</span>
+            </div>
+            <label>Tên nhóm<input name="name" maxlength="120" [(ngModel)]="row.nameVi" /></label>
+            <div class="actions">
+              <button class="action" type="submit" [disabled]="busy() || !row.nameVi.trim()">Lưu tên</button>
+              <button class="action text-rose-600 hover:bg-rose-50" type="button" [disabled]="busy() || row.lessonCount > 0"
+                (click)="confirmDelete(deletion, row)">Xóa nhóm</button>
+            </div>
+          </form>
+        } @empty {
+          @if (!busy()) { <p class="p-4 text-center text-slate-500">Chưa có nhóm chủ đề.</p> }
+        }
+      </div>
     </section>
     <dialog #deletion class="admin-dialog" aria-label="Xác nhận xóa nhóm">
-      <p class="mb-4">Xóa nhóm {{ selected?.nameVi }}?</p>
-      <div class="actions">
-        <button class="action primary" type="button" (click)="delete(deletion)" [disabled]="busy()">Xác nhận xóa</button>
+      <div class="section-heading border-b border-slate-100 pb-3 mb-4">
+        <h2 class="text-lg font-bold text-slate-900">Xác nhận xóa nhóm</h2>
+      </div>
+      <p class="text-sm text-slate-600 mb-4">Bạn có chắc chắn muốn xóa nhóm <strong>{{ selected?.nameVi }}</strong>?</p>
+      <div class="actions justify-end">
+        <button class="action primary bg-rose-600 border-rose-600 hover:bg-rose-700" type="button" (click)="delete(deletion)" [disabled]="busy()">Xác nhận xóa</button>
         <form method="dialog"><button class="action">Hủy</button></form>
       </div>
     </dialog>

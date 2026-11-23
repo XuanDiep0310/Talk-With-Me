@@ -1,20 +1,26 @@
-<a class="text-link inline-block mb-4" routerLink="/admin/scenarios">Về danh sách bài học</a>
+<a class="text-link inline-flex items-center gap-1.5 mb-4 text-sm font-medium" routerLink="/admin/scenarios">
+  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+  <span>Về danh sách bài học</span>
+</a>
 
 <div class="editor-heading">
   <div class="actions">
-    <h1>{{ draft.titleVi || draft.titleEn || 'Tạo bài học' }}</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ draft.titleVi || draft.titleEn || 'Tạo bài học' }}</h1>
     @if (saved(); as current) {
       <span class="status" [attr.data-status]="current.status">{{ statuses[current.status] }}</span>
     }
   </div>
   <dialog #learnerPreview class="admin-dialog" aria-labelledby="learner-preview-title" (close)="previewData = null">
-    <header class="section-heading">
-      <h2 id="learner-preview-title">Xem trước giao diện người học</h2>
+    <header class="section-heading border-b border-slate-100 pb-3 mb-4">
+      <div>
+        <h2 id="learner-preview-title" class="text-lg font-bold text-slate-900">Xem trước giao diện người học</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Mô phỏng trải nghiệm thực tế của học viên khi vào bài học này</p>
+      </div>
       <form method="dialog"><button class="action">Đóng</button></form>
     </header>
     <div class="actions mb-3" aria-label="Kích thước xem trước">
-      <button class="action" type="button" [attr.aria-pressed]="previewWidth === 'phone'" (click)="previewWidth = 'phone'">Điện thoại</button>
-      <button class="action" type="button" [attr.aria-pressed]="previewWidth === 'desktop'" (click)="previewWidth = 'desktop'">Máy tính</button>
+      <button class="action pill" type="button" [attr.aria-pressed]="previewWidth === 'phone'" (click)="previewWidth = 'phone'">Điện thoại</button>
+      <button class="action pill" type="button" [attr.aria-pressed]="previewWidth === 'desktop'" (click)="previewWidth = 'desktop'">Máy tính</button>
     </div>
     @if (previewData; as lesson) {
       <div class="learner-preview" [class.phone]="previewWidth === 'phone'">
@@ -24,10 +30,18 @@
   </dialog>
 </div>
 
-@if (notice()) { <p class="feedback" role="status">{{ notice() }}</p> }
+@if (notice()) {
+  <div class="feedback" role="status">
+    <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+    <span>{{ notice() }}</span>
+  </div>
+}
 @if (error(); as issue) {
   <div class="feedback error" role="alert">
-    <p>{{ issue.message }}</p>
+    <div class="flex items-center gap-2 mb-1">
+      <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <p>{{ issue.message }}</p>
+    </div>
     @if (issue.fields | keyvalue: null; as fields) {
       @if (fields[0]; as first) {
         <button class="check-link" type="button" (click)="fixField(first.key)">
@@ -35,11 +49,11 @@
         </button>
       }
       @if (fields.length > 1) {
-        <details>
-          <summary>Xem {{ fields.length - 1 }} mục còn lại</summary>
-          <ul class="ps-4">
+        <details class="mt-2">
+          <summary class="text-xs font-semibold text-rose-700 cursor-pointer">Xem {{ fields.length - 1 }} mục còn lại</summary>
+          <ul class="ps-4 mt-1 space-y-1">
             @for (field of fields.slice(1); track field.key) {
-              <li><button class="check-link" type="button" (click)="fixField(field.key)">
+              <li><button class="check-link text-xs" type="button" (click)="fixField(field.key)">
                 <strong>{{ fieldLabel(field.key) }}</strong> · {{ fieldMessage(field.value) }}
               </button></li>
             }
@@ -51,11 +65,14 @@
 }
 
 @if (loading()) {
-  <p role="status">Đang tải bài học…</p>
+  <div class="p-8 text-center text-slate-500" role="status">
+    <svg class="w-6 h-6 mx-auto mb-2 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    <p>Đang tải bài học…</p>
+  </div>
 } @else if (!loadFailed()) {
   @if (saved(); as current) {
     @if (preview()) {
-      <div class="actions mb-4">
+      <div class="actions mb-6">
         <button class="action primary" type="button" (click)="duplicate()" [disabled]="busy()">Tạo bản chỉnh sửa</button>
         <button class="action" type="button" (click)="openPreview(learnerPreview)">Xem trước giao diện người học</button>
         @if (current.status === 'PUBLISHED') {
@@ -67,49 +84,71 @@
       </div>
     }
     @if (confirmArchive()) {
-      <section class="panel" aria-labelledby="archive-title">
-        <h2 id="archive-title">Ẩn bài học này?</h2>
+      <section class="panel border-rose-200 bg-rose-50/50" aria-labelledby="archive-title">
+        <h2 id="archive-title" class="text-rose-900 font-bold">Ẩn bài học này?</h2>
         <p class="my-2 text-sm text-slate-700">Học viên sẽ không thể bắt đầu lượt luyện mới. Các phiên đã bắt đầu vẫn có thể hoàn thành.</p>
-        <div class="actions">
-          <button class="action primary" type="button" (click)="changeStatus('ARCHIVED')" [disabled]="busy()">Xác nhận ẩn</button>
+        <div class="actions mt-3">
+          <button class="action primary bg-rose-600 border-rose-600 hover:bg-rose-700" type="button" (click)="changeStatus('ARCHIVED')" [disabled]="busy()">Xác nhận ẩn</button>
           <button class="action" type="button" (click)="confirmArchive.set(false)">Hủy</button>
         </div>
       </section>
     }
     @if (preview()) {
       <article class="panel preview" aria-labelledby="preview-title">
-        <h2 id="preview-title">Nội dung bài học</h2>
-        <p class="secondary">{{ categoryNames()[current.category] || current.category }} · {{ current.level }} · {{ current.estimatedDurationMinutes }} phút</p>
-        <h3 class="mt-4">{{ current.titleVi }}</h3>
-        <p lang="en">{{ current.titleEn }}</p>
-        <p class="mt-3">{{ current.context }}</p>
-        <p class="mt-3"><strong>Vai người học</strong> · {{ current.userRole }}</p>
-        <p><strong>Vai AI</strong> · {{ current.aiRole }}</p>
-        <h3 class="mt-4">Mục tiêu học tập</h3>
-        <ul>@for (goal of current.goals; track $index) { <li>{{ goal }}</li> }</ul>
-        <h3 class="mt-4">Cụm từ</h3>
-        @for (chunk of current.chunks; track chunk.id) {
-          <section class="group-item">
-            <h4 class="font-semibold" lang="en">{{ chunk.text }}</h4>
-            <p>{{ functions[chunk.functionTag] }} · {{ chunk.meaningVi }}</p>
-            <p lang="en">{{ chunk.exampleSentence }}</p>
-            @if (chunk.acceptedVariations?.length) {
-              <p class="mt-2"><strong>Biến thể</strong> · <span lang="en">{{ chunk.acceptedVariations?.join(' · ') }}</span></p>
-            }
-            @if (chunk.distractorsEn?.length) {
-              <p><strong>Đáp án nhiễu tiếng Anh</strong> · <span lang="en">{{ chunk.distractorsEn?.join(' · ') }}</span></p>
-            }
-            @if (chunk.distractorsVi?.length) {
-              <p><strong>Đáp án nhiễu tiếng Việt</strong> · {{ chunk.distractorsVi?.join(' · ') }}</p>
-            }
-          </section>
-        }
-        <h3 class="mt-4">Yêu cầu roleplay</h3>
-        <ol>
+        <div class="border-b border-slate-100 pb-4 mb-4">
+          <h2 id="preview-title">Nội dung bài học</h2>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-700">{{ categoryNames()[current.category] || current.category }}</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">{{ current.level }}</span>
+            <span class="text-xs text-slate-500">{{ current.estimatedDurationMinutes }} phút</span>
+          </div>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900">{{ current.titleVi }}</h3>
+        <p class="text-sm text-slate-500 italic" lang="en">{{ current.titleEn }}</p>
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 my-4">
+          <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Bối cảnh</h4>
+          <p class="text-sm text-slate-800">{{ current.context }}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+            <span class="text-xs text-slate-500">Vai người học</span>
+            <p class="text-sm font-semibold text-slate-800">{{ current.userRole }}</p>
+          </div>
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+            <span class="text-xs text-slate-500">Vai AI</span>
+            <p class="text-sm font-semibold text-slate-800">{{ current.aiRole }}</p>
+          </div>
+        </div>
+        <h3 class="mt-6 mb-2">Mục tiêu học tập</h3>
+        <ul class="space-y-1 text-sm text-slate-700">@for (goal of current.goals; track $index) { <li>{{ goal }}</li> }</ul>
+        <h3 class="mt-6 mb-3">Cụm từ</h3>
+        <div class="space-y-3">
+          @for (chunk of current.chunks; track chunk.id) {
+            <section class="group-item">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700">{{ functions[chunk.functionTag] }}</span>
+                <h4 class="font-bold text-slate-900 text-base" lang="en">{{ chunk.text }}</h4>
+              </div>
+              <p class="text-sm text-slate-600 mb-2">{{ chunk.meaningVi }}</p>
+              <div class="p-2.5 bg-slate-50 rounded-lg text-sm italic text-slate-700" lang="en">"{{ chunk.exampleSentence }}"</div>
+              @if (chunk.acceptedVariations?.length) {
+                <p class="mt-2 text-xs text-slate-600"><strong>Biến thể</strong> · <span lang="en">{{ chunk.acceptedVariations?.join(' · ') }}</span></p>
+              }
+              @if (chunk.distractorsEn?.length) {
+                <p class="text-xs text-slate-500 mt-1"><strong>Đáp án nhiễu tiếng Anh</strong> · <span lang="en">{{ chunk.distractorsEn?.join(' · ') }}</span></p>
+              }
+              @if (chunk.distractorsVi?.length) {
+                <p class="text-xs text-slate-500"><strong>Đáp án nhiễu tiếng Việt</strong> · {{ chunk.distractorsVi?.join(' · ') }}</p>
+              }
+            </section>
+          }
+        </div>
+        <h3 class="mt-6 mb-3">Yêu cầu roleplay</h3>
+        <ol class="space-y-2">
           @for (requirement of current.requirements; track requirement.id) {
-            <li>
-              {{ requirement.description }}
-              <span class="text-sm text-slate-600">
+            <li class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-sm">
+              <span class="font-medium text-slate-900">{{ requirement.description }}</span>
+              <span class="text-xs text-slate-500 ml-2">
                 ({{ requirement.isMandatory ? 'Bắt buộc' : 'Tùy chọn' }}
                 @if (requirement.expectedChunkFunction; as expected) { · {{ functions[expected] }} })
               </span>
@@ -121,9 +160,9 @@
   }
   @if (!preview()) {
     <dialog #replaceDraft class="admin-dialog" aria-labelledby="replace-draft-title">
-      <h2 id="replace-draft-title">Thay nội dung đang soạn?</h2>
-      <p class="my-3">Kết quả AI sẽ thay nội dung trong biểu mẫu. Bản đã lưu vẫn có thể mở lại.</p>
-      <div class="actions">
+      <h2 id="replace-draft-title" class="text-lg font-bold text-slate-900">Thay nội dung đang soạn?</h2>
+      <p class="my-3 text-sm text-slate-600">Kết quả AI sẽ thay nội dung trong biểu mẫu. Bản đã lưu vẫn có thể mở lại.</p>
+      <div class="actions mt-4">
         <button class="action primary" type="button" (click)="generateLesson(replaceDraft)">Tạo bản nháp bằng AI</button>
         <form method="dialog"><button class="action">Hủy</button></form>
       </div>
@@ -133,12 +172,13 @@
         <nav class="wizard-steps" aria-label="Các bước soạn bài">
           @for (label of steps; track label; let index = $index) {
             <button class="action" type="button" [attr.aria-current]="step === index ? 'step' : null" (click)="goToStep(index)">
-              <span class="step-number">{{ index + 1 }}</span>{{ label }}
+              <span class="step-number">{{ index + 1 }}</span>
+              <span>{{ label }}</span>
             </button>
           }
         </nav>
         <section class="panel" aria-labelledby="info-title" [hidden]="step !== 0">
-          <h2 id="info-title" class="mb-4" tabindex="-1" data-step="0">Thông tin bài học</h2>
+          <h2 id="info-title" class="mb-4 text-lg font-bold text-slate-900" tabindex="-1" data-step="0">Thông tin bài học</h2>
           <div class="form-grid">
             <fieldset class="wide entries">
               <legend>Nhóm chủ đề</legend>
@@ -161,14 +201,17 @@
           </div>
           <details class="assist-box" [open]="!saved()">
             <summary>Soạn nhanh với AI</summary>
-            <div class="form-grid assist-grid" (input)="$event.stopPropagation()" (change)="$event.stopPropagation()">
+            <div class="form-grid assist-grid mt-3" (input)="$event.stopPropagation()" (change)="$event.stopPropagation()">
               <label>Chủ đề cho AI<input name="aiTopic" maxlength="255" placeholder="Đặt phòng khách sạn tại Đà Nẵng" [(ngModel)]="aiTopic" /></label>
               <label>Số cụm từ
                 <select name="aiCount" [(ngModel)]="aiCount">
-                  @for (count of [4, 5, 6]; track count) { <option [ngValue]="count">{{ count }}</option> }
+                  @for (count of [4, 5, 6]; track count) { <option [ngValue]="count">{{ count }} cụm từ</option> }
                 </select>
               </label>
-              <button class="action primary" type="button" [disabled]="!aiTopic.trim()" (click)="generateOrConfirm(replaceDraft)">Tạo bài bằng AI</button>
+              <button class="action primary flex items-center justify-center gap-1.5" type="button" [disabled]="!aiTopic.trim()" (click)="generateOrConfirm(replaceDraft)">
+                <span>✨</span>
+                <span>Tạo bài bằng AI</span>
+              </button>
             </div>
           </details>
           <div class="form-grid mt-4">
@@ -178,7 +221,7 @@
             <label>Vai AI<input name="aiRole" data-field="aiRole" maxlength="255" [(ngModel)]="draft.aiRole" /></label>
             <details class="wide disclosure">
               <summary>Gợi ý vai</summary>
-              <div class="actions mb-2" aria-label="Vai người học gợi ý">
+              <div class="actions mb-2 mt-2" aria-label="Vai người học gợi ý">
                 @for (role of ['Khách hàng', 'Khách du lịch', 'Đồng nghiệp']; track role) {
                   <button class="action pill" type="button" [attr.aria-pressed]="draft.userRole === role" (click)="draft.userRole = role; dirty.set(true)">{{ role }}</button>
                 }
@@ -215,26 +258,29 @@
           </details>
         </section>
         <section class="panel" aria-labelledby="chunks-title" [hidden]="step !== 1">
-          <div class="section-heading">
-            <h2 id="chunks-title" tabindex="-1" data-step="1">Cụm từ ({{ draft.chunks.length }}/6)</h2>
-            <button class="action" type="button" data-field="chunks" (click)="addChunk()" [disabled]="draft.chunks.length >= 6">Thêm cụm từ</button>
+          <div class="section-heading mb-4">
+            <div>
+              <h2 id="chunks-title" class="text-lg font-bold text-slate-900" tabindex="-1" data-step="1">Cụm từ ({{ draft.chunks.length }}/6)</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Mỗi bài học cần 4 đến 6 cụm từ cốt lõi với biến thể và đáp án sai</p>
+            </div>
+            <button class="action primary" type="button" data-field="chunks" (click)="addChunk()" [disabled]="draft.chunks.length >= 6">Thêm cụm từ</button>
           </div>
           @for (chunk of draft.chunks; track $index; let index = $index) {
-            <fieldset class="group-item" (dragover)="$event.preventDefault()" (drop)="dropChunk($event, index)">
+            <fieldset class="group-item shadow-sm" (dragover)="$event.preventDefault()" (drop)="dropChunk($event, index)">
               <legend class="sr-only">Cụm từ {{ index + 1 }}</legend>
               <div class="accordion-heading">
-                <span class="drag-handle" draggable="true" (dragstart)="startDrag($event, index)" (dragend)="cancelDrag()" aria-hidden="true">⠿</span>
+                <span class="drag-handle" draggable="true" (dragstart)="startDrag($event, index)" (dragend)="cancelDrag()" aria-hidden="true" title="Kéo để đổi thứ tự">⠿</span>
                 <button class="accordion-toggle" type="button" [attr.aria-expanded]="openChunk === index"
                   [attr.aria-controls]="'chunk-panel-' + index" (click)="openChunk = openChunk === index ? -1 : index">
-                  Cụm từ {{ index + 1 }} <span>{{ chunk.text || 'Chưa có nội dung' }}</span>
+                  <span class="font-bold text-slate-900">Cụm từ {{ index + 1 }}</span>
+                  <span class="truncate">{{ chunk.text || 'Chưa có nội dung' }}</span>
                 </button>
               </div>
-              <div [id]="'chunk-panel-' + index" [hidden]="openChunk !== index">
-
-                <div class="actions mb-3">
+              <div [id]="'chunk-panel-' + index" [hidden]="openChunk !== index" class="mt-4 pt-4 border-t border-slate-100">
+                <div class="actions mb-3 justify-end">
                   <button class="action" type="button" (click)="move(draft.chunks, index, -1)" [disabled]="$first" [attr.aria-label]="'Đưa cụm từ ' + (index + 1) + ' lên'">Lên</button>
                   <button class="action" type="button" (click)="move(draft.chunks, index, 1)" [disabled]="$last" [attr.aria-label]="'Đưa cụm từ ' + (index + 1) + ' xuống'">Xuống</button>
-                  <button class="action" type="button" (click)="remove(draft.chunks, index)" [attr.aria-label]="'Xóa cụm từ ' + (index + 1)">Xóa</button>
+                  <button class="action text-rose-600 hover:bg-rose-50" type="button" (click)="remove(draft.chunks, index)" [attr.aria-label]="'Xóa cụm từ ' + (index + 1)">Xóa</button>
                 </div>
                 <div class="form-grid">
                   <label>
@@ -259,8 +305,11 @@
                     }
                     <button class="action" type="button" [disabled]="chunk.acceptedVariations.length >= 20" [attr.data-field]="'chunks.' + index + '.acceptedVariations'" (click)="addEntry(chunk.acceptedVariations)">Thêm biến thể</button>
                   </fieldset>
-                  <div class="wide actions">
-                    <button class="action" type="button" [disabled]="!chunk.text.trim()" (click)="suggestDistractors(chunk)">Gợi ý đáp án nhiễu</button>
+                  <div class="wide actions pt-2">
+                    <button class="action flex items-center gap-1.5" type="button" [disabled]="!chunk.text.trim()" (click)="suggestDistractors(chunk)">
+                      <span>✨</span>
+                      <span>Gợi ý đáp án nhiễu</span>
+                    </button>
                     @if (hasDistractors(chunk)) { <span class="secondary">Gợi ý mới sẽ thay sáu ô đáp án.</span> }
                   </div>
                   <fieldset class="entries">
@@ -281,17 +330,20 @@
           }
         </section>
         <section class="panel" aria-labelledby="requirements-title" [hidden]="step !== 2">
-          <div class="section-heading">
-            <h2 id="requirements-title" tabindex="-1" data-step="2">Nhiệm vụ hội thoại</h2>
-            <button class="action" type="button" data-field="requirements" (click)="addRequirement()" [disabled]="draft.requirements.length >= 20">Thêm yêu cầu</button>
+          <div class="section-heading mb-4">
+            <div>
+              <h2 id="requirements-title" class="text-lg font-bold text-slate-900" tabindex="-1" data-step="2">Nhiệm vụ hội thoại</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Các mục tiêu người học cần thực hiện trong cuộc trò chuyện roleplay</p>
+            </div>
+            <button class="action primary" type="button" data-field="requirements" (click)="addRequirement()" [disabled]="draft.requirements.length >= 20">Thêm yêu cầu</button>
           </div>
           @for (requirement of draft.requirements; track $index; let index = $index) {
-            <fieldset class="group-item">
-              <legend class="px-1 font-semibold">Yêu cầu {{ index + 1 }}</legend>
-              <div class="actions mb-3">
+            <fieldset class="group-item shadow-sm">
+              <legend class="px-1 font-bold text-slate-900">Yêu cầu {{ index + 1 }}</legend>
+              <div class="actions mb-3 justify-end">
                 <button class="action" type="button" (click)="move(draft.requirements, index, -1)" [disabled]="$first" [attr.aria-label]="'Đưa yêu cầu ' + (index + 1) + ' lên'">Lên</button>
                 <button class="action" type="button" (click)="move(draft.requirements, index, 1)" [disabled]="$last" [attr.aria-label]="'Đưa yêu cầu ' + (index + 1) + ' xuống'">Xuống</button>
-                <button class="action" type="button" (click)="remove(draft.requirements, index)" [attr.aria-label]="'Xóa yêu cầu ' + (index + 1)">Xóa</button>
+                <button class="action text-rose-600 hover:bg-rose-50" type="button" (click)="remove(draft.requirements, index)" [attr.aria-label]="'Xóa yêu cầu ' + (index + 1)">Xóa</button>
               </div>
               <div class="form-grid">
                 <label class="wide">Mô tả<textarea [name]="'description' + index" [attr.data-field]="'requirements.' + index + '.description'" rows="2" maxlength="4000" [(ngModel)]="requirement.description"></textarea></label>
@@ -308,12 +360,12 @@
           }
         </section>
         @if (step === 2) {
-          <section class="panel" aria-labelledby="checks-title">
-            <h2 id="checks-title">Kiểm tra trước khi xuất bản</h2>
+          <section class="panel border-slate-200" aria-labelledby="checks-title">
+            <h2 id="checks-title" class="text-lg font-bold text-slate-900">Kiểm tra trước khi xuất bản</h2>
             @if (publicationIssues(); as issues) {
               @if (issues.length) {
-                <p class="secondary mt-2">Chọn một mục để đến chỗ cần sửa.</p>
-                <ul class="review-list mt-2">
+                <p class="secondary mt-1">Chọn một mục để đến chỗ cần sửa.</p>
+                <ul class="review-list mt-3">
                   @for (issue of issues; track issue.path) {
                     <li><button class="check-link" type="button" (click)="fixField(issue.path)">
                       <strong>{{ fieldLabel(issue.path) }}</strong> · {{ fieldMessage(issue.message) }}
@@ -321,7 +373,10 @@
                   }
                 </ul>
               } @else {
-                <p class="feedback">Đã đủ nội dung để xuất bản.</p>
+                <div class="feedback mt-3">
+                  <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <span>Đã đủ nội dung để xuất bản.</span>
+                </div>
               }
             }
           </section>
@@ -329,7 +384,7 @@
         <footer class="editor-footer" aria-label="Thao tác soạn bài">
           <div class="editor-footer-meta">
             <span>Bước {{ step + 1 }}/3</span>
-            <span aria-live="polite">{{ aiBusy() ? 'AI đang soạn…' : busy() ? 'Đang xử lý…' : dirty() ? 'Chưa lưu' : saved() ? 'Đã lưu' : 'Bài mới' }}</span>
+            <span aria-live="polite" class="text-slate-500">{{ aiBusy() ? 'AI đang soạn…' : busy() ? 'Đang xử lý…' : dirty() ? 'Chưa lưu' : saved() ? 'Đã lưu' : 'Bài mới' }}</span>
           </div>
           <div class="actions editor-footer-actions">
             @if (step > 0) { <button class="action" type="button" (click)="goToStep(step - 1)">Quay lại</button> }
@@ -341,6 +396,11 @@
         </footer>
       </fieldset>
     </form>
-    @if (aiBusy()) { <p class="feedback" role="status">AI đang soạn nội dung…</p> }
+    @if (aiBusy()) {
+      <div class="feedback mt-4" role="status">
+        <svg class="w-5 h-5 animate-spin text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <span>AI đang soạn nội dung…</span>
+      </div>
+    }
   }
 }
