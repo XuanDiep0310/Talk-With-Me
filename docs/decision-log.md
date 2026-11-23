@@ -51,3 +51,4 @@ Ghi lại mọi quyết định kỹ thuật và thiết kế quan trọng, đ�
 | D-45 | Nhóm chủ đề trong thư viện | Tên nhóm có thể sửa. Mã nhóm ổn định để giữ liên kết bài học và URL lọc. Chỉ xóa nhóm trống để bảo toàn bài đã xuất bản và lịch sử. | 9 | DECIDED |
 | D-46 | AI hỗ trợ biên tập | AI trả dữ liệu đã kiểm tra bằng schema và quy tắc xuất bản. Admin kiểm duyệt kết quả trong biểu mẫu trước khi lưu hoặc xuất bản. | 9 | DECIDED |
 | D-47 | Quản lý quyền và khóa tài khoản | Admin thay đổi tài khoản khác qua UI. API kiểm tra lại quyền trong transaction, ghi audit và thu hồi phiên xác thực khi khóa. Giữ CLI để cấp quyền quản trị viên đầu tiên. | 9 | DECIDED |
+| D-48 | Thao tác xuất bản trong trình soạn | Một lần bấm kiểm tra nội dung, lưu thay đổi rồi xuất bản qua API hiện có. Nếu lưu thành công và xuất bản lỗi, dùng bản nháp vừa lưu khi thử lại. Mở đúng trường từ checklist và thông báo lỗi. | 10 | DECIDED |

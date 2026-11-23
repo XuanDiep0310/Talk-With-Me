@@ -74,14 +74,23 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
   const slug = 'admin-lesson-' + randomUUID();
   const title = 'Bài học gọi món ' + slug.slice(-6);
   await page.getByLabel('Tiêu đề tiếng Việt').fill(title);
+  await expect(page.getByLabel('Mã đường dẫn')).toBeHidden();
+  await page.getByText('Thiết lập nâng cao', { exact: true }).click();
   await expect(page.getByLabel('Mã đường dẫn')).toHaveValue('bai-hoc-goi-mon-' + slug.slice(-6));
   await page.getByLabel('Mã đường dẫn').fill(slug);
+  await page.getByText('Thiết lập nâng cao', { exact: true }).click();
   await page.getByLabel('Tiêu đề tiếng Anh').fill('Ordering at a restaurant');
   await page.getByLabel('Bối cảnh').fill('Bạn đang gọi món tại nhà hàng.');
   await page.getByRole('textbox', { name: 'Vai người học', exact: true }).fill('Thực khách');
   await page.getByRole('textbox', { name: 'Vai AI', exact: true }).fill('Waiter');
   await page.getByRole('button', { name: 'Thêm mục tiêu' }).click();
   await page.getByLabel('Mục tiêu 1', { exact: true }).fill('Gọi món và cảm ơn');
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.getByRole('link', { name: 'Về danh sách bài học' }).click();
+  await expect(page).toHaveURL(/\/admin\/scenarios\/new$/);
+  page.once('dialog', (dialog) => dialog.dismiss());
+  await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/scenarios\/new$/);
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
   for (let index = 1; index <= 4; index += 1) {
     await page.getByRole('button', { name: 'Thêm cụm từ' }).click();
@@ -102,6 +111,9 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
   await page.getByRole('button', { name: 'Đưa cụm từ 1 xuống' }).click();
   await page.getByRole('button', { name: 'Tiếp tục' }).click();
   await page.getByRole('button', { name: 'Thêm yêu cầu' }).click();
+  await page.getByRole('button', { name: 'Xuất bản', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Bài học còn thiếu nội dung');
+  await expect(page.getByLabel('Mô tả')).toBeFocused();
   await page.getByLabel('Mô tả').fill('Gọi ít nhất một món.');
   await page.getByRole('button', { name: 'Xem trước giao diện người học' }).click();
   const preview = page.getByRole('dialog');
@@ -110,9 +122,28 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
     [2, 1, 3, 4].map((index) => 'Could I order dish ' + index + '?')
   );
   await preview.getByRole('button', { name: 'Đóng', exact: true }).click();
-  await page.getByRole('button', { name: 'Lưu bản nháp' }).click();
-  await expect(page).toHaveURL(/\/admin\/scenarios\/[\da-f-]{36}$/);
+  let failPublish = true;
+  await page.route('**/api/v1/admin/scenarios/*/status', async (route) => {
+    if (route.request().method() !== 'PATCH' || !failPublish) {
+      await route.fallback();
+      return;
+    }
+    failPublish = false;
+    await route.fulfill({
+      status: 422,
+      headers: { 'access-control-allow-origin': new URL(page.url()).origin },
+      json: {
+        code: 'SCENARIO_NOT_READY',
+        details: { fields: { 'chunks.0.distractorsEn': 'Add three distinct incorrect answers.' } }
+      }
+    });
+  });
   await page.getByRole('button', { name: 'Xuất bản', exact: true }).click();
+  await expect(page.getByText('Đã lưu bản nháp.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Đáp án sai tiếng Anh 1', exact: true })).toBeFocused();
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await page.getByRole('button', { name: 'Xuất bản', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/scenarios\/[\da-f-]{36}$/);
   await expect(page.getByText('Đã xuất bản', { exact: true })).toBeVisible();
   const originalUrl = page.url();
 
@@ -125,11 +156,12 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
     await learnerPage.goto('/scenarios/' + slug);
     await expect(learnerPage.getByRole('heading', { name: 'Ordering at a restaurant' })).toBeVisible();
 
-    await page.getByRole('button', { name: 'Nhân bản', exact: true }).click();
-    await page.getByLabel('Mã đường dẫn bản nhân').fill(slug + '-new');
-    await page.getByRole('button', { name: 'Tạo bản nhân' }).click();
+    const duplicated = page.waitForResponse((response) => response.url().endsWith('/duplicate'));
+    await page.getByRole('button', { name: 'Tạo bản chỉnh sửa' }).click();
+    const replacement = await (await duplicated).json();
     await expect(page).not.toHaveURL(originalUrl);
     await expect(page.getByText('Bản nháp', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /Nhiệm vụ & kiểm tra/ }).click();
     await page.getByRole('button', { name: 'Xuất bản', exact: true }).click();
     await expect(page.getByText('Đã xuất bản', { exact: true })).toBeVisible();
 
@@ -139,13 +171,16 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
     await expect(page.getByText('Đã ẩn', { exact: true })).toBeVisible();
     await learnerPage.reload();
     await expect(learnerPage.getByText('Không thể tải thông tin bài học.')).toBeVisible();
-    await learnerPage.goto('/scenarios/' + slug + '-new');
+    await learnerPage.goto('/scenarios/' + replacement.slug);
     await expect(learnerPage.getByRole('heading', { name: 'Ordering at a restaurant' })).toBeVisible();
 
     await page.goto('/admin/scenarios');
     await page.getByRole('searchbox', { name: 'Tìm bài học' }).fill(slug);
     await expect(page.getByRole('button', { name: 'Tất cả (2)', exact: true })).toBeVisible();
-    const original = page.getByRole('row').filter({ has: page.getByText(slug, { exact: true }) });
+    const catalog = page.getByRole('region', { name: 'Bảng bài học' });
+    expect(await catalog.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBeTruthy();
+    const originalPath = new URL(originalUrl).pathname;
+    const original = page.getByRole('row').filter({ has: page.locator(`a[href="${originalPath}"]`) });
     await original.getByRole('button', { name: 'Xem nhanh' }).click();
     await expect(page.getByRole('dialog').getByRole('heading', { name: title })).toBeVisible();
     await page.getByRole('dialog').getByRole('button', { name: 'Đóng' }).click();
@@ -155,6 +190,12 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
     await page.goto('/admin');
     await expect(page.getByRole('heading', { name: 'Tổng quan quản trị' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Buổi luyện đã kết thúc' })).toBeVisible();
+    await page.getByRole('link', { name: 'Nhóm chủ đề', exact: true }).click();
+    const categorySuffix = slug.slice(-6);
+    await page.getByRole('textbox', { name: 'Tên nhóm', exact: true }).first().fill('Đặt phòng ' + categorySuffix);
+    await expect(page.getByRole('textbox', { name: 'Mã nhóm', exact: true })).toBeHidden();
+    await page.getByRole('button', { name: 'Thêm nhóm' }).click();
+    await expect(page.getByText('DAT_PHONG_' + categorySuffix.toUpperCase(), { exact: true })).toBeVisible();
     await page.getByRole('link', { name: 'Tài khoản', exact: true }).first().click();
     await page.getByRole('searchbox', { name: 'Tìm tài khoản' }).fill(learner.email);
     const row = page.getByRole('row').filter({ hasText: learner.email });
@@ -166,15 +207,19 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
     await expect(row.getByRole('button', { name: 'Mở khóa' })).toBeVisible();
 
     await page.goto('/admin/scenarios/new');
-    await page.getByLabel('Chủ đề cho AI').fill('Đặt phòng khách sạn');
+    const topic = 'Đặt phòng khách sạn ' + slug.slice(-6);
+    await page.getByLabel('Chủ đề cho AI').fill(topic);
     await page.getByRole('button', { name: 'B1', exact: true }).click();
     await page.getByRole('button', { name: 'Tạo bài bằng AI' }).click();
-    await expect(page.getByLabel('Tiêu đề tiếng Việt')).toHaveValue('Đặt phòng khách sạn');
+    await expect(page.getByLabel('Tiêu đề tiếng Việt')).toHaveValue(topic);
     await page.getByRole('button', { name: 'Tiếp tục' }).click();
     await expect(page.getByRole('heading', { name: 'Cụm từ (5/6)' })).toBeVisible();
     await page.getByRole('button', { name: 'Gợi ý đáp án nhiễu' }).click();
     await expect(page.getByRole('textbox', { name: 'Đáp án sai tiếng Anh 1', exact: true }))
       .toHaveValue('Are you staying here?');
+    await page.getByRole('button', { name: 'Lưu bản nháp' }).click();
+    await expect(page).toHaveURL(/\/admin\/scenarios\/[\da-f-]{36}$/);
+    await expect(page.getByRole('heading', { name: 'Cụm từ (5/6)' })).toBeVisible();
   } finally {
     await learnerPage.close();
   }

@@ -18,9 +18,9 @@ Tài khoản được cấp quyền mở `/admin` bằng luồng đăng nhập h
 ## Biên tập và xuất bản
 
 1. Mở **Bài học** và chọn **Tạo bài học**. Mã đường dẫn được gợi ý từ tiêu đề tiếng Việt và có thể sửa.
-2. Soạn qua ba bước **Thông tin chung**, **Cụm từ** và **Yêu cầu roleplay**. Có thể nhập chủ đề rồi chọn **Tạo bài bằng AI**, hoặc gợi ý đáp án nhiễu ngay tại mỗi cụm từ. Khi dùng AI, kiểm tra nội dung và độ phù hợp với CEFR trước khi lưu.
-3. Mở **Xem trước giao diện người học** ở bất kỳ bước nào. Sau khi kiểm tra checklist, chọn **Lưu bản nháp**, rồi chọn **Xuất bản**. Mục lục và các lượt luyện mới chỉ dùng bài đã xuất bản.
-4. Để thay bài đã xuất bản, **Nhân bản** sang mã đường dẫn mới, sửa bản nháp, xuất bản và kiểm tra bản mới từ giao diện học viên. Sau đó dùng **Ẩn bài học** cho bài cũ. Bản nhân có tiến độ riêng. Lịch sử, kết quả và sổ tay cũ tiếp tục gắn với bài gốc.
+2. Soạn qua ba bước **Thông tin bài**, **Cụm từ** và **Nhiệm vụ & kiểm tra**. Chọn nhóm và CEFR trước khi dùng **Soạn nhanh với AI**. Đường dẫn, thời lượng và thứ tự nằm trong **Thiết lập nâng cao**.
+3. Dùng **Xem trước** hoặc **Lưu bản nháp** từ thanh thao tác ở bất kỳ bước nào. Tại bước cuối, chọn **Xuất bản** để lưu thay đổi và đưa bài lên thư viện. Nếu còn thiếu nội dung, trình soạn đưa bạn đến phần cần sửa. Nếu lưu thành công nhưng xuất bản thất bại, bản nháp vẫn có trong danh sách.
+4. Để thay bài đã xuất bản, chọn **Tạo bản chỉnh sửa**. Hệ thống tạo bản nháp với đường dẫn riêng. Sửa, xuất bản và kiểm tra bản mới từ giao diện học viên, sau đó dùng **Ẩn bài học** cho bài cũ. Bản mới có tiến độ riêng. Lịch sử, kết quả và sổ tay cũ tiếp tục gắn với bài gốc.
 5. Để đưa một bài đã ẩn trở lại thư viện, lọc trạng thái **Đã ẩn**, mở bài và chọn **Khôi phục bài học**. Ẩn bài thay thế nếu chỉ muốn hiển thị một bài.
 
 Nếu thao tác báo dữ liệu đã thay đổi, giữ lại các phần đang nhập rồi tải lại bài để kiểm tra nội dung người khác vừa lưu. Tại staging, xác nhận các bước xuất bản, ẩn và khôi phục bằng một tài khoản admin và một tài khoản học viên trước khi cấp quyền ở production.
@@ -29,7 +29,7 @@ Nếu thao tác báo dữ liệu đã thay đổi, giữ lại các phần đang
 
 `/admin` hiển thị số tài khoản, số buổi luyện đã kết thúc và số bài theo trạng thái. Hai chỉ số gần đây dùng cửa sổ 7 ngày tính theo UTC. Tại **Bài học**, nhấn trạng thái để lọc, hoặc tìm bằng tên và mã đường dẫn. Từng dòng có xem nhanh, nhân bản và đổi trạng thái.
 
-Tại **Nhóm chủ đề**, admin có thể thêm nhóm, đổi tên hiển thị và xóa nhóm trống. Mã nhóm giữ ổn định sau khi tạo. Nhóm đang được bất kỳ bài nào tham chiếu cần giữ lại để bảo toàn lịch sử.
+Tại **Nhóm chủ đề**, nhập tên để tạo nhóm. Hệ thống tự sinh mã từ tên. Có thể dùng **Mã nhóm tùy chỉnh** trước khi tạo. Admin có thể đổi tên hiển thị và xóa nhóm trống. Nhóm đang được bài học tham chiếu được giữ lại để bảo toàn lịch sử.
 
 Tại **Tài khoản**, tìm theo tên hoặc email và mở thao tác cấp quyền, thu hồi quyền, khóa hoặc mở khóa. Thao tác trên chính tài khoản cần một admin khác xác nhận. Khi khóa, các token hiện tại mất quyền. Sau khi mở khóa, tài khoản cần đăng nhập lại. Kết nối thoại đã được thiết lập có thể tiếp tục tới khi ngắt kết nối.
 
