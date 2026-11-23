@@ -111,6 +111,9 @@ export class AdminEditorComponent {
   protected readonly loading = signal(true);
   protected readonly loadFailed = signal(false);
   protected readonly busy = signal(false);
+  protected readonly aiBusy = signal(false);
+  protected aiTopic = '';
+  protected aiCount = 5;
   protected readonly dirty = signal(false);
   protected readonly preview = signal(false);
   protected readonly error = signal<ReturnType<typeof scenarioError> | null>(null);
@@ -208,6 +211,57 @@ export class AdminEditorComponent {
     dialog.showModal();
   }
   protected draft = toForm(null);
+
+  protected generateOrConfirm(dialog: HTMLDialogElement): void {
+    if (this.draft.titleVi || this.draft.titleEn || this.draft.context || this.draft.goals.length ||
+        this.draft.chunks.length || this.draft.requirements.length) {
+      dialog.showModal();
+    } else {
+      void this.generateLesson();
+    }
+  }
+
+  protected async generateLesson(dialog?: HTMLDialogElement): Promise<void> {
+    dialog?.close();
+    const result = await this.requestAi(this.api.generateLesson({
+      topic: this.aiTopic.trim(), chunkCount: this.aiCount,
+      level: this.draft.level ?? 'A1', category: this.draft.category ?? 'DAILY_LIFE'
+    }));
+    if (!result) return;
+    const previousSlug = this.draft.slug;
+    this.draft = toForm(result);
+    if (this.slugEdited && previousSlug) this.draft.slug = previousSlug;
+    this.openChunk = 0;
+    this.dirty.set(true);
+    this.notice.set('AI đã điền bản nháp. Kiểm tra bài trước khi lưu.');
+  }
+
+  protected async suggestDistractors(chunk: ChunkForm): Promise<void> {
+    if (!chunk.text?.trim()) return;
+    const result = await this.requestAi(this.api.generateDistractors({
+      text: chunk.text.trim(), level: this.draft.level ?? 'A1', meaningVi: chunk.meaningVi?.trim() || null
+    }));
+    if (!result) return;
+    chunk.meaningVi = chunk.meaningVi?.trim() || result.meaningVi;
+    chunk.distractorsEn = result.distractorsEn;
+    chunk.distractorsVi = result.distractorsVi;
+    this.dirty.set(true);
+    this.notice.set('Đã điền đáp án nhiễu để bạn kiểm tra.');
+  }
+
+  protected hasDistractors(chunk: ChunkForm): boolean {
+    return [...chunk.distractorsEn, ...chunk.distractorsVi].some((value) => !!value.trim());
+  }
+
+  private async requestAi<Result>(request: Observable<Result>): Promise<Result | null> {
+    if (this.aiBusy() || this.busy()) return null;
+    this.aiBusy.set(true);
+    this.error.set(null);
+    this.notice.set('');
+    try { return await firstValueFrom(request.pipe(takeUntilDestroyed(this.destroyRef))); }
+    catch (error) { this.error.set(scenarioError(error)); return null; }
+    finally { this.aiBusy.set(false); }
+  }
 
   constructor() {
     this.api.listCategories().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

@@ -41,7 +41,7 @@
   @if (saved(); as current) {
     <div class="panel actions">
       @if (current.status === 'DRAFT') {
-        <button class="action primary" type="button" (click)="changeStatus('PUBLISHED')" [disabled]="busy() || dirty()">
+        <button class="action primary" type="button" (click)="changeStatus('PUBLISHED')" [disabled]="busy() || aiBusy() || dirty()">
           Xuất bản
         </button>
         @if (dirty()) { <span class="secondary">Lưu thay đổi trước khi xuất bản.</span> }
@@ -117,8 +117,16 @@
     }
   }
   @if (!preview()) {
+    <dialog #replaceDraft class="admin-dialog" aria-labelledby="replace-draft-title">
+      <h2 id="replace-draft-title">Thay nội dung đang soạn?</h2>
+      <p class="my-3">Kết quả AI sẽ thay nội dung trong biểu mẫu. Bản đã lưu vẫn có thể mở lại.</p>
+      <div class="actions">
+        <button class="action primary" type="button" (click)="generateLesson(replaceDraft)">Tạo bản nháp bằng AI</button>
+        <form method="dialog"><button class="action">Hủy</button></form>
+      </div>
+    </dialog>
     <form #editorForm="ngForm" (ngSubmit)="save()" (input)="dirty.set(true)" (change)="dirty.set(true)">
-      <fieldset [disabled]="busy()">
+      <fieldset [disabled]="busy() || aiBusy()">
         <nav class="wizard-steps" aria-label="Các bước soạn bài">
           @for (label of steps; track label; let index = $index) {
             <button class="action" type="button" [attr.aria-current]="step === index ? 'step' : null" (click)="step = index">
@@ -128,6 +136,15 @@
         </nav>
         <section class="panel" aria-labelledby="info-title" [hidden]="step !== 0">
           <h2 id="info-title" class="mb-4">Thông tin bài học</h2>
+          <div class="ai-panel form-grid mb-5" (input)="$event.stopPropagation()" (change)="$event.stopPropagation()">
+            <label>Chủ đề cho AI<input name="aiTopic" maxlength="255" placeholder="Đặt phòng khách sạn tại Đà Nẵng" [(ngModel)]="aiTopic" /></label>
+            <label>Số cụm từ
+              <select name="aiCount" [(ngModel)]="aiCount">
+                @for (count of [4, 5, 6]; track count) { <option [ngValue]="count">{{ count }}</option> }
+              </select>
+            </label>
+            <button class="action primary" type="button" [disabled]="!aiTopic.trim()" (click)="generateOrConfirm(replaceDraft)">Tạo bài bằng AI</button>
+          </div>
           <div class="form-grid">
             <label>
               Mã đường dẫn
@@ -232,6 +249,10 @@
                     <input [name]="'en' + index + '-' + item" lang="en" maxlength="4000" [attr.aria-label]="'Đáp án sai tiếng Anh ' + (item + 1)" [(ngModel)]="chunk.distractorsEn[item]" />
                   }
                 </fieldset>
+                <div class="wide actions">
+                  <button class="action" type="button" [disabled]="!chunk.text.trim()" (click)="suggestDistractors(chunk)">Gợi ý đáp án nhiễu</button>
+                  @if (hasDistractors(chunk)) { <span class="secondary">Gợi ý mới sẽ thay sáu ô đáp án.</span> }
+                </div>
                 <fieldset class="entries">
                   <legend>Đáp án nhiễu tiếng Việt</legend>
                   @for (option of chunk.distractorsVi; track $index; let item = $index) {
@@ -291,5 +312,6 @@
         </div>
       </fieldset>
     </form>
+    @if (aiBusy()) { <p class="feedback" role="status">AI đang soạn nội dung…</p> }
   }
 }

@@ -7,6 +7,12 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_admin
+from app.core.providers.llm_provider import LlmProvider, get_llm_provider
+from app.models.admin_editor_schemas import (
+    GenerateDistractorsRequest,
+    GenerateDistractorsResponse,
+    GenerateScenarioRequest,
+)
 from app.models.admin_scenario_schemas import (
     AdminScenarioDetail,
     AdminScenarioDuplicate,
@@ -21,6 +27,7 @@ from app.models.admin_scenario_schemas import (
 )
 from app.models.auth import User
 from app.models.scenario import ScenarioStatus
+from app.services.admin_editor import AdminEditorService
 from app.services.admin_scenario import AdminScenarioService
 
 router = APIRouter(
@@ -49,6 +56,7 @@ def get_admin_scenario_service(
 
 
 Editor = Annotated[AdminScenarioService, Depends(get_admin_scenario_service)]
+Provider = Annotated[LlmProvider, Depends(get_llm_provider)]
 
 
 @router.get("")
@@ -67,6 +75,28 @@ async def admin_list_scenarios(
 @router.post("", status_code=201, responses=CONFLICT)
 async def admin_create_scenario(body: AdminScenarioInput, editor: Editor) -> AdminScenarioDetail:
     return await editor.create(body)
+
+
+@router.post(
+    "/generate",
+    dependencies=[Depends(require_admin)],
+    responses={502: {"model": AdminScenarioError, "description": "AI output unavailable"}},
+)
+async def generate_scenario(
+    body: GenerateScenarioRequest, provider: Provider
+) -> AdminScenarioInput:
+    return await AdminEditorService(provider).generate_lesson(body)
+
+
+@router.post(
+    "/generate-distractors",
+    dependencies=[Depends(require_admin)],
+    responses={502: {"model": AdminScenarioError, "description": "AI output unavailable"}},
+)
+async def generate_distractors(
+    body: GenerateDistractorsRequest, provider: Provider
+) -> GenerateDistractorsResponse:
+    return await AdminEditorService(provider).generate_distractors(body)
 
 
 @router.get("/{id}", responses=NOT_FOUND)

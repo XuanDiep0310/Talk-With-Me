@@ -129,3 +129,9 @@ progress { width: 100%; accent-color: #2563eb; }
 .learner-preview.phone { max-width: 390px; margin-inline: auto; }
 .metric { display: block; margin: 0; }
 .metric strong { display: block; font-size: 2rem; color: #1e40af; }
+.ai-panel { align-items: end; padding: 1rem; border: 1px solid #bfdbfe; border-radius: .75rem; background: #eff6ff; }
+.icon-action { gap: .4rem; }
+.icon-action svg { width: 1rem; height: 1rem; }
+.switch-track { display: inline-flex; align-items: center; width: 1.75rem; height: 1rem; border-radius: 999px; background: #64748b; padding: .15rem; }
+.switch-track::after { content: ''; width: .7rem; height: .7rem; border-radius: 50%; background: white; }
+[aria-checked="true"] .switch-track { justify-content: flex-end; background: #2563eb; }

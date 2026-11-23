@@ -1,6 +1,7 @@
 """Scenario editorial workflows and publication rules."""
 
 import uuid
+from collections.abc import Sequence
 
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -8,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import Clock, get_clock
 from app.models.admin_scenario_schemas import (
+    AdminChunkInput,
+    AdminRequirementInput,
     AdminScenarioDetail,
     AdminScenarioInput,
     AdminScenarioPage,
@@ -29,6 +32,8 @@ from app.seeds.scenario_loader import seed_scenarios_if_empty
 
 def publish_errors(content: Scenario | AdminScenarioInput) -> dict[str, str]:
     errors: dict[str, str] = {}
+    chunks: Sequence[ScenarioChunk | AdminChunkInput] = content.chunks
+    requirements: Sequence[ScenarioRequirement | AdminRequirementInput] = content.requirements
     for key, value in {
         "titleVi": content.title_vi,
         "titleEn": content.title_en,
@@ -41,15 +46,15 @@ def publish_errors(content: Scenario | AdminScenarioInput) -> dict[str, str]:
 
     if not content.goals or any(not goal.strip() for goal in content.goals):
         errors["goals"] = "Add at least one non-empty learning goal."
-    if not any(requirement.is_mandatory for requirement in content.requirements):
+    if not any(requirement.is_mandatory for requirement in requirements):
         errors["requirements"] = "Add at least one mandatory requirement."
-    for index, requirement in enumerate(content.requirements):
+    for index, requirement in enumerate(requirements):
         if not requirement.description.strip():
             errors[f"requirements.{index}.description"] = "Required for publishing."
 
-    if not 4 <= len(content.chunks) <= 6:
+    if not 4 <= len(chunks) <= 6:
         errors["chunks"] = "Add between four and six chunks."
-    for index, chunk in enumerate(content.chunks):
+    for index, chunk in enumerate(chunks):
         path = f"chunks.{index}"
         for key, value in {
             "text": chunk.text,

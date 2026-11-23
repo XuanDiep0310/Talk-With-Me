@@ -49,6 +49,14 @@ export class AdminScenarioService {
     return this.http.delete<void>(`${this.catalog}/${code}`);
   }
 
+  generateLesson(body: Schemas['GenerateScenarioRequest']) {
+    return this.http.post<ScenarioInput>(`${this.url}/generate`, body);
+  }
+
+  generateDistractors(body: Schemas['GenerateDistractorsRequest']) {
+    return this.http.post<Schemas['GenerateDistractorsResponse']>(`${this.url}/generate-distractors`, body);
+  }
+
   list(filters: ScenarioFilters) {
     let params = new HttpParams();
     for (const [name, value] of Object.entries(filters)) {
@@ -89,6 +97,12 @@ export function scenarioError(error: unknown): { message: string; fields: Record
     (body?.details?.errors ?? []).map(({ loc, msg }) => [loc.slice(1).join('.'), msg])
   );
   switch (body?.code) {
+    case 'EDITOR_AI_UNAVAILABLE':
+      return { message: 'AI chưa trả về nội dung hợp lệ. Bạn có thể thử lại hoặc tiếp tục soạn tay.', fields };
+    case 'SELF_ACCOUNT_CHANGE':
+      return { message: 'Một quản trị viên khác cần thực hiện thay đổi trên tài khoản này.', fields };
+    case 'ACCOUNT_NOT_FOUND':
+      return { message: 'Không tìm thấy tài khoản.', fields };
     case 'CATEGORY_NOT_FOUND':
       return { message: 'Nhóm chủ đề không còn khả dụng.', fields };
     case 'CATEGORY_EXISTS':
