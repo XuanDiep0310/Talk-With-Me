@@ -1,0 +1,55 @@
+<div class="page-heading"><h1>Quản lý tài khoản</h1></div>
+<div class="panel">
+  <label>Tìm tài khoản
+    <input type="search" maxlength="255" placeholder="Tên hoặc email" [(ngModel)]="query" (ngModelChange)="search(300)" />
+  </label>
+</div>
+@if (error()) { <p class="feedback error" role="alert">{{ error() }}</p> }
+@if (notice()) { <p class="feedback" role="status">{{ notice() }}</p> }
+<section class="panel results" aria-label="Danh sách tài khoản" [attr.aria-busy]="loading()">
+  @if (rows().length) {
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Bảng tài khoản">
+      <table>
+        <thead><tr>
+          <th scope="col">Tài khoản</th><th scope="col">Đăng ký</th><th scope="col">CEFR</th>
+          <th scope="col">Buổi đã kết thúc</th><th scope="col">Quyền và trạng thái</th><th scope="col">Thao tác</th>
+        </tr></thead>
+        <tbody>
+          @for (account of rows(); track account.id) {
+            <tr>
+              <th scope="row">{{ account.fullName }} <span class="secondary">{{ account.email }}</span></th>
+              <td>{{ formatDate(account.createdAt) }}</td><td>{{ account.cefrLevel || 'Chưa xếp' }}</td><td>{{ account.completedSessions }}</td>
+              <td>{{ account.role === 'ADMIN' ? 'Quản trị' : 'Học viên' }} <span class="secondary">{{ account.isActive ? 'Đang hoạt động' : 'Đã khóa' }}</span></td>
+              <td>
+                @if (auth.currentUser()?.id === account.id) {
+                  <span class="secondary">Tài khoản của bạn</span>
+                } @else {
+                  <div class="actions">
+                    <button class="action" type="button" [disabled]="saving()" (click)="confirm(accountDialog, account, 'role')">
+                      {{ account.role === 'ADMIN' ? 'Thu hồi quyền' : 'Cấp quyền admin' }}
+                    </button>
+                    <button class="action" type="button" [disabled]="saving()" (click)="confirm(accountDialog, account, 'active')">
+                      {{ account.isActive ? 'Khóa' : 'Mở khóa' }}
+                    </button>
+                  </div>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else if (!loading() && !error()) { <p class="p-5">Không có tài khoản phù hợp.</p> }
+  @if (loading()) { <p class="p-5" role="status">Đang tải tài khoản…</p> }
+  @if (next(); as cursor) {
+    <div class="p-4"><button class="action" type="button" (click)="loadMore(cursor)" [disabled]="loading()">Tải thêm</button></div>
+  }
+</section>
+<dialog #accountDialog class="admin-dialog" aria-labelledby="account-dialog-title">
+  <h2 id="account-dialog-title">{{ pending?.action }}?</h2>
+  <p class="mb-4">{{ pending?.account?.email }}</p>
+  <div class="actions">
+    <button class="action primary" type="button" (click)="apply(accountDialog)">Xác nhận</button>
+    <form method="dialog"><button class="action">Hủy</button></form>
+  </div>
+</dialog>

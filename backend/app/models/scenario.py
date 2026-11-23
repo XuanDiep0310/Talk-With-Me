@@ -43,9 +43,11 @@ class Scenario(Base, TimestampMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
-    # DAILY_LIFE | SOCIAL | TRAVEL_SHOPPING | WORKPLACE
     category: Mapped[str] = mapped_column(
-        String(50), ForeignKey("scenario_categories.code"), nullable=False, index=True
+        String(50),
+        ForeignKey("scenario_categories.code", name="fk_scenarios_category"),
+        nullable=False,
+        index=True,
     )
     title_vi: Mapped[str] = mapped_column(String(255), nullable=False)
     title_en: Mapped[str] = mapped_column(String(255), nullable=False)

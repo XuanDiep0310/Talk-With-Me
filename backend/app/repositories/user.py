@@ -20,6 +20,15 @@ class UserRepository(BaseRepository[User]):
         result = await self.session.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
+    async def lock_for_auth(self, user_id: uuid.UUID) -> User | None:
+        result = await self.session.execute(
+            select(User)
+            .where(User.id == user_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_email(self, email: str) -> User | None:
         result = await self.session.execute(select(User).where(User.email == email.lower()))
         return result.scalar_one_or_none()

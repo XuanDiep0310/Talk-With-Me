@@ -71,6 +71,8 @@ export function mapApiError(err: unknown): string {
         return 'Email hoặc mật khẩu không đúng.';
       case 'ACCOUNT_LOCKED':
         return 'Tài khoản tạm khóa do nhập sai quá nhiều lần.';
+      case 'ACCOUNT_INACTIVE':
+        return 'Tài khoản đã bị khóa.';
       case 'EMAIL_ALREADY_EXISTS':
         return 'Email này đã có tài khoản.';
       case 'TERMS_NOT_ACCEPTED':

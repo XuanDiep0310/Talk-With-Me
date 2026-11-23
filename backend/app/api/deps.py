@@ -179,7 +179,7 @@ async def get_current_user(
 
     user_repo = UserRepository(session)
     user = await user_repo.get_by_id_with_relations(user_id)
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or payload.get("ver", 0) != (user.auth_version or 0):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={

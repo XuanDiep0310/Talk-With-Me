@@ -2821,6 +2821,158 @@
         }
       }
     },
+    "/api/v1/admin/scenarios/generate": {
+      "post": {
+        "tags": [
+          "Admin Scenarios"
+        ],
+        "summary": "Generate Scenario",
+        "operationId": "generate_scenario_api_v1_admin_scenarios_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioInput"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request or scenario content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "AI output unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/scenarios/generate-distractors": {
+      "post": {
+        "tags": [
+          "Admin Scenarios"
+        ],
+        "summary": "Generate Distractors",
+        "operationId": "generate_distractors_api_v1_admin_scenarios_generate_distractors_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateDistractorsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateDistractorsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request or scenario content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "AI output unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/scenarios/{id}": {
       "get": {
         "tags": [
@@ -3212,6 +3364,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3247,12 +3429,42 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "401": {
+            "description": "Authentication required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Category already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
                 }
               }
             }
@@ -3311,12 +3523,42 @@
               }
             }
           },
-          "422": {
-            "description": "Validation Error",
+          "401": {
+            "description": "Authentication required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
                 }
               }
             }
@@ -3351,17 +3593,308 @@
           "204": {
             "description": "Successful Response"
           },
-          "422": {
-            "description": "Validation Error",
+          "401": {
+            "description": "Authentication required",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Category has lessons",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
                 }
               }
             }
           }
         }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "tags": [
+          "Admin Accounts"
+        ],
+        "summary": "List Accounts",
+        "operationId": "list_accounts_api_v1_admin_users_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 255
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAccountPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}": {
+      "patch": {
+        "tags": [
+          "Admin Accounts"
+        ],
+        "summary": "Update Account",
+        "operationId": "update_account_api_v1_admin_users__id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminAccountUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Account change conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/overview": {
+      "get": {
+        "tags": [
+          "Admin Accounts"
+        ],
+        "summary": "Get Overview",
+        "operationId": "get_overview_api_v1_admin_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOverview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     }
   },
@@ -3415,6 +3948,128 @@
           "text"
         ],
         "title": "AddTranscriptSegmentRequest"
+      },
+      "AdminAccountPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAccountSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "title": "AdminAccountPage"
+      },
+      "AdminAccountSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "fullName": {
+            "type": "string",
+            "title": "Fullname"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          },
+          "cefrLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cefrlevel"
+          },
+          "completedSessions": {
+            "type": "integer",
+            "title": "Completedsessions"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "LEARNER",
+              "ADMIN"
+            ],
+            "title": "Role"
+          },
+          "isActive": {
+            "type": "boolean",
+            "title": "Isactive"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "createdAt",
+          "cefrLevel",
+          "completedSessions",
+          "role",
+          "isActive"
+        ],
+        "title": "AdminAccountSummary"
+      },
+      "AdminAccountUpdate": {
+        "properties": {
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "LEARNER",
+                  "ADMIN"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "isActive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isactive"
+          }
+        },
+        "type": "object",
+        "title": "AdminAccountUpdate"
       },
       "AdminChunkDetail": {
         "properties": {
@@ -3575,6 +4230,54 @@
           "functionTag"
         ],
         "title": "AdminChunkInput"
+      },
+      "AdminOverview": {
+        "properties": {
+          "totalAccounts": {
+            "type": "integer",
+            "title": "Totalaccounts"
+          },
+          "activeAccounts": {
+            "type": "integer",
+            "title": "Activeaccounts"
+          },
+          "newAccounts": {
+            "type": "integer",
+            "title": "Newaccounts"
+          },
+          "completedSessions": {
+            "type": "integer",
+            "title": "Completedsessions"
+          },
+          "recentSessions": {
+            "type": "integer",
+            "title": "Recentsessions"
+          },
+          "scenarioCounts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "DRAFT",
+                "PUBLISHED",
+                "ARCHIVED"
+              ]
+            },
+            "type": "object",
+            "title": "Scenariocounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "totalAccounts",
+          "activeAccounts",
+          "newAccounts",
+          "completedSessions",
+          "recentSessions",
+          "scenarioCounts"
+        ],
+        "title": "AdminOverview"
       },
       "AdminRequirementDetail": {
         "properties": {
@@ -5452,6 +6155,126 @@
           "level"
         ],
         "title": "GamificationSummaryResponse"
+      },
+      "GenerateDistractorsRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "meaningVi": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meaningvi"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1"
+            ],
+            "title": "Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "level"
+        ],
+        "title": "GenerateDistractorsRequest"
+      },
+      "GenerateDistractorsResponse": {
+        "properties": {
+          "meaningVi": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Meaningvi"
+          },
+          "distractorsEn": {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Distractorsen"
+          },
+          "distractorsVi": {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Distractorsvi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meaningVi",
+          "distractorsEn",
+          "distractorsVi"
+        ],
+        "title": "GenerateDistractorsResponse"
+      },
+      "GenerateScenarioRequest": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Topic"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 50,
+            "pattern": "^[A-Z0-9]+(?:_[A-Z0-9]+)*$",
+            "title": "Category",
+            "default": "DAILY_LIFE"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1"
+            ],
+            "title": "Level"
+          },
+          "chunkCount": {
+            "type": "integer",
+            "maximum": 6.0,
+            "minimum": 4.0,
+            "title": "Chunkcount",
+            "default": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "level"
+        ],
+        "title": "GenerateScenarioRequest"
       },
       "GoogleLoginRequest": {
         "properties": {

@@ -142,3 +142,10 @@ class AdminScenarioError(BaseScenarioSchema):
     message: str
     trace_id: str
     details: dict[str, object]
+
+
+ADMIN_ACCESS_RESPONSES: dict[int | str, dict[str, object]] = {
+    401: {"model": AdminScenarioError, "description": "Authentication required"},
+    403: {"model": AdminScenarioError, "description": "Administrator access required"},
+    422: {"model": AdminScenarioError, "description": "Invalid request"},
+}

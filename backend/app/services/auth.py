@@ -56,9 +56,9 @@ class AuthService:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _make_access_token(self, user_id: str) -> str:
+    def _make_access_token(self, user: User) -> str:
         return create_access_token(
-            payload={"sub": user_id},
+            payload={"sub": str(user.id), "ver": user.auth_version or 0},
             expires_delta=timedelta(minutes=self._settings.ACCESS_TOKEN_EXPIRE_MINUTES),
             secret=self._settings.JWT_SECRET_KEY,
             algorithm=self._settings.JWT_ALGORITHM,
@@ -181,7 +181,7 @@ class AuthService:
         self._session.add(UserSettings(user_id=user.id))
         await self._session.flush()
 
-        access_token = self._make_access_token(str(user.id))
+        access_token = self._make_access_token(user)
         refresh_token = await self._make_refresh_token(user.id, remember_me=True)
         return user, access_token, refresh_token
 
@@ -213,7 +213,8 @@ class AuthService:
                 },
             )
 
-        if not user.is_active:
+        user = await self._user_repo.lock_for_auth(user.id)
+        if user is None or not user.is_active:
             raise HTTPException(
                 status_code=403,
                 detail={
@@ -225,7 +226,7 @@ class AuthService:
 
         await self._reset_rate_limit(normalized, client_ip)
 
-        access_token = self._make_access_token(str(user.id))
+        access_token = self._make_access_token(user)
         refresh_token = await self._make_refresh_token(user.id, remember_me=remember_me)
         return access_token, refresh_token
 
@@ -251,7 +252,7 @@ class AuthService:
 
         identity = await self._auth_repo.get_identity("google", provider_uid)
         if identity is not None:
-            user = await self._user_repo.get_by_id(identity.user_id)
+            user = await self._user_repo.lock_for_auth(identity.user_id)
             if user is None or not user.is_active:
                 raise HTTPException(
                     status_code=403,
@@ -276,6 +277,12 @@ class AuthService:
                 await self._session.flush()
                 is_new_user = True
 
+            if not is_new_user:
+                user = await self._user_repo.lock_for_auth(user.id)
+            if user is None or not user.is_active:
+                raise HTTPException(
+                    403, detail={"code": "ACCOUNT_INACTIVE", "message": "Account is locked."}
+                )
             # Create identity record (new or linked)
             await self._auth_repo.create_identity(
                 user_id=user.id,
@@ -284,7 +291,7 @@ class AuthService:
                 provider_email=provider_email,
             )
 
-        access_token = self._make_access_token(str(user.id))
+        access_token = self._make_access_token(user)
         refresh_token = await self._make_refresh_token(user.id, remember_me=True)
         return access_token, refresh_token, is_new_user
 
@@ -302,6 +309,13 @@ class AuthService:
                     "details": {},
                 },
             )
+
+        user = await self._user_repo.lock_for_auth(record.user_id)
+        if user is None or not user.is_active:
+            raise HTTPException(
+                401, detail={"code": "ACCOUNT_INACTIVE", "message": "Account is locked."}
+            )
+        await self._session.refresh(record)
 
         if record.revoked:
             # Token reuse detected — revoke entire chain for this user
@@ -327,7 +341,7 @@ class AuthService:
             )
 
         # Issue new tokens
-        new_access = self._make_access_token(str(record.user_id))
+        new_access = self._make_access_token(user)
         new_raw_refresh = generate_refresh_token()
         new_hash = hash_refresh_token(new_raw_refresh)
 

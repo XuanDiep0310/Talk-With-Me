@@ -19,6 +19,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -46,6 +47,7 @@ class User(Base, TimestampMixin):
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     role: Mapped[UserRole] = mapped_column(String(10), server_default="LEARNER", nullable=False)
+    auth_version: Mapped[int] = mapped_column(Integer, server_default="0")
 
     identities: Mapped[list["AuthIdentity"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -62,6 +64,20 @@ class User(Base, TimestampMixin):
     gamification_profile: Mapped[Optional["GamificationProfile"]] = relationship(
         "GamificationProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
+
+
+class AccountAdminAudit(Base):
+    __tablename__ = "account_admin_audit"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    actor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    target_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    previous_role: Mapped[UserRole] = mapped_column(String(10))
+    new_role: Mapped[UserRole] = mapped_column(String(10))
+    previous_active: Mapped[bool] = mapped_column(Boolean)
+    new_active: Mapped[bool] = mapped_column(Boolean)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    trace_id: Mapped[str] = mapped_column(Text)
 
 
 class AuthIdentity(Base, TimestampMixin):
