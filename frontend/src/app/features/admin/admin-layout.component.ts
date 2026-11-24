@@ -34,6 +34,7 @@ import { AuthService } from '../../core/services/auth.service';
             <a routerLink="/admin/categories" routerLinkActive="bg-blue-600 text-white shadow-sm" ariaCurrentWhenActive="page" class="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Nhóm chủ đề</a>
             <a routerLink="/admin/users" routerLinkActive="bg-blue-600 text-white shadow-sm" ariaCurrentWhenActive="page" class="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Tài khoản</a>
             <a routerLink="/admin/coach-topics" routerLinkActive="bg-blue-600 text-white shadow-sm" ariaCurrentWhenActive="page" class="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Chủ đề AI Coach</a>
+            <a routerLink="/admin/gamification" routerLinkActive="bg-blue-600 text-white shadow-sm" ariaCurrentWhenActive="page" class="rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">Gamification</a>
           </nav>
         </div>
       </header>

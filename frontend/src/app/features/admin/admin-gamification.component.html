@@ -1,0 +1,81 @@
+<h1 class="mb-5">Cấu hình Gamification</h1>
+<div class="actions mb-4" aria-label="Mục cấu hình">
+  <button type="button" class="action" [attr.aria-pressed]="tab() === 'rules'" (click)="select('rules')">Quy tắc XP</button>
+  <button type="button" class="action" [attr.aria-pressed]="tab() === 'missions'" (click)="select('missions')">Nhiệm vụ</button>
+  <button type="button" class="action" [attr.aria-pressed]="tab() === 'badges'" (click)="select('badges')">Huy hiệu</button>
+  <button type="button" class="action" [attr.aria-pressed]="tab() === 'transactions'" (click)="select('transactions')">Sổ cái XP</button>
+</div>
+@if (status()) { <p class="panel" role="status">{{ status() }}</p> }
+@if (error()) { <p class="panel" role="alert">{{ error() }}</p> }
+
+@switch (tab()) {
+  @case ('rules') {
+    @for (rule of rules(); track rule.key) {
+      <form class="panel" #ruleForm="ngForm" (ngSubmit)="saveRule(rule)">
+        <h2 class="mb-3">{{ rule.key }}</h2>
+        <div class="form-grid">
+          <label>Điểm XP <input type="number" min="0" max="100000" name="xpAmount" [(ngModel)]="rule.xpAmount" required></label>
+          <label>Mô tả <input maxlength="255" name="description" [(ngModel)]="rule.description"></label>
+          <label class="checkbox"><input type="checkbox" name="active" [(ngModel)]="rule.isActive">Đang áp dụng</label>
+        </div>
+        @if (rule.key === 'DAILY_MISSION') { <p class="secondary">Mức mặc định cho nhiệm vụ cấp mới.</p> }
+        <button class="action primary mt-3" [disabled]="busy() || ruleForm.invalid">Lưu quy tắc</button>
+      </form>
+    }
+  }
+  @case ('missions') {
+    @for (mission of missions(); track mission.key) {
+      <form class="panel" #missionForm="ngForm" (ngSubmit)="saveMission(mission)">
+        <h2>{{ mission.key }}</h2>
+        <p class="secondary mb-3">{{ mission.conditionType }}</p>
+        <div class="form-grid">
+          <label>Tên nhiệm vụ <input maxlength="255" name="title" [(ngModel)]="mission.title" required></label>
+          <label>Chỉ tiêu <input type="number" min="1" [max]="mission.conditionType === 'STREAK' ? 1 : 100000" name="target" [(ngModel)]="mission.targetCount" required></label>
+          <label>XP riêng <input type="number" min="0" max="100000" name="reward" [(ngModel)]="mission.xpReward" placeholder="Dùng mức mặc định"></label>
+          <label class="checkbox"><input type="checkbox" name="active" [(ngModel)]="mission.isActive">Cấp cho học viên</label>
+        </div>
+        <button class="action primary mt-3" [disabled]="busy() || missionForm.invalid">Lưu nhiệm vụ</button>
+      </form>
+    }
+  }
+  @case ('badges') {
+    <div class="panel results table-wrap">
+      <table>
+        <thead><tr><th scope="col">Huy hiệu</th><th scope="col">Mô tả</th><th scope="col">Điều kiện</th></tr></thead>
+        <tbody>
+          @for (badge of badges(); track badge.key) {
+            <tr><td><span aria-hidden="true">{{ badge.iconEmoji }}</span> {{ badge.name }}</td><td>{{ badge.description }}</td><td>{{ badge.criteriaType }} · {{ badge.targetValue }}</td></tr>
+          } @empty { <tr><td colspan="3">Chưa có huy hiệu.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+  }
+  @case ('transactions') {
+    <form class="panel filter-form" (ngSubmit)="loadTransactions()">
+      <label>Học viên <input name="learner" [(ngModel)]="filters.learner"></label>
+      <label>Quy tắc
+        <select name="rule" [(ngModel)]="filters.ruleKey">
+          <option value="">Tất cả</option>
+          @for (rule of rules(); track rule.key) { <option [value]="rule.key">{{ rule.key }}</option> }
+        </select>
+      </label>
+      <label>Mã giao dịch <input name="key" [(ngModel)]="filters.idempotencyKey"></label>
+      <label>Từ <input type="datetime-local" name="from" [(ngModel)]="filters.fromDate"></label>
+      <label>Đến trước <input type="datetime-local" name="to" [(ngModel)]="filters.toDate"></label>
+      <button class="action" [disabled]="busy()">Lọc sổ cái</button>
+    </form>
+    <div class="panel results table-wrap">
+      <table>
+        <thead><tr><th scope="col">Thời điểm</th><th scope="col">Học viên</th><th scope="col">Quy tắc</th><th scope="col">XP</th><th scope="col">Mã giao dịch</th></tr></thead>
+        <tbody>
+          @for (entry of transactions(); track entry.id) {
+            <tr><td>{{ entry.createdAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ entry.email }}</td><td>{{ entry.ruleKey }}</td><td>{{ entry.amount }}</td><td>{{ entry.idempotencyKey }}<span class="secondary">{{ entry.description }}</span></td></tr>
+          } @empty { <tr><td colspan="5">{{ busy() ? 'Đang tải giao dịch…' : 'Không tìm thấy giao dịch.' }}</td></tr> }
+        </tbody>
+      </table>
+    </div>
+    @if (page(); as cursor) {
+      <button type="button" class="action" [disabled]="busy()" (click)="loadTransactions(cursor)">Tải thêm giao dịch</button>
+    }
+  }
+}

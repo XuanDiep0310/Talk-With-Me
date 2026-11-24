@@ -6,11 +6,14 @@ daily missions, badges, notifications, and level progression audit.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import date, datetime
 
 from sqlalchemy import func, select, update
+from sqlalchemy.dialects.postgresql import Insert as PgInsert
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import Insert as SqliteInsert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -36,19 +39,28 @@ class GamificationRepository:
 
     # --- Profile & XP ---
 
-    async def get_or_create_profile(self, user_id: uuid.UUID) -> GamificationProfile:
-        """Fetch user's gamification profile, creating it if it doesn't exist."""
-        profile = await self._session.get(GamificationProfile, user_id)
-        if not profile:
-            profile = GamificationProfile(
-                user_id=user_id,
-                total_xp=0,
-                current_streak=0,
-                best_streak=0,
-                last_active_date=None,
-            )
-            self._session.add(profile)
+    @property
+    def insert(
+        self,
+    ) -> Callable[
+        [type[GamificationProfile] | type[XpTransaction] | type[UserDailyMission]],
+        PgInsert | SqliteInsert,
+    ]:
+        return sqlite_insert if self._session.get_bind().dialect.name == "sqlite" else pg_insert
+
+    async def get_or_create_profile(
+        self, user_id: uuid.UUID, *, lock: bool = False
+    ) -> GamificationProfile:
+        stmt = select(GamificationProfile).where(GamificationProfile.user_id == user_id)
+        if lock:
             await self._session.flush()
+            stmt = stmt.with_for_update().execution_options(populate_existing=True)
+        profile = (await self._session.scalars(stmt)).one_or_none()
+        if profile is None:
+            await self._session.execute(
+                self.insert(GamificationProfile).values(user_id=user_id).on_conflict_do_nothing()
+            )
+            profile = (await self._session.scalars(stmt)).one()
         return profile
 
     async def get_user_profile(self, user_id: uuid.UUID) -> UserProfile | None:
@@ -77,29 +89,26 @@ class GamificationRepository:
         If idempotency_key already exists, returns None without altering profile XP.
         If created, adds amount directly to cached GamificationProfile.total_xp.
         """
-        # Check if transaction already exists
-        stmt = select(XpTransaction).where(XpTransaction.idempotency_key == idempotency_key)
-        existing = (await self._session.execute(stmt)).scalar_one_or_none()
-        if existing:
-            return None
-
-        tx = XpTransaction(
-            user_id=user_id,
-            amount=amount,
-            rule_key=rule_key,
-            source_type=source_type,
-            source_id=source_id,
-            idempotency_key=idempotency_key,
-            description=description,
-            created_at=created_at,
+        profile = await self.get_or_create_profile(user_id, lock=True)
+        result = await self._session.scalars(
+            self.insert(XpTransaction)
+            .values(
+                user_id=user_id,
+                amount=amount,
+                rule_key=rule_key,
+                source_type=source_type,
+                source_id=source_id,
+                idempotency_key=idempotency_key,
+                description=description,
+                created_at=created_at,
+            )
+            .on_conflict_do_nothing(index_elements=["idempotency_key"])
+            .returning(XpTransaction)
         )
-        self._session.add(tx)
-
-        # Update cached profile
-        profile = await self.get_or_create_profile(user_id)
-        profile.total_xp += amount
-
-        await self._session.flush()
+        tx = result.one_or_none()
+        if tx is not None:
+            profile.total_xp += amount
+            await self._session.flush()
         return tx
 
     async def get_xp_sum(self, user_id: uuid.UUID) -> int:
@@ -133,74 +142,55 @@ class GamificationRepository:
         return result.scalars().all()
 
     async def get_user_missions_for_date(
-        self, user_id: uuid.UUID, mission_date: date
+        self, user_id: uuid.UUID, mission_date: date, *, lock: bool = False
     ) -> Sequence[UserDailyMission]:
         """Fetch daily missions for a user on a given local date."""
         stmt = (
             select(UserDailyMission)
-            .join(MissionDefinition, UserDailyMission.mission_key == MissionDefinition.key)
             .options(selectinload(UserDailyMission.mission))
             .where(
                 UserDailyMission.user_id == user_id,
                 UserDailyMission.mission_date == mission_date,
-                MissionDefinition.is_active == True,  # noqa: E712
             )
-            .order_by(UserDailyMission.created_at.asc())
+            .order_by(UserDailyMission.created_at.asc(), UserDailyMission.id.asc())
         )
-        result = await self._session.execute(stmt)
-        return result.scalars().all()
+        if lock:
+            stmt = stmt.with_for_update().execution_options(populate_existing=True)
+        return (await self._session.scalars(stmt)).all()
 
     async def ensure_daily_missions(
         self, user_id: uuid.UUID, mission_date: date
     ) -> Sequence[UserDailyMission]:
-        """
-        Ensure user has 4 missions generated for mission_date.
-        Concurrency-safe via PostgreSQL INSERT ... ON CONFLICT DO NOTHING.
-        """
-        definitions = await self.get_active_mission_definitions()
+        """Issue active mission terms once per learner and local day."""
         existing = await self.get_user_missions_for_date(user_id, mission_date)
-        if len(existing) >= len(definitions):
+        rule = await self.get_rule("DAILY_MISSION")
+        if rule is None:
             return existing
-        is_sqlite = bool(self._session.bind and self._session.bind.dialect.name == "sqlite")
-        for d in definitions:
-            if is_sqlite:
-                from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
-                stmt_sqlite = (
-                    sqlite_insert(UserDailyMission)
-                    .values(
-                        id=uuid.uuid4(),
-                        user_id=user_id,
-                        mission_date=mission_date,
-                        mission_key=d.key,
-                        status="IN_PROGRESS",
-                        progress=0,
-                        target=d.target_count,
-                    )
-                    .on_conflict_do_nothing()
+        issued = {mission.mission_key for mission in existing}
+        for definition in await self.get_active_mission_definitions():
+            if definition.key in issued:
+                continue
+            reward = definition.xp_reward if definition.xp_reward is not None else rule.xp_amount
+            await self._session.execute(
+                self.insert(UserDailyMission)
+                .values(
+                    id=uuid.uuid4(),
+                    user_id=user_id,
+                    mission_date=mission_date,
+                    mission_key=definition.key,
+                    status="IN_PROGRESS",
+                    progress=0,
+                    target=definition.target_count,
+                    title_snapshot=definition.title,
+                    xp_reward_snapshot=reward,
                 )
-                await self._session.execute(stmt_sqlite)
-            else:
-                stmt_pg = (
-                    pg_insert(UserDailyMission)
-                    .values(
-                        id=uuid.uuid4(),
-                        user_id=user_id,
-                        mission_date=mission_date,
-                        mission_key=d.key,
-                        status="IN_PROGRESS",
-                        progress=0,
-                        target=d.target_count,
-                    )
-                    .on_conflict_do_nothing(constraint="uq_user_daily_mission")
-                )
-                await self._session.execute(stmt_pg)
-
-        await self._session.flush()
+                .on_conflict_do_nothing(index_elements=["user_id", "mission_date", "mission_key"])
+            )
         return await self.get_user_missions_for_date(user_id, mission_date)
 
     async def get_user_mission(
-        self, mission_id: uuid.UUID, user_id: uuid.UUID
+        self, mission_id: uuid.UUID, user_id: uuid.UUID, *, lock: bool = False
     ) -> UserDailyMission | None:
         """Fetch specific user daily mission."""
         stmt = (
@@ -208,8 +198,9 @@ class GamificationRepository:
             .options(selectinload(UserDailyMission.mission))
             .where(UserDailyMission.id == mission_id, UserDailyMission.user_id == user_id)
         )
-        result = await self._session.execute(stmt)
-        return result.scalar_one_or_none()
+        if lock:
+            stmt = stmt.with_for_update().execution_options(populate_existing=True)
+        return (await self._session.scalars(stmt)).one_or_none()
 
     async def update_mission_progress(
         self,
@@ -223,7 +214,7 @@ class GamificationRepository:
         Increment progress for missions matching condition_type for the given date.
         If target reached, mark status as COMPLETED.
         """
-        missions = await self.get_user_missions_for_date(user_id, mission_date)
+        missions = await self.get_user_missions_for_date(user_id, mission_date, lock=True)
         updated = []
         for m in missions:
             if m.mission.condition_type == condition_type and m.status == "IN_PROGRESS":

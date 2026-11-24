@@ -249,3 +249,25 @@ test('admin reviews and enables an AI Coach topic', async ({ page, request }) =>
   await row.getByRole('button', { name: 'Ẩn', exact: true }).click();
   await expect(row).toContainText('Đã ẩn');
 });
+
+test('admin edits a rule and opens the XP ledger', async ({ page, request }) => {
+  test.skip(process.env.RUN_ADMIN_E2E !== 'true', 'Requires an isolated DB and the admin CLI');
+  const admin = await register(request, 'gamification-admin');
+  execFileSync(process.env.PLAYWRIGHT_PYTHON ?? 'python', ['-m', 'scripts.admin_role', 'grant', admin.id], {
+    cwd: resolve('backend'), env: process.env,
+  });
+  await prepareBrowser(page);
+  await page.goto('/admin/gamification');
+  await logIn(page, admin.email);
+  const daily = page.locator('form').filter({ has: page.getByRole('heading', { name: 'DAILY_MISSION', exact: true }) });
+  const amount = daily.getByLabel('Điểm XP');
+  const previous = await amount.inputValue();
+  await amount.fill(previous === '74' ? '75' : '74');
+  await daily.getByRole('button', { name: 'Lưu quy tắc' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu quy tắc XP');
+  await amount.fill(previous);
+  await daily.getByRole('button', { name: 'Lưu quy tắc' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu quy tắc XP');
+  await page.getByRole('button', { name: 'Sổ cái XP' }).click();
+  await expect(page.getByRole('columnheader', { name: 'Mã giao dịch' })).toBeVisible();
+});

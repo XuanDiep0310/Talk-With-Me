@@ -89,7 +89,7 @@ class MissionDefinition(Base, TimestampMixin):
 
     key: Mapped[str] = mapped_column(String(50), primary_key=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    xp_reward: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    xp_reward: Mapped[int | None] = mapped_column(Integer)
     # COACH_SESSION | SCENARIO_LESSON | STREAK
     condition_type: Mapped[str] = mapped_column(String(50), nullable=False)
     target_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
@@ -124,6 +124,8 @@ class UserDailyMission(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(30), default="IN_PROGRESS", nullable=False)
     progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     target: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    title_snapshot: Mapped[str] = mapped_column(String(255), nullable=False)
+    xp_reward_snapshot: Mapped[int] = mapped_column(Integer, nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

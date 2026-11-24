@@ -946,3 +946,67 @@ async def test_admin_coach_topic_publication_and_session_snapshot(
             )
         ).all()
         assert len(events) == 3
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_admin_gamification_preserves_issued_terms_and_claims_once(
+    scenario_test_env: dict, scenario_db: async_sessionmaker[AsyncSession]
+) -> None:
+    from app.models.gamification import UserDailyMission
+    from app.repositories.gamification import GamificationRepository
+    from app.seeds.gamification_seeds import seed_gamification
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    base = "/api/v1/admin/gamification"
+    async with scenario_db() as db:
+        await seed_gamification(db)
+    assert (await client.get(base + "/xp-rules", headers=learner)).status_code == 403
+    today = "/api/v1/missions/today"
+    issued = (await client.get(today, headers=learner)).json()
+    coach = next(row for row in issued["missions"] if row["missionKey"] == "coach_session")
+    assert coach["xpReward"] == 50 and coach["target"] == 1
+    assert (
+        await client.patch(base + "/xp-rules/DAILY_MISSION", headers=admin, json={"xpAmount": 75})
+    ).status_code == 200
+    assert (
+        await client.patch(
+            base + "/missions/coach_session", headers=admin, json={"targetCount": 2, "xpReward": 80}
+        )
+    ).status_code == 200
+    async with scenario_db() as db:
+        await seed_gamification(db)
+        row = await db.get(UserDailyMission, uuid.UUID(coach["id"]))
+        assert row is not None
+        row.status = "COMPLETED"
+        await db.commit()
+    new = (await client.get(today, headers=admin)).json()["missions"]
+    assert next(row for row in new if row["missionKey"] == "coach_session")["xpReward"] == 80
+    assert next(row for row in new if row["missionKey"] == "new_scenario")["xpReward"] == 75
+    assert (
+        await client.patch(
+            base + "/xp-rules/DAILY_MISSION", headers=admin, json={"isActive": False}
+        )
+    ).status_code == 200
+    assert len((await client.get(today, headers=learner)).json()["missions"]) == 3
+    claim_path = f"/api/v1/missions/{coach['id']}/claim"
+    results = await asyncio.gather(*(client.post(claim_path, headers=learner) for _ in range(2)))
+    assert sorted(response.status_code for response in results) == [200, 409]
+    assert (
+        next(response for response in results if response.status_code == 200).json()["xpAwarded"]
+        == 50
+    )
+    ledger = await client.get(
+        base + "/transactions",
+        headers=admin,
+        params={"idempotencyKey": f"DAILY_MISSION:{coach['id']}"},
+    )
+    assert ledger.status_code == 200, ledger.text
+    assert [item["amount"] for item in ledger.json()["items"]] == [50]
+    async with scenario_db() as db:
+        repo = GamificationRepository(db)
+        profile = await repo.get_or_create_profile(env["other_user_id"])
+        assert profile.total_xp == await repo.get_xp_sum(env["other_user_id"]) == 50

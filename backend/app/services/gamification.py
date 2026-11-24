@@ -155,7 +155,7 @@ class GamificationService:
         - Marks 'maintain_streak' daily mission as completed.
         Returns (current_streak, is_first_activity_today).
         """
-        profile = await self._repo.get_or_create_profile(user_id)
+        profile = await self._repo.get_or_create_profile(user_id, lock=True)
         u_profile = await self._repo.get_user_profile(user_id)
         today = self._get_user_local_date(u_profile.timezone if u_profile else None)
 
@@ -233,8 +233,8 @@ class GamificationService:
                 DailyMissionItem(
                     id=um.id,
                     mission_key=um.mission_key,
-                    title=um.mission.title,
-                    xp_reward=um.mission.xp_reward,
+                    title=um.title_snapshot,
+                    xp_reward=um.xp_reward_snapshot,
                     condition_type=um.mission.condition_type,
                     progress=um.progress,
                     target=um.target,
@@ -261,7 +261,8 @@ class GamificationService:
         self, user_id: uuid.UUID, mission_id: uuid.UUID
     ) -> ClaimMissionResponse:
         """Claim XP reward for a completed daily mission."""
-        um = await self._repo.get_user_mission(mission_id, user_id)
+        profile = await self._repo.get_or_create_profile(user_id, lock=True)
+        um = await self._repo.get_user_mission(mission_id, user_id, lock=True)
         if not um:
             raise ValueError("MISSION_NOT_FOUND")
         if um.status == "CLAIMED":
@@ -278,15 +279,13 @@ class GamificationService:
             rule_key="DAILY_MISSION",
             source_type="DAILY_MISSION",
             source_id=str(um.id),
-            description=f"Thưởng nhiệm vụ: {um.mission.title}",
-            amount_override=um.mission.xp_reward,
+            description=f"Thưởng nhiệm vụ: {um.title_snapshot}"[:255],
+            amount_override=um.xp_reward_snapshot,
         )
-        profile = await self._repo.get_or_create_profile(user_id)
-
         return ClaimMissionResponse(
             mission_id=um.id,
             claimed=True,
-            xp_awarded=tx.amount if tx else um.mission.xp_reward,
+            xp_awarded=tx.amount if tx else 0,
             new_total_xp=profile.total_xp,
         )
 

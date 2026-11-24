@@ -24,11 +24,7 @@ export class AdminConsoleService {
   }
 
   listCoachTopics(filters: Record<string, string>) {
-    let params = new HttpParams();
-    for (const [name, value] of Object.entries(filters)) {
-      if (value.trim()) params = params.set(name, value.trim());
-    }
-    return this.http.get<Schemas['AdminCoachTopic'][]>(`${this.base}/coach-topics`, { params });
+    return this.http.get<Schemas['AdminCoachTopic'][]>(`${this.base}/coach-topics`, { params: this.params(filters) });
   }
 
   createCoachTopic(body: Schemas['AdminCoachTopicInput']) {
@@ -41,6 +37,38 @@ export class AdminConsoleService {
 
   draftCoachTopic(idea: string) {
     return this.http.post<Schemas['CoachTopicDraft']>(`${this.base}/coach-topics/generate`, { idea });
+  }
+
+  xpRules() {
+    return this.http.get<Schemas['AdminXpRule'][]>(`${this.base}/gamification/xp-rules`);
+  }
+
+  updateXpRule(key: string, body: Schemas['AdminXpRuleUpdate']) {
+    return this.http.patch<Schemas['AdminXpRule']>(`${this.base}/gamification/xp-rules/${key}`, body);
+  }
+
+  missions() {
+    return this.http.get<Schemas['AdminMission'][]>(`${this.base}/gamification/missions`);
+  }
+
+  updateMission(key: string, body: Schemas['AdminMissionUpdate']) {
+    return this.http.patch<Schemas['AdminMission']>(`${this.base}/gamification/missions/${key}`, body);
+  }
+
+  badges() {
+    return this.http.get<Schemas['AdminBadge'][]>(`${this.base}/gamification/badges`);
+  }
+
+  xpTransactions(filters: Record<string, string>) {
+    return this.http.get<Schemas['AdminXpPage']>(`${this.base}/gamification/transactions`, { params: this.params(filters) });
+  }
+
+  private params(filters: Record<string, string>): HttpParams {
+    let params = new HttpParams();
+    for (const [name, value] of Object.entries(filters)) {
+      if (value.trim()) params = params.set(name, value.trim());
+    }
+    return params;
   }
 
   overview() {

@@ -42,6 +42,10 @@ export const adminRoutes: Routes = [
         path: 'coach-topics',
         loadComponent: () => import('./admin-coach-topics.component').then((m) => m.AdminCoachTopicsComponent)
       },
+      {
+        path: 'gamification',
+        loadComponent: () => import('./admin-gamification.component').then((m) => m.AdminGamificationComponent)
+      },
       { path: '**', redirectTo: 'scenarios' }
     ]
   }
