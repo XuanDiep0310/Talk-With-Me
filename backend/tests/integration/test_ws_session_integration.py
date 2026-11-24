@@ -294,7 +294,9 @@ def test_ticket_single_use_and_rejection() -> None:
     ws1 = MockWsClient()
     orchestrator.handle_connection(ws1, session_id, ticket, [{"type": "ping"}])
     assert ws1.is_accepted is True
-    assert any(m.get("type") == "session.state" and m.get("state") == "ACTIVE" for m in ws1.sent_messages)
+    assert any(
+        m.get("type") == "session.state" and m.get("state") == "ACTIVE" for m in ws1.sent_messages
+    )
     assert any(m.get("type") == "pong" for m in ws1.sent_messages)
 
     # Ticket is consumed from Redis
@@ -357,7 +359,11 @@ def test_audio_streaming_stt_and_communication_first() -> None:
         {"type": "user.speech_start", "segmentId": seg_id},
         b"\x1a\x45\xdf\xa3fakeaudiochunk",
         {"type": "user.text", "segmentId": seg_id, "text": "I really love to travel, um"},
-        {"type": "user.text", "segmentId": seg_id, "text": "I really love to travel to Danang beach."},
+        {
+            "type": "user.text",
+            "segmentId": seg_id,
+            "text": "I really love to travel to Danang beach.",
+        },
     ]
 
     ws = MockWsClient()
