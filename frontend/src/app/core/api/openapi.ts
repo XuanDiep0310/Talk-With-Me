@@ -1233,6 +1233,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/coach-topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Topics */
+        get: operations["list_topics_api_v1_admin_coach_topics_get"];
+        put?: never;
+        /** Create Topic */
+        post: operations["create_topic_api_v1_admin_coach_topics_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/coach-topics/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate */
+        post: operations["generate_api_v1_admin_coach_topics_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/coach-topics/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Topic */
+        patch: operations["update_topic_api_v1_admin_coach_topics__id__patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1374,6 +1426,80 @@ export interface components {
             distractorsEn?: string[];
             /** Distractorsvi */
             distractorsVi?: string[];
+        };
+        /** AdminCoachTopic */
+        AdminCoachTopic: {
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /**
+             * Minlevel
+             * @enum {string}
+             */
+            minLevel: "A1" | "A2" | "B1" | "B2" | "C1";
+            /** Targetskills */
+            targetSkills?: ("Fluency" | "Vocabulary" | "Response Speed" | "Grammar" | "Accuracy" | "Listening" | "Pronunciation")[];
+            /**
+             * Isactive
+             * @default false
+             */
+            isActive: boolean;
+            /**
+             * Sortorder
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
+        /** AdminCoachTopicInput */
+        AdminCoachTopicInput: {
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /**
+             * Minlevel
+             * @enum {string}
+             */
+            minLevel: "A1" | "A2" | "B1" | "B2" | "C1";
+            /** Targetskills */
+            targetSkills?: ("Fluency" | "Vocabulary" | "Response Speed" | "Grammar" | "Accuracy" | "Listening" | "Pronunciation")[];
+            /**
+             * Isactive
+             * @default false
+             */
+            isActive: boolean;
+            /**
+             * Sortorder
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        /** AdminCoachTopicUpdate */
+        AdminCoachTopicUpdate: {
+            /** Category */
+            category?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Minlevel */
+            minLevel?: ("A1" | "A2" | "B1" | "B2" | "C1") | null;
+            /** Targetskills */
+            targetSkills?: ("Fluency" | "Vocabulary" | "Response Speed" | "Grammar" | "Accuracy" | "Listening" | "Pronunciation")[] | null;
+            /** Isactive */
+            isActive?: boolean | null;
+            /** Sortorder */
+            sortOrder?: number | null;
         };
         /** AdminOverview */
         AdminOverview: {
@@ -1927,6 +2053,22 @@ export interface components {
             /** Newtotalxp */
             newTotalXp: number;
         };
+        /** CoachTopicDraft */
+        CoachTopicDraft: {
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /**
+             * Minlevel
+             * @enum {string}
+             */
+            minLevel: "A1" | "A2" | "B1" | "B2" | "C1";
+            /** Targetskills */
+            targetSkills?: ("Fluency" | "Vocabulary" | "Response Speed" | "Grammar" | "Accuracy" | "Listening" | "Pronunciation")[];
+        };
         /** CoachTopicGroupSchema */
         CoachTopicGroupSchema: {
             /** Category */
@@ -2205,6 +2347,11 @@ export interface components {
              */
             isReadyForPromotion: boolean;
             advancement?: components["schemas"]["LevelAdvancementInfo"] | null;
+        };
+        /** GenerateCoachTopic */
+        GenerateCoachTopic: {
+            /** Idea */
+            idea: string;
         };
         /** GenerateDistractorsRequest */
         GenerateDistractorsRequest: {
@@ -5933,6 +6080,213 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminOverview"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    list_topics_api_v1_admin_coach_topics_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                category?: string | null;
+                minLevel?: ("A1" | "A2" | "B1" | "B2" | "C1") | null;
+                isActive?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCoachTopic"][];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    create_topic_api_v1_admin_coach_topics_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCoachTopicInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCoachTopic"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    generate_api_v1_admin_coach_topics_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateCoachTopic"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachTopicDraft"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    update_topic_api_v1_admin_coach_topics__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCoachTopicUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCoachTopic"];
                 };
             };
             /** @description Authentication required */

@@ -45,7 +45,7 @@ class CoachService:
 
     async def list_topics(self, user_id: uuid.UUID, q: str | None = None) -> CoachTopicsResponse:
         # 1. Ensure seed topics exist
-        await self.topic_repo.seed_defaults_if_empty()
+        await self.topic_repo.ensure_defaults()
 
         # 2. Get user learning profile for personalization
         user = await self.user_repo.get_by_id(user_id)
@@ -138,11 +138,13 @@ class CoachService:
 
         user_level = user.profile.cefr_level or "A1"
 
+        await self.topic_repo.ensure_defaults()
+
         # 2. Resolve topic
         topic: CoachTopic | None = None
         if data.topic_id:
-            topic = await self.topic_repo.get_by_id(data.topic_id)
-            if not topic:
+            topic = await self.topic_repo.get_locked(data.topic_id)
+            if not topic or not topic.is_active:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Coach topic not found",
@@ -161,6 +163,7 @@ class CoachService:
             type="COACH",
             user_id=user_id,
             topic_id=topic.id if topic else None,
+            topic_snapshot=topic.context() if topic else {},
             level=user_level,
             status=SessionState.CREATED.value,
             started_at=now,
@@ -339,17 +342,8 @@ class CoachService:
     def _to_session_response(
         self, session: Session, initial_message: str | None = None
     ) -> SessionResponse:
-        topic_schema: CoachTopicSchema | None = None
-        if session.topic:
-            topic_schema = CoachTopicSchema(
-                id=session.topic.id,
-                category=session.topic.category,
-                title=session.topic.title,
-                description=session.topic.description,
-                min_level=session.topic.min_level,
-                target_skills=session.topic.target_skills or [],
-                is_active=session.topic.is_active,
-            )
+        context = session.coach_context()
+        topic_schema = CoachTopicSchema.model_validate(context) if context else None
 
         transcript_schemas = [self._to_transcript_response(t) for t in (session.transcripts or [])]
 

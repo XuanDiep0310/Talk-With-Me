@@ -250,7 +250,7 @@ class ScoringService:
         history = [
             {"speaker": s.speaker, "text": s.text} for s in sorted(transcripts, key=lambda x: x.seq)
         ]
-        topic_title = session.topic.title if session.topic else "General English Conversation"
+        topic_title = session.coach_title("General English Conversation")
 
         try:
             llm_eval = await llm.evaluate_post_session(

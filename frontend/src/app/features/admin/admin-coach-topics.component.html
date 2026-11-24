@@ -1,0 +1,87 @@
+<div class="page-heading">
+  <h1>Chủ đề AI Coach</h1>
+  <button class="action primary" type="button" (click)="open()" [disabled]="busy()">Tạo chủ đề</button>
+</div>
+@if (error()) { <p class="panel" role="alert">{{ error() }}</p> }
+@if (notice()) { <p class="panel" role="status">{{ notice() }}</p> }
+
+@if (editing()) {
+  <section class="panel" aria-labelledby="topic-form">
+    <h2 id="topic-form" class="mb-4">Thông tin chủ đề</h2>
+    <div class="filter-form mb-4">
+      <label>Ý tưởng cho AI <input [formControl]="idea" maxlength="4000"></label>
+      <button class="action" type="button" (click)="generate()" [disabled]="idea.invalid || busy()">Soạn bản nháp</button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="form-grid">
+        <label>Tiêu đề <input formControlName="title" maxlength="255" required></label>
+        <label>Nhóm <input formControlName="category" maxlength="100" list="coach-categories" required></label>
+        <datalist id="coach-categories">
+          @for (category of categories(); track category) { <option [value]="category"></option> }
+        </datalist>
+        <label class="wide">Mô tả <textarea formControlName="description" rows="3" maxlength="4000" required></textarea></label>
+        <label>CEFR tối thiểu
+          <select formControlName="minLevel">
+            @for (level of levels; track level) { <option [value]="level">{{ level }}</option> }
+          </select>
+        </label>
+        <label>Thứ tự <input type="number" formControlName="sortOrder" min="0" max="2147483647" required></label>
+        <fieldset class="wide">
+          <legend class="font-semibold">Kỹ năng rèn luyện</legend>
+          <div class="actions">
+            @for (skill of skills; track skill) {
+              <label class="checkbox"><input type="checkbox" [checked]="form.controls.targetSkills.value.includes(skill)" (change)="toggleSkill(skill, $event)">{{ skill }}</label>
+            }
+          </div>
+        </fieldset>
+        <label class="checkbox wide"><input type="checkbox" formControlName="isActive">Hiển thị cho học viên</label>
+      </div>
+      <div class="actions mt-4">
+        <button class="action primary" [disabled]="form.invalid || busy()">Lưu chủ đề</button>
+        <button class="action" type="button" [disabled]="busy()" (click)="editing.set(false)">Đóng biểu mẫu</button>
+      </div>
+    </form>
+  </section>
+}
+
+<form class="panel filter-form" [formGroup]="filters" (ngSubmit)="load()">
+  <label>Tiêu đề <input type="search" formControlName="q" maxlength="255"></label>
+  <label>Nhóm
+    <select formControlName="category">
+      <option value="">Tất cả</option>
+      @for (category of categories(); track category) { <option [value]="category">{{ category }}</option> }
+    </select>
+  </label>
+  <label>CEFR tối thiểu
+    <select formControlName="minLevel">
+      <option value="">Tất cả</option>
+      @for (level of levels; track level) { <option [value]="level">{{ level }}</option> }
+    </select>
+  </label>
+  <label>Trạng thái
+    <select formControlName="isActive"><option value="">Tất cả</option><option value="true">Đang hiển thị</option><option value="false">Đã ẩn</option></select>
+  </label>
+  <button class="action" [disabled]="loading()">Lọc danh sách</button>
+</form>
+
+@if (loading()) { <p role="status">Đang tải chủ đề…</p> }
+@else {
+  <div class="panel results table-wrap">
+    <table>
+      <thead><tr><th scope="col">Chủ đề</th><th scope="col">CEFR</th><th scope="col">Thứ tự</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
+      <tbody>
+        @for (topic of rows(); track topic.id) {
+          <tr>
+            <td><strong>{{ topic.title }}</strong><span class="secondary">{{ topic.category }}</span></td>
+            <td>{{ topic.minLevel }}</td><td>{{ topic.sortOrder }}</td>
+            <td><span class="status" [attr.data-status]="topic.isActive ? 'PUBLISHED' : 'ARCHIVED'">{{ topic.isActive ? 'Đang hiển thị' : 'Đã ẩn' }}</span></td>
+            <td class="actions">
+              <button class="action pill" type="button" (click)="open(topic)" [disabled]="busy()">Sửa</button>
+              <button class="action pill" type="button" (click)="toggle(topic)" [disabled]="busy() || editing()">{{ topic.isActive ? 'Ẩn' : 'Hiện' }}</button>
+            </td>
+          </tr>
+        } @empty { <tr><td colspan="5">Không tìm thấy chủ đề.</td></tr> }
+      </tbody>
+    </table>
+  </div>
+}

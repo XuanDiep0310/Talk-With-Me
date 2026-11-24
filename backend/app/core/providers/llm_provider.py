@@ -127,6 +127,14 @@ class FakeLlmProvider:
     _counter: int = 0
 
     async def generate_editor_json(self, instruction: str, data: dict[str, object]) -> object:  # noqa: ARG002
+        if data.get("task") == "coach_topic":
+            return {
+                "category": "Daily Communication",
+                "title": "Making Weekend Plans",
+                "description": "Invite a friend to a weekend activity and agree on a time and place.",
+                "minLevel": "A2",
+                "targetSkills": ["Fluency", "Vocabulary"],
+            }
         if data.get("task") == "distractors":
             return {
                 "meaningVi": data.get("meaningVi") or "Tôi có thể giúp gì cho bạn?",

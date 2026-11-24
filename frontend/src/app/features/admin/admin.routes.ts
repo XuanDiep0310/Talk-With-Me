@@ -38,6 +38,10 @@ export const adminRoutes: Routes = [
         canDeactivate: [confirmUnsavedChanges],
         loadComponent: () => import('./admin-editor.component').then((m) => m.AdminEditorComponent)
       },
+      {
+        path: 'coach-topics',
+        loadComponent: () => import('./admin-coach-topics.component').then((m) => m.AdminCoachTopicsComponent)
+      },
       { path: '**', redirectTo: 'scenarios' }
     ]
   }

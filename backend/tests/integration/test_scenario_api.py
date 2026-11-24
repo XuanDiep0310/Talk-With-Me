@@ -894,3 +894,55 @@ async def test_other_user_roleplay_access_returns_404(scenario_test_env: dict) -
 
     resp_end = await client.post(f"/api/v1/roleplays/{sess_id}/end", headers=other_headers)
     assert resp_end.status_code == 404
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["sqlite", "postgresql"], indirect=True)
+async def test_admin_coach_topic_publication_and_session_snapshot(
+    scenario_test_env: dict, scenario_db: async_sessionmaker[AsyncSession]
+) -> None:
+    from app.api.deps import get_llm_provider as provider_dependency
+    from app.models.admin_audit import AdminAuditEvent
+
+    env = scenario_test_env
+    client = env["client"]
+    learner = {"Authorization": f"Bearer {env['token']}"}
+    admin_path = "/api/v1/admin/coach-topics"
+    assert (await client.get(admin_path)).status_code == 401
+    assert (await client.get(admin_path, headers=learner)).status_code == 403
+    admin = await grant_scenario_admin(env)
+    app.dependency_overrides[provider_dependency] = FakeLlmProvider
+    draft = await client.post(
+        admin_path + "/generate", headers=admin, json={"idea": "Weekend plans"}
+    )
+    assert draft.status_code == 200
+    created = await client.post(admin_path, headers=admin, json=draft.json())
+    assert created.status_code == 201
+    topic = created.json()
+    assert topic["isActive"] is False
+    session_path = "/api/v1/coach/sessions"
+    data = {"topicId": topic["id"]}
+    assert (await client.post(session_path, headers=admin, json=data)).status_code == 404
+    patch_path = f"{admin_path}/{topic['id']}"
+    assert (
+        await client.patch(patch_path, headers=admin, json={"isActive": True})
+    ).status_code == 200
+    started = await client.post(session_path, headers=admin, json=data)
+    assert started.status_code == 201, started.text
+    assert (
+        await client.patch(
+            patch_path, headers=admin, json={"title": "Updated topic", "isActive": False}
+        )
+    ).status_code == 200
+    assert (await client.post(session_path, headers=admin, json=data)).status_code == 404
+    history = await client.get(f"{session_path}/{started.json()['id']}", headers=admin)
+    assert history.json()["topic"]["title"] == topic["title"]
+    page = await client.get(admin_path, headers=admin, params={"q": "Updated", "isActive": False})
+    assert [item["id"] for item in page.json()] == [topic["id"]]
+    async with scenario_db() as db:
+        events = (
+            await db.scalars(
+                select(AdminAuditEvent).where(AdminAuditEvent.target_id == topic["id"])
+            )
+        ).all()
+        assert len(events) == 3

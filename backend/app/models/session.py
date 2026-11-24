@@ -43,6 +43,17 @@ class CoachTopic(Base, TimestampMixin):
 
     sessions: Mapped[list[Session]] = relationship(back_populates="topic")
 
+    def context(self) -> dict[str, object]:
+        return {
+            "id": str(self.id),
+            "category": self.category,
+            "title": self.title,
+            "description": self.description,
+            "min_level": self.min_level,
+            "target_skills": self.target_skills or [],
+            "is_active": self.is_active,
+        }
+
 
 class Session(Base, TimestampMixin):
     """Shared practice session (COACH, ROLEPLAY) across the application."""
@@ -63,6 +74,9 @@ class Session(Base, TimestampMixin):
         ForeignKey("coach_topics.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
+    )
+    topic_snapshot: Mapped[dict[str, object] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql")
     )
     scenario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
@@ -90,6 +104,21 @@ class Session(Base, TimestampMixin):
         uselist=False,
         cascade="all, delete-orphan",
     )
+
+    def coach_context(self) -> dict[str, object] | None:
+        if self.topic_snapshot is not None:
+            return self.topic_snapshot or None
+        if self.topic is not None:
+            return self.topic.context()
+        return None
+
+    def coach_title(self, default: str) -> str:
+        context = self.coach_context()
+        return str(context["title"]) if context else default
+
+    def coach_min_level(self) -> str:
+        context = self.coach_context()
+        return str(context["min_level"]) if context else "A1"
 
 
 class TranscriptSegment(Base, TimestampMixin):

@@ -1,5 +1,6 @@
 """Models package."""
 
+from app.models.admin_audit import AdminAuditEvent
 from app.models.auth import (
     AuthIdentity,
     PasswordResetToken,
@@ -34,6 +35,7 @@ from app.models.scoring import ScoringAudit, SessionFeedback, SessionSkillScore
 from app.models.session import CoachTopic, Session, TranscriptSegment
 
 __all__ = [
+    "AdminAuditEvent",
     "Base",
     "TimestampMixin",
     "User",

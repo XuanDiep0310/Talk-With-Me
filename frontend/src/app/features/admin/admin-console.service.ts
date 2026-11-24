@@ -23,6 +23,26 @@ export class AdminConsoleService {
     return this.http.patch<void>(`${this.base}/users/${id}`, body);
   }
 
+  listCoachTopics(filters: Record<string, string>) {
+    let params = new HttpParams();
+    for (const [name, value] of Object.entries(filters)) {
+      if (value.trim()) params = params.set(name, value.trim());
+    }
+    return this.http.get<Schemas['AdminCoachTopic'][]>(`${this.base}/coach-topics`, { params });
+  }
+
+  createCoachTopic(body: Schemas['AdminCoachTopicInput']) {
+    return this.http.post<Schemas['AdminCoachTopic']>(`${this.base}/coach-topics`, body);
+  }
+
+  updateCoachTopic(id: string, body: Schemas['AdminCoachTopicUpdate']) {
+    return this.http.patch<Schemas['AdminCoachTopic']>(`${this.base}/coach-topics/${id}`, body);
+  }
+
+  draftCoachTopic(idea: string) {
+    return this.http.post<Schemas['CoachTopicDraft']>(`${this.base}/coach-topics/generate`, { idea });
+  }
+
   overview() {
     return this.http.get<AdminOverview>(`${this.base}/overview`);
   }

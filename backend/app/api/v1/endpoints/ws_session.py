@@ -205,8 +205,8 @@ async def session_websocket_endpoint(
             s_init = await SessionRepository(db).get_by_id(session_id)
             if s_init:
                 u_lvl = s_init.level
-                t_title = s_init.topic.title if s_init.topic else "Daily Conversation"
-                t_min = s_init.topic.min_level if s_init.topic else "A1"
+                t_title = s_init.coach_title("Daily Conversation")
+                t_min = s_init.coach_min_level()
                 if s_init.type == "ROLEPLAY" and s_init.scenario_id:
                     scen_init = await ScenarioRepository(db).get_by_id(s_init.scenario_id)
                     if scen_init:
@@ -380,8 +380,8 @@ async def session_websocket_endpoint(
                             s_repo = SessionRepository(db)
                             sess = await s_repo.get_by_id(session_id)
                             user_level = sess.level if sess else "A1"
-                            topic_title = sess.topic.title if sess and sess.topic else "Daily Life"
-                            topic_min_level = sess.topic.min_level if sess and sess.topic else "A1"
+                            topic_title = sess.coach_title("Daily Life") if sess else "Daily Life"
+                            topic_min_level = sess.coach_min_level() if sess else "A1"
 
                             # Fetch recent dialogue turns for LLM context
                             all_transcripts = await TranscriptRepository(db).list_by_session(

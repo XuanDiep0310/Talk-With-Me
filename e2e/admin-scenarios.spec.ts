@@ -224,3 +224,28 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
     await learnerPage.close();
   }
 });
+
+test('admin reviews and enables an AI Coach topic', async ({ page, request }) => {
+  test.skip(process.env.RUN_ADMIN_E2E !== 'true', 'Requires an isolated DB and the admin CLI');
+  const admin = await register(request, 'topic-editor');
+  execFileSync(process.env.PLAYWRIGHT_PYTHON ?? 'python', ['-m', 'scripts.admin_role', 'grant', admin.id], {
+    cwd: resolve('backend'),
+    env: process.env,
+  });
+  await prepareBrowser(page);
+  await page.goto('/admin/coach-topics');
+  await logIn(page, admin.email);
+  await page.getByRole('button', { name: 'Tạo chủ đề' }).click();
+  await page.getByLabel('Ý tưởng cho AI').fill('Practice planning a weekend');
+  await page.getByRole('button', { name: 'Soạn bản nháp' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã điền bản nháp');
+  const title = 'Weekend plans ' + randomUUID();
+  await page.getByRole('region', { name: 'Thông tin chủ đề' }).getByLabel('Tiêu đề').fill(title);
+  await page.getByRole('button', { name: 'Lưu chủ đề' }).click();
+  const row = page.getByRole('row').filter({ hasText: title });
+  await expect(row).toContainText('Đã ẩn');
+  await row.getByRole('button', { name: 'Hiện', exact: true }).click();
+  await expect(row).toContainText('Đang hiển thị');
+  await row.getByRole('button', { name: 'Ẩn', exact: true }).click();
+  await expect(row).toContainText('Đã ẩn');
+});
