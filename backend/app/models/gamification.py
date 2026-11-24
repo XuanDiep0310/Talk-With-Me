@@ -137,6 +137,7 @@ class BadgeDefinition(Base, TimestampMixin):
 
     __tablename__ = "badge_definitions"
 
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     key: Mapped[str] = mapped_column(String(50), primary_key=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)

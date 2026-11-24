@@ -5,9 +5,11 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_admin
-from app.models.admin_scenario_schemas import ADMIN_ACCESS_RESPONSES
+from app.models.admin_scenario_schemas import ADMIN_ACCESS_RESPONSES, AdminScenarioError
 from app.models.admin_session_schemas import (
     AdminQaLabels,
+    AdminQaNote,
+    AdminScorePreviewRequest,
     AdminSessionDetail,
     AdminSessionFilters,
     AdminSessionPage,
@@ -66,3 +68,19 @@ async def update_labels(id: uuid.UUID, body: AdminQaLabels, service: Sessions) -
 @router.post("/{id}/retry-feedback", status_code=202)
 async def retry_feedback(id: uuid.UUID, service: Sessions) -> SessionFeedbackResponse:
     return await ScoringService(service.db).retry_feedback(id, user_id=None, audit=service.audit)
+
+
+@router.patch("/{id}/qa-note")
+async def update_note(id: uuid.UUID, body: AdminQaNote, service: Sessions) -> AdminQaNote:
+    return await service.update_note(id, body)
+
+
+@router.post(
+    "/{id}/reevaluate",
+    responses={409: {"model": AdminScenarioError, "description": "Session has not ended"}},
+)
+async def reevaluate(
+    id: uuid.UUID, body: AdminScorePreviewRequest, service: Sessions, response: Response
+) -> SessionFeedbackResponse:
+    response.headers["Cache-Control"] = "no-store"
+    return await service.reevaluate(id, body.request_id)

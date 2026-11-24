@@ -70,7 +70,7 @@
     <table>
       <thead><tr><th scope="col">Chủ đề</th><th scope="col">CEFR</th><th scope="col">Thứ tự</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
       <tbody>
-        @for (topic of rows(); track topic.id) {
+        @for (topic of rows(); track topic.id; let first = $first; let last = $last) {
           <tr>
             <td><strong>{{ topic.title }}</strong><span class="secondary">{{ topic.category }}</span></td>
             <td>{{ topic.minLevel }}</td><td>{{ topic.sortOrder }}</td>
@@ -78,6 +78,11 @@
             <td class="actions">
               <button class="action pill" type="button" (click)="open(topic)" [disabled]="busy()">Sửa</button>
               <button class="action pill" type="button" (click)="toggle(topic)" [disabled]="busy() || editing()">{{ topic.isActive ? 'Ẩn' : 'Hiện' }}</button>
+              @if (canMove()) {
+                <button class="action pill" type="button" (click)="move(topic, 'up')" [disabled]="busy() || editing() || first">Lên</button>
+                <button class="action pill" type="button" (click)="move(topic, 'down')" [disabled]="busy() || editing() || last">Xuống</button>
+              }
+              <button class="action pill" type="button" (click)="remove(topic)" [disabled]="busy() || editing()">Xóa</button>
             </td>
           </tr>
         } @empty { <tr><td colspan="5">Không tìm thấy chủ đề.</td></tr> }

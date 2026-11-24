@@ -13,11 +13,14 @@ from app.models.admin_account_schemas import (
     AdminAccountSummary,
     AdminAccountUpdate,
     AdminEarnedBadge,
+    AdminLevelAdjustment,
     AdminOverview,
     AdminPlacement,
     AdminPlacementPage,
+    AdminXpAdjustment,
 )
 from app.models.auth import AccountAdminAudit, User
+from app.models.onboarding import LevelHistory
 from app.repositories.admin_account import AdminAccountRepository
 from app.repositories.admin_scenario import AdminScenarioRepository
 from app.repositories.auth import AuthRepository
@@ -25,6 +28,7 @@ from app.repositories.gamification import GamificationRepository
 from app.seeds.onboarding_catalog import GOALS, WEAK_POINTS
 from app.seeds.scenario_loader import seed_scenarios_if_empty
 from app.services.admin_audit import AdminAudit
+from app.services.auth import AuthService
 
 
 class AdminAccountService:
@@ -125,6 +129,118 @@ class AdminAccountService:
         )
         await self.db.commit()
 
+    async def _lock_learner(self, target_id: uuid.UUID) -> None:
+        account = await self._lock_target(target_id)
+        if account.role != "LEARNER":
+            raise HTTPException(
+                409,
+                detail={
+                    "code": "LEARNER_REQUIRED",
+                    "message": "Only learner accounts can be adjusted.",
+                },
+            )
+
+    async def adjust_level(self, target_id: uuid.UUID, body: AdminLevelAdjustment) -> None:
+        await self._lock_learner(target_id)
+        profile = await GamificationRepository(self.db).get_user_profile(target_id, lock=True)
+        if profile is None:
+            raise HTTPException(
+                409,
+                detail={
+                    "code": "PROFILE_NOT_FOUND",
+                    "message": "The account needs a learning profile.",
+                },
+            )
+        previous = profile.cefr_level
+        if previous == body.level:
+            return
+        self.db.add(
+            LevelHistory(
+                user_id=target_id,
+                level=body.level,
+                from_level=previous,
+                source="ADMIN_ADJUSTMENT",
+                reason=body.reason,
+                created_at=get_clock().now(),
+            )
+        )
+        profile.cefr_level = body.level
+        profile.level_source = "ADMIN_ADJUSTMENT"
+        profile.needs_reassessment = False
+        AdminAudit(self.db, self.actor_id, self.trace_id).record(
+            "ACCOUNT_LEVEL_ADJUSTED",
+            "ACCOUNT",
+            target_id,
+            {"level": previous},
+            {"level": body.level, "reason": body.reason},
+        )
+        await self.db.commit()
+
+    async def adjust_xp(self, target_id: uuid.UUID, body: AdminXpAdjustment) -> None:
+        await self._lock_learner(target_id)
+        repo = GamificationRepository(self.db)
+        profile = await repo.get_or_create_profile(target_id, lock=True)
+        key = f"ADMIN_ADJUSTMENT:{target_id}:{body.request_id}"
+        previous = await repo.get_xp_by_key(key)
+        if previous is not None:
+            if previous.amount != body.amount or previous.description != body.reason:
+                raise HTTPException(
+                    409,
+                    detail={
+                        "code": "XP_REQUEST_CONFLICT",
+                        "message": "This request ID has already been used.",
+                    },
+                )
+            return
+        before = profile.total_xp
+        if before + body.amount < 0 or before + body.amount > 2_147_483_647:
+            raise HTTPException(
+                409,
+                detail={
+                    "code": "XP_BALANCE_OUT_OF_RANGE",
+                    "message": "The resulting XP balance is out of range.",
+                },
+            )
+        await repo.create_xp_transaction(
+            user_id=target_id,
+            amount=body.amount,
+            rule_key="ADMIN_ADJUSTMENT",
+            source_type="ADMIN_ADJUSTMENT",
+            source_id=str(body.request_id),
+            idempotency_key=key,
+            description=body.reason,
+            created_at=get_clock().now(),
+        )
+        AdminAudit(self.db, self.actor_id, self.trace_id).record(
+            "ACCOUNT_XP_ADJUSTED",
+            "ACCOUNT",
+            target_id,
+            {"totalXp": before},
+            {
+                "totalXp": before + body.amount,
+                "delta": body.amount,
+                "reason": body.reason,
+                "requestId": str(body.request_id),
+            },
+        )
+        await self.db.commit()
+
+    async def send_reset(self, target_id: uuid.UUID, auth: AuthService) -> None:
+        account = await self._lock_target(target_id)
+        if not account.is_active or not account.password_hash:
+            raise HTTPException(
+                409,
+                detail={
+                    "code": "PASSWORD_RESET_UNAVAILABLE",
+                    "message": "An active password account is required.",
+                },
+            )
+        await auth.forgot_password(account.email)
+        AdminAudit(self.db, self.actor_id, self.trace_id).record(
+            "ACCOUNT_PASSWORD_RESET_SENT", "ACCOUNT", target_id
+        )
+        await self.db.commit()
+
     async def detail(self, user_id: uuid.UUID) -> AdminAccountDetail:
         user = await self.repo.get(user_id)
         if user is None:
@@ -160,7 +276,7 @@ class AdminAccountService:
             weak_points=weak_points,
             goal_labels=[goal_labels.get(key, key) for key in goals],
             weak_point_labels=[weak_point_labels.get(key, key) for key in weak_points],
-            skills=await self.repo.skills(user_id),
+            skills=list(await self.repo.skills(user_id)),
             total_xp=gamification.total_xp if gamification else 0,
             current_streak=gamification.current_streak if gamification else 0,
             best_streak=gamification.best_streak if gamification else 0,

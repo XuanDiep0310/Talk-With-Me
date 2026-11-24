@@ -31,20 +31,44 @@
         <button class="action" type="button" (click)="confirm(actionDialog, 'role')">{{ account.role === 'ADMIN' ? 'Thu hồi quyền' : 'Cấp quyền admin' }}</button>
         <button class="action" type="button" (click)="confirm(actionDialog, 'active')">{{ account.isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}</button>
         <button class="action" type="button" (click)="confirm(actionDialog, 'logout')">Thu hồi phiên đăng nhập</button>
+        @if (account.isActive && account.loginMethods.includes('password')) {
+          <button class="action" type="button" (click)="confirm(actionDialog, 'reset')">Gửi email đặt lại mật khẩu</button>
+        }
+      </div>
+    }
+    @if (account.role === 'LEARNER') {
+      <div class="actions mt-3">
+        <button class="action" type="button" (click)="confirm(actionDialog, 'level')">Điều chỉnh CEFR</button>
+        <button class="action" type="button" (click)="confirm(actionDialog, 'xp')">Cộng / trừ XP</button>
       </div>
     }
     <dialog #actionDialog class="panel mx-auto my-auto max-w-sm" aria-labelledby="account-action-title">
       <h2 id="account-action-title">Xác nhận thao tác</h2>
       <p class="my-3">
         @switch (pending()) {
+          @case ('reset') { Gửi liên kết đặt lại mật khẩu đến {{ account.email }}? }
+          @case ('level') { Cập nhật CEFR của {{ account.fullName }}. }
+          @case ('xp') { Số dư hiện tại của {{ account.fullName }} là {{ account.totalXp }} XP. }
           @case ('logout') { Yêu cầu {{ account.fullName }} đăng nhập lại trên tất cả thiết bị? }
           @case ('role') { Thay đổi quyền quản trị của {{ account.fullName }}? }
           @case ('active') { {{ account.isActive ? 'Khóa' : 'Mở khóa' }} tài khoản của {{ account.fullName }}? }
         }
       </p>
-      <div class="actions">
-        <button class="action primary" type="button" [disabled]="busy()" (click)="act(actionDialog, account)">Xác nhận</button>
-        <button class="action" type="button" [disabled]="busy()" (click)="actionDialog.close()" data-cancel>Hủy</button>
+      @if (pending() === 'level') {
+        <label>Trình độ mới <select [(ngModel)]="level">
+          @for (choice of levels; track choice) { <option [value]="choice">{{ choice }}</option> }
+        </select></label>
+      }
+      @if (pending() === 'xp') {
+        <label>Số XP điều chỉnh <input type="number" min="-100000" max="100000" [(ngModel)]="amount" placeholder="Nhập số âm để trừ XP"></label>
+      }
+      @if (pending() === 'level' || pending() === 'xp') {
+        <label class="mt-2">Lý do <textarea [(ngModel)]="reason" maxlength="255" rows="3" required></textarea></label>
+      }
+      @if (error()) { <p role="alert" class="my-2">{{ error() }}</p> }
+      <div class="actions mt-3">
+        <button class="action primary" type="button" [disabled]="busy() || !valid(pending())" (click)="act(actionDialog, account)">Xác nhận</button>
+        <button class="action" type="button" [disabled]="busy()" (click)="actionDialog.close(); error.set('')" data-cancel>Hủy</button>
       </div>
     </dialog>
   </section>

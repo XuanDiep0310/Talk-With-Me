@@ -25,9 +25,16 @@
   <section class="panel" aria-labelledby="scoring-title">
     <div class="section-heading">
       <h2 id="scoring-title">Điểm và phản hồi</h2>
-      @if (item.status === 'FAILED' && item.feedback?.retryable) {
-        <button class="action" type="button" (click)="retry()" [disabled]="retrying()">Chấm điểm lại</button>
-      }
+      <div class="actions">
+        @if (item.endedAt) {
+          <button class="action" type="button" (click)="reevaluate()" [disabled]="previewing() || retrying()">
+            {{ previewing() ? 'Đang chấm lại…' : 'Chấm lại nội bộ' }}
+          </button>
+        }
+        @if (item.status === 'FAILED' && item.feedback?.retryable) {
+          <button class="action" type="button" (click)="retry()" [disabled]="retrying() || previewing()">Chạy lại phản hồi lỗi</button>
+        }
+      </div>
     </div>
     @if (item.feedback; as feedback) {
       <p class="mb-4">Điểm tổng <strong>{{ (feedback.overallScore | number:'1.0-1') ?? 'N/A' }}</strong>
@@ -66,7 +73,27 @@
   </section>
 
   <section class="panel" aria-labelledby="qa-title">
-    <h2 id="qa-title">Nhãn QA</h2>
+    <h2 id="qa-title">Kiểm định QA</h2>
+    @if (item.qaPreview; as preview) {
+      <div class="rounded-lg bg-slate-50 p-3 my-3" aria-label="Kết quả chấm lại nội bộ">
+        <h3>Kết quả chấm lại nội bộ</h3>
+        <p>{{ statuses[preview.status] || preview.status }} · {{ preview.generatedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+        <p>Điểm tổng {{ (preview.overallScore | number:'1.0-1') ?? 'N/A' }} · Công thức {{ preview.formulaVersion }}</p>
+        @if (preview.errorMessage) { <p>{{ preview.errorMessage }}</p> }
+        <ul class="form-grid mt-2">
+          @for (skill of preview.skills; track skill.skillName) {
+            <li>{{ skills[skill.skillName] || skill.skillName }} · {{ (skill.score | number:'1.0-1') ?? 'N/A' }}
+              @if (skill.isReference) { <span class="status">tham khảo</span> }
+            </li>
+          }
+        </ul>
+      </div>
+    }
+    <label class="mt-3">Ghi chú QA nội bộ
+      <textarea [(ngModel)]="qaNote" rows="4" maxlength="4000" [disabled]="savingNote()"></textarea>
+    </label>
+    <button class="action mt-2" type="button" [disabled]="savingNote()" (click)="saveNote()">Lưu ghi chú</button>
+    <h3 class="mt-4">Nhãn QA</h3>
     <div class="actions my-2">
       @for (option of labelOptions; track option.value) {
         <label class="checkbox"><input type="checkbox" [checked]="labels().includes(option.value)" (change)="toggleLabel(option.value, $event)">{{ option.name }}</label>

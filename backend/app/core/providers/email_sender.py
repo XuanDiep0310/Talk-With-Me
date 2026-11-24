@@ -18,17 +18,8 @@ class EmailSender(Protocol):
 class FakeEmailSender:
     """Dev/test implementation: logs to stdout only, never sends real email."""
 
-    async def send_password_reset(self, email: str, token: str, reset_url: str) -> None:
-        logger.info("[FAKE EMAIL] Reset token for %s: %s (url: %s)", email, token, reset_url)
-        print(
-            f"\n======================================================\n"
-            f"📧 [FAKE EMAIL SENDER] Password reset requested\n"
-            f"Recipient: {email}\n"
-            f"Token:     {token}\n"
-            f"Reset URL: {reset_url}\n"
-            f"======================================================\n",
-            flush=True,
-        )
+    async def send_password_reset(self, email: str, token: str, reset_url: str) -> None:  # noqa: ARG002
+        logger.info("[FAKE EMAIL] Password reset request accepted.")
 
 
 class SmtpEmailSender:

@@ -109,6 +109,46 @@ export class AdminConsoleService {
     return this.http.get<Schemas['AdminAuditPage']>(`${this.base}/audit-logs`, { params: this.params(filters) });
   }
 
+  createMission(body: Schemas['AdminMissionCreate']) {
+    return this.http.post<Schemas['AdminMission']>(`${this.base}/gamification/missions`, body);
+  }
+
+  createBadge(body: Schemas['AdminBadgeCreate']) {
+    return this.http.post<Schemas['AdminBadge']>(`${this.base}/gamification/badges`, body);
+  }
+
+  updateBadge(key: string, body: Schemas['AdminBadgeUpdate']) {
+    return this.http.patch<Schemas['AdminBadge']>(`${this.base}/gamification/badges/${key}`, body);
+  }
+
+  deleteCoachTopic(id: string) {
+    return this.http.delete<void>(`${this.base}/coach-topics/${id}`);
+  }
+
+  moveCoachTopic(id: string, direction: Schemas['AdminTopicMove']['direction']) {
+    return this.http.post<void>(`${this.base}/coach-topics/${id}/move`, { direction });
+  }
+
+  adjustLevel(id: string, body: Schemas['AdminLevelAdjustment']) {
+    return this.http.patch<void>(`${this.base}/users/${id}/level`, body);
+  }
+
+  adjustXp(id: string, body: Schemas['AdminXpAdjustment']) {
+    return this.http.post<void>(`${this.base}/users/${id}/xp-adjustments`, body);
+  }
+
+  sendPasswordReset(id: string) {
+    return this.http.post<void>(`${this.base}/users/${id}/password-reset`, null);
+  }
+
+  saveQaNote(id: string, note: string | null) {
+    return this.http.patch<Schemas['AdminQaNote']>(`${this.base}/sessions/${id}/qa-note`, { note });
+  }
+
+  reevaluateSession(id: string, requestId: string) {
+    return this.http.post<Schemas['SessionFeedbackResponse']>(`${this.base}/sessions/${id}/reevaluate`, { requestId });
+  }
+
   private params(filters: Record<string, string>): HttpParams {
     let params = new HttpParams();
     for (const [name, value] of Object.entries(filters)) {

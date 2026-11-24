@@ -23,7 +23,7 @@ class CoachTopicRepository:
     async def list_topics(
         self, q: str | None = None, active_only: bool = True
     ) -> Sequence[CoachTopic]:
-        stmt = select(CoachTopic)
+        stmt = select(CoachTopic).where(CoachTopic.deleted_at.is_(None))
         if active_only:
             stmt = stmt.where(CoachTopic.is_active == True)  # noqa: E712
         if q and q.strip():
@@ -45,14 +45,17 @@ class CoachTopicRepository:
     async def get_locked(self, topic_id: uuid.UUID) -> CoachTopic | None:
         return (
             await self.db.scalars(
-                select(CoachTopic).where(CoachTopic.id == topic_id).with_for_update()
+                select(CoachTopic)
+                .where(CoachTopic.id == topic_id, CoachTopic.deleted_at.is_(None))
+                .with_for_update()
+                .execution_options(populate_existing=True)
             )
         ).one_or_none()
 
     async def list_admin(
         self, q: str | None, category: str | None, min_level: str | None, active: bool | None
     ) -> Sequence[CoachTopic]:
-        stmt = select(CoachTopic)
+        stmt = select(CoachTopic).where(CoachTopic.deleted_at.is_(None))
         if q:
             stmt = stmt.where(func.lower(CoachTopic.title).contains(q.lower(), autoescape=True))
         if category:
@@ -66,6 +69,36 @@ class CoachTopicRepository:
                 stmt.order_by(CoachTopic.sort_order, CoachTopic.created_at, CoachTopic.id)
             )
         ).all()
+
+    async def first_active_locked(self) -> CoachTopic | None:
+        stmt = (
+            select(CoachTopic)
+            .where(CoachTopic.deleted_at.is_(None), CoachTopic.is_active.is_(True))
+            .order_by(CoachTopic.sort_order, CoachTopic.created_at, CoachTopic.id)
+            .limit(1)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return (await self.db.scalars(stmt)).one_or_none()
+
+    async def locked_catalog(self) -> list[CoachTopic]:
+        stmt = (
+            select(CoachTopic)
+            .where(CoachTopic.deleted_at.is_(None))
+            .order_by(CoachTopic.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return sorted(
+            await self.db.scalars(stmt), key=lambda row: (row.sort_order, row.created_at, row.id)
+        )
+
+    async def has_sessions(self, topic_id: uuid.UUID) -> bool:
+        return bool(
+            await self.db.scalar(
+                select(select(Session.id).where(Session.topic_id == topic_id).exists())
+            )
+        )
 
     async def ensure_defaults(self) -> None:
         seed_ids = [uuid.UUID(item["id"]) for item in COACH_TOPICS_SEED]

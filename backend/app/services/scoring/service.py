@@ -86,7 +86,9 @@ class ScoringService:
 
         return status.HTTP_200_OK, self.feedback_response(feedback)
 
-    async def generate_feedback(self, session_id: uuid.UUID) -> SessionFeedbackResponse:
+    async def generate_feedback(
+        self, session_id: uuid.UUID, *, preview: bool = False
+    ) -> SessionFeedbackResponse:
         """
         Execute scoring engine for a completed session.
         Idempotent: if already in terminal state (FEEDBACK_READY, INSUFFICIENT_DATA), returns existing report.
@@ -100,27 +102,29 @@ class ScoringService:
                 detail="Session not found",
             )
 
-        existing_feedback = await self.scoring_repo.get_feedback(session_id)
-        if existing_feedback and existing_feedback.status in (
-            "FEEDBACK_READY",
-            "INSUFFICIENT_DATA",
-        ):
-            return self.feedback_response(existing_feedback)
-
-        # 1. Safely get or create feedback record in PENDING status (idempotent)
-        feedback = await self.scoring_repo.get_or_create_pending_feedback(
-            session_id=session_id,
-            formula_version=self._formula_version(session),
-        )
-        if feedback.status in ("FEEDBACK_READY", "INSUFFICIENT_DATA"):
-            return self.feedback_response(feedback)
+        if preview:
+            feedback = SessionFeedback(
+                session_id=session_id,
+                status="PENDING",
+                formula_version=self.settings.SCORING_MEASURED_FORMULA_VERSION,
+                strengths=[],
+                improvements=[],
+                partial=False,
+                retryable=False,
+            )
+        else:
+            feedback = await self.scoring_repo.get_or_create_pending_feedback(
+                session_id=session_id, formula_version=self._formula_version(session)
+            )
+            if feedback.status in ("FEEDBACK_READY", "INSUFFICIENT_DATA"):
+                return self.feedback_response(feedback)
 
         # 2. Extract conversational turn metrics from transcripts
         transcripts = session.transcripts or []
         metrics = extract_session_turn_metrics(
             transcripts,
             pause_threshold_ms=self.settings.PAUSE_THRESHOLD_MS,
-            measured_speech=session.speech_features_version is not None,
+            measured_speech=preview or session.speech_features_version is not None,
         )
 
         now = self.clock.now()
@@ -162,6 +166,8 @@ class ScoringService:
                 )
                 for skill_key in SKILL_LABELS
             ]
+            if preview:
+                return self.feedback_response(feedback, skill_records)
             await self.scoring_repo.save_skill_scores(skill_records)
 
             # Record audit
@@ -278,6 +284,8 @@ class ScoringService:
             feedback.error_message = "Lỗi phân tích hội thoại từ AI."
             feedback.overall_score = None
             feedback.generated_at = now
+            if preview:
+                return self.feedback_response(feedback, skill_scores=[])
             await self.scoring_repo.save_feedback(feedback)
 
             try:
@@ -368,7 +376,6 @@ class ScoringService:
                 is_reference=True,  # Always reference per Rule 2
             ),
         ]
-        await self.scoring_repo.save_skill_scores(skill_records)
 
         # 9. Update SessionFeedback
         feedback.status = "FEEDBACK_READY"
@@ -380,6 +387,9 @@ class ScoringService:
         feedback.retryable = False
         feedback.error_message = None
         feedback.generated_at = now
+        if preview:
+            return self.feedback_response(feedback, skill_records)
+        await self.scoring_repo.save_skill_scores(skill_records)
         await self.scoring_repo.save_feedback(feedback)
 
         # 10. Record Scoring Audit

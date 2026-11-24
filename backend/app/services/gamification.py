@@ -363,7 +363,7 @@ class GamificationService:
         If promoted, records level_history and creates congratulatory notification.
         Returns (current_or_new_level, did_promote).
         """
-        u_profile = await self._repo.get_user_profile(user_id)
+        u_profile = await self._repo.get_user_profile(user_id, lock=True)
         current_level = u_profile.cefr_level if u_profile and u_profile.cefr_level else "A1"
         if current_level not in LEVEL_ORDER:
             current_level = "A1"
@@ -446,45 +446,24 @@ class GamificationService:
         badge_defs = await self._repo.list_badge_definitions()
         cur_streak = max(profile.current_streak, profile.best_streak)
         for b in badge_defs:
-            should_award = False
-            if (
-                b.key == "first_speaker"
-                and stats["total_sessions"] >= 1
-                or b.key == "coach_5"
-                and stats["total_sessions"] >= 5
-                or b.key == "coach_20"
-                and stats["total_sessions"] >= 20
-                or b.key == "coach_50"
-                and stats["total_sessions"] >= 50
-                or b.key == "streak_3"
-                and cur_streak >= 3
-                or b.key == "streak_7"
-                and cur_streak >= 7
-                or b.key == "streak_14"
-                and cur_streak >= 14
-                or b.key == "streak_30"
-                and cur_streak >= 30
-                or b.key == "actor_1"
-                and stats["total_scenarios"] >= 1
-                or b.key == "actor_5"
-                and stats["total_scenarios"] >= 5
-                or b.key == "master_actor"
-                and stats["total_scenarios"] >= 20
-                or b.key == "fluency_master"
-                and max_fluency >= 75
-                or b.key == "speed_demon"
-                and max_speed >= 85
-                or b.key == "a2_achiever"
-                and level in ("A2", "B1", "B2", "C1")
-                or b.key == "b1_achiever"
-                and level in ("B1", "B2", "C1")
-                or b.key == "b2_conqueror"
-                and level in ("B2", "C1")
-                or b.key == "c1_legend"
-                and level == "C1"
-            ):
-                should_award = True
-
+            if not b.is_active:
+                continue
+            metrics = {
+                "SESSIONS_COUNT": stats["total_sessions"],
+                "STREAK_DAYS": cur_streak,
+                "SCENARIOS_COMPLETED": stats["total_scenarios"],
+                "FLUENCY_SCORE": max_fluency,
+                "SPEED_SCORE": max_speed,
+            }
+            minimum_level = (b.params or {}).get("min_level")
+            if b.criteria_type == "CEFR_LEVEL":
+                should_award = (
+                    minimum_level in LEVEL_ORDER
+                    and level in LEVEL_ORDER
+                    and LEVEL_ORDER.index(level) >= LEVEL_ORDER.index(minimum_level)
+                )
+            else:
+                should_award = metrics.get(b.criteria_type, 0) >= b.target_value
             if should_award:
                 res = await self._repo.award_badge(
                     user_id=user_id,
@@ -518,7 +497,12 @@ class GamificationService:
 
         stats = await self.get_level_advancement_stats(user_id)
         earned_badges = await self._repo.get_user_badges(user_id)
-        all_badges = await self._repo.list_badge_definitions()
+        earned_keys = {badge.badge_key for badge in earned_badges}
+        all_badges = [
+            badge
+            for badge in await self._repo.list_badge_definitions()
+            if badge.is_active or badge.key in earned_keys
+        ]
 
         current_idx = LEVEL_ORDER.index(current_level)
         next_level = LEVEL_ORDER[current_idx + 1] if current_idx < len(LEVEL_ORDER) - 1 else None
@@ -635,6 +619,8 @@ class GamificationService:
         items: list[BadgeItem] = []
         for b in all_defs:
             is_earned = b.key in earned_map
+            if not b.is_active and not is_earned:
+                continue
             earned_at = earned_map[b.key].awarded_at if is_earned else None
 
             # Calculate progress for display
@@ -669,7 +655,7 @@ class GamificationService:
         return BadgesListResponse(
             badges=items,
             earned_count=len(user_badges),
-            total_count=len(all_defs),
+            total_count=len(items),
         )
 
     async def get_xp_history(

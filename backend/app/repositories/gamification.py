@@ -63,8 +63,15 @@ class GamificationRepository:
             profile = (await self._session.scalars(stmt)).one()
         return profile
 
-    async def get_user_profile(self, user_id: uuid.UUID) -> UserProfile | None:
+    async def get_user_profile(
+        self, user_id: uuid.UUID, *, lock: bool = False
+    ) -> UserProfile | None:
         """Fetch UserProfile to read CEFR level and timezone."""
+        if lock:
+            stmt = select(UserProfile).where(UserProfile.user_id == user_id).with_for_update()
+            return (
+                await self._session.scalars(stmt.execution_options(populate_existing=True))
+            ).one_or_none()
         return await self._session.get(UserProfile, user_id)
 
     async def get_rule(self, key: str) -> XpRule | None:
@@ -110,6 +117,10 @@ class GamificationRepository:
             profile.total_xp += amount
             await self._session.flush()
         return tx
+
+    async def get_xp_by_key(self, key: str) -> XpTransaction | None:
+        stmt = select(XpTransaction).where(XpTransaction.idempotency_key == key)
+        return (await self._session.scalars(stmt)).one_or_none()
 
     async def get_xp_sum(self, user_id: uuid.UUID) -> int:
         """Calculate true sum of all XP ledger transactions (for invariant checks)."""

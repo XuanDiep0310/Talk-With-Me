@@ -1,5 +1,6 @@
 import { DatePipe, DecimalPipe, PercentPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import type { components } from '../../core/api/openapi';
 import { AuthService } from '../../core/services/auth.service';
@@ -7,11 +8,11 @@ import { AdminConsoleService } from './admin-console.service';
 import { skillLabels } from './admin-session-labels';
 
 type Schemas = components['schemas'];
-type Action = 'role' | 'active' | 'logout';
+type Action = 'role' | 'active' | 'logout' | 'reset' | 'level' | 'xp';
 
 @Component({
   selector: 'app-admin-user-detail',
-  imports: [DatePipe, DecimalPipe, PercentPipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, PercentPipe, RouterLink, FormsModule],
   styleUrl: './admin.scss',
   templateUrl: './admin-user-detail.component.html',
 })
@@ -27,6 +28,11 @@ export class AdminUserDetailComponent {
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   protected readonly notice = signal('');
+  protected readonly levels = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
+  protected level: Schemas['AdminLevelAdjustment']['level'] = 'A1';
+  protected amount: number | null = null;
+  protected reason = '';
+  private xpRequestId = '';
   protected readonly skillLabels = skillLabels;
   protected readonly logins: Record<string, string> = { google: 'Google', password: 'Email và mật khẩu' };
   protected readonly placementStatuses: Record<string, string> = {
@@ -59,33 +65,53 @@ export class AdminUserDetailComponent {
 
   protected confirm(dialog: HTMLDialogElement, action: Action): void {
     this.pending.set(action);
+    this.reason = '';
+    this.amount = null;
+    this.level = this.levels.find((level) => level === this.user()?.cefrLevel) ?? 'A1';
+    if (action === 'xp') this.xpRequestId = crypto.randomUUID();
     dialog.showModal();
     dialog.querySelector<HTMLButtonElement>('[data-cancel]')?.focus();
   }
 
   protected act(dialog: HTMLDialogElement, user: Schemas['AdminAccountDetail']): void {
     const action = this.pending();
-    if (!action || this.busy()) return;
+    if (!action || this.busy() || !this.valid(action)) return;
     this.busy.set(true);
     this.error.set('');
     this.notice.set('');
-    const operation = action === 'logout'
-      ? this.api.forceLogout(user.id)
-      : this.api.updateAccount(user.id, action === 'role'
-        ? { role: user.role === 'ADMIN' ? 'LEARNER' : 'ADMIN' }
-        : { isActive: !user.isActive });
+    const operation = this.accountAction(action, user);
     operation.subscribe({
       next: () => {
         dialog.close();
         this.busy.set(false);
-        this.notice.set(action === 'logout' ? 'Đã thu hồi các phiên đăng nhập.' : 'Đã cập nhật tài khoản.');
+        const messages = { logout: 'Đã thu hồi các phiên đăng nhập.', reset: 'Đã yêu cầu gửi email đặt lại mật khẩu.',
+          role: 'Đã cập nhật vai trò.', active: 'Đã cập nhật trạng thái.', level: 'Đã cập nhật CEFR.', xp: 'Đã ghi điều chỉnh vào sổ cái XP.' };
+        this.notice.set(messages[action]);
         this.load();
       },
-      error: () => {
-        dialog.close();
+      error: (error) => {
         this.busy.set(false);
-        this.error.set('Không thể thực hiện thao tác trên tài khoản.');
+        this.error.set(error?.error?.code === 'XP_BALANCE_OUT_OF_RANGE'
+          ? 'Số dư XP sau điều chỉnh nằm ngoài giới hạn.'
+          : 'Không thể thực hiện thao tác trên tài khoản.');
       },
     });
+  }
+  protected valid(action: Action | null): boolean {
+    if (action === 'level') return this.reason.trim().length >= 3;
+    if (action === 'xp') return this.reason.trim().length >= 3 && this.amount !== null
+      && Number.isInteger(this.amount) && this.amount !== 0 && Math.abs(this.amount) <= 100000;
+    return action !== null;
+  }
+
+  private accountAction(action: Action, user: Schemas['AdminAccountDetail']) {
+    switch (action) {
+      case 'logout': return this.api.forceLogout(user.id);
+      case 'reset': return this.api.sendPasswordReset(user.id);
+      case 'level': return this.api.adjustLevel(user.id, { level: this.level, reason: this.reason });
+      case 'xp': return this.api.adjustXp(user.id, { requestId: this.xpRequestId, amount: this.amount ?? 0, reason: this.reason });
+      case 'role': return this.api.updateAccount(user.id, { role: user.role === 'ADMIN' ? 'LEARNER' : 'ADMIN' });
+      case 'active': return this.api.updateAccount(user.id, { isActive: !user.isActive });
+    }
   }
 }

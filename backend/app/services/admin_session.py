@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.admin_cursor import encode_cursor
 from app.models.admin_session_schemas import (
     AdminQaLabels,
+    AdminQaNote,
     AdminRoleplayRequirement,
     AdminRoleplayResult,
     AdminSessionDetail,
@@ -16,6 +17,7 @@ from app.models.admin_session_schemas import (
     AdminTranscriptPage,
 )
 from app.models.scoring import SessionFeedback
+from app.models.scoring_schemas import SessionFeedbackResponse
 from app.models.session import Session, TranscriptSegment
 from app.repositories.admin_session import AdminSessionRepository
 from app.repositories.session import SessionRepository
@@ -130,7 +132,65 @@ class AdminSessionService:
             end_reason=row[0].end_reason,
             feedback=score,
             roleplay=roleplay,
+            qa_note=row[0].qa_note,
+            qa_preview=(
+                SessionFeedbackResponse.model_validate(row[0].qa_preview["feedback"])
+                if row[0].qa_preview
+                else None
+            ),
         )
+
+    async def update_note(self, session_id: uuid.UUID, body: AdminQaNote) -> AdminQaNote:
+        session = await self.session_repo.lock(session_id)
+        if session is None:
+            raise not_found()
+        note = body.note or None
+        if session.qa_note != note:
+            self.audit.record(
+                "SESSION_QA_NOTE_UPDATED",
+                "SESSION",
+                session_id,
+                {"hasNote": bool(session.qa_note)},
+                {"hasNote": bool(note)},
+            )
+            session.qa_note = note
+            await self.db.commit()
+        return AdminQaNote(note=note)
+
+    async def reevaluate(
+        self, session_id: uuid.UUID, request_id: uuid.UUID
+    ) -> SessionFeedbackResponse:
+        session = await self.session_repo.lock(session_id)
+        if session is None:
+            raise not_found()
+        if session.ended_at is None:
+            raise HTTPException(
+                409,
+                detail={
+                    "code": "SESSION_NOT_ENDED",
+                    "message": "Only ended sessions can be re-evaluated.",
+                },
+            )
+        previous = session.qa_preview
+        if previous is not None and previous.get("requestId") == str(request_id):
+            return SessionFeedbackResponse.model_validate(previous["feedback"])
+        result = await ScoringService(self.db).generate_feedback(session_id, preview=True)
+        session.qa_preview = {
+            "requestId": str(request_id),
+            "feedback": result.model_dump(mode="json", by_alias=True),
+        }
+        self.audit.record(
+            "SESSION_QA_REEVALUATED",
+            "SESSION",
+            session_id,
+            after={
+                "status": result.status,
+                "formulaVersion": result.formula_version,
+                "overallScore": result.overall_score,
+            },
+        )
+        await self.db.commit()
+        return result
 
     async def transcript(
         self, session_id: uuid.UUID, cursor: uuid.UUID | None, limit: int

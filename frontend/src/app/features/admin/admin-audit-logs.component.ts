@@ -18,7 +18,7 @@ export class AdminAuditLogsComponent {
   protected readonly error = signal('');
   protected readonly targets: Record<string, string> = {
     ACCOUNT: 'Tài khoản', SCENARIO: 'Bài học', COACH_TOPIC: 'Chủ đề AI Coach',
-    SESSION: 'Phiên học', XP_RULE: 'Quy tắc XP', MISSION: 'Nhiệm vụ',
+    SESSION: 'Phiên học', XP_RULE: 'Quy tắc XP', MISSION: 'Nhiệm vụ', BADGE: 'Huy hiệu',
   };
   protected readonly targetKeys = Object.keys(this.targets);
   protected filters = { fromDate: '', toDate: '', traceId: '', targetType: '', action: '' };

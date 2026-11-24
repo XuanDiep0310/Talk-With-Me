@@ -294,6 +294,8 @@ test('admin inspects a session and revokes the learner login', async ({ page, re
   const created = await request.post(api + '/coach/sessions', { headers: learner.headers, data: {} });
   expect(created.status()).toBe(201);
   const session = await created.json();
+  const ended = await request.post(api + '/coach/sessions/' + session.id + '/end', { headers: learner.headers, data: {} });
+  expect(ended.status()).toBe(200);
 
   await prepareBrowser(page);
   await page.goto('/admin/sessions/' + session.id);
@@ -303,7 +305,23 @@ test('admin inspects a session and revokes the learner login', async ({ page, re
   await page.getByLabel('Lỗi chấm điểm').check();
   await page.getByRole('button', { name: 'Lưu nhãn QA' }).click();
   await expect(page.getByRole('status')).toContainText('Đã lưu nhãn QA');
+  await page.getByLabel('Ghi chú QA nội bộ').fill('Kiểm tra luồng phiên đã kết thúc');
+  await page.getByRole('button', { name: 'Lưu ghi chú' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu ghi chú QA');
+  await page.getByRole('button', { name: 'Chấm lại nội bộ' }).click();
+  await expect(page.getByRole('heading', { name: 'Kết quả chấm lại nội bộ' })).toBeVisible();
   await page.goto('/admin/users/' + learner.id);
+  await page.getByRole('button', { name: 'Điều chỉnh CEFR' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Trình độ mới').selectOption('B1');
+  await dialog.getByLabel('Lý do').fill('Kiểm tra sau đánh giá lại');
+  await dialog.getByRole('button', { name: 'Xác nhận' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã cập nhật CEFR');
+  await page.getByRole('button', { name: 'Cộng / trừ XP' }).click();
+  await dialog.getByLabel('Số XP điều chỉnh').fill('25');
+  await dialog.getByLabel('Lý do').fill('Bù XP cho học viên');
+  await dialog.getByRole('button', { name: 'Xác nhận' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã ghi điều chỉnh vào sổ cái XP');
   await page.getByRole('button', { name: 'Thu hồi phiên đăng nhập' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
   await expect(page.getByRole('status')).toContainText('Đã thu hồi các phiên đăng nhập');
@@ -343,4 +361,37 @@ test('admin refreshes analytics and searches the audit log', async ({ page, requ
   await expect(event).toContainText('COACH_TOPIC_CREATED');
   await event.getByText('Xem thay đổi', { exact: true }).click();
   await expect(event.getByText(/Practice cafes/)).toBeVisible();
+});
+
+test('admin creates a daily mission and a configurable badge', async ({ page, request }) => {
+  test.skip(process.env.RUN_ADMIN_E2E !== 'true', 'Requires an isolated DB and the admin CLI');
+  test.setTimeout(60_000);
+  const admin = await register(request, 'catalog-admin');
+  execFileSync(process.env.PLAYWRIGHT_PYTHON ?? 'python', ['-m', 'scripts.admin_role', 'grant', admin.id], {
+    cwd: resolve('backend'), env: process.env,
+  });
+  const key = randomUUID().replaceAll('-', '').slice(0, 10);
+  await prepareBrowser(page);
+  await page.goto('/admin/gamification');
+  await logIn(page, admin.email);
+  await page.getByRole('button', { name: 'Nhiệm vụ', exact: true }).click();
+  await page.getByRole('button', { name: 'Tạo nhiệm vụ', exact: true }).click();
+  const missionForm = page.locator('form').filter({ has: page.getByLabel('Mã nhiệm vụ', { exact: true }) });
+  await missionForm.getByLabel('Mã nhiệm vụ').fill('event_' + key);
+  await missionForm.getByLabel('Tên nhiệm vụ').fill('Luyện cùng AI Coach');
+  await missionForm.getByRole('button', { name: 'Lưu nhiệm vụ mới' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã tạo nhiệm vụ');
+  await page.getByRole('button', { name: 'Huy hiệu', exact: true }).click();
+  await page.getByRole('button', { name: 'Tạo huy hiệu' }).click();
+  await page.getByLabel('Mã huy hiệu').fill('badge_' + key);
+  await page.getByLabel('Tên huy hiệu').fill('Huy hiệu ' + key);
+  await page.getByLabel('Emoji').fill('★');
+  await page.getByLabel('Mô tả').fill('Luyện nói trong sự kiện');
+  await page.getByRole('button', { name: 'Lưu huy hiệu' }).click();
+  const row = page.getByRole('row').filter({ hasText: 'Huy hiệu ' + key });
+  await expect(row).toContainText('Đã tắt');
+  await row.getByRole('button', { name: 'Sửa huy hiệu' }).click();
+  await page.getByLabel('Cho phép mở khóa').check();
+  await page.getByRole('button', { name: 'Lưu huy hiệu' }).click();
+  await expect(row).toContainText('Đang mở khóa');
 });

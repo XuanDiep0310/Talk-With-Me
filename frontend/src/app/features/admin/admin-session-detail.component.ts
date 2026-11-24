@@ -1,6 +1,7 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { exhaustMap, take, takeWhile, timer } from 'rxjs';
 import type { components } from '../../core/api/openapi';
@@ -12,7 +13,7 @@ type Label = Schemas['AdminQaLabels']['labels'][number];
 
 @Component({
   selector: 'app-admin-session-detail',
-  imports: [DatePipe, DecimalPipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, RouterLink, FormsModule],
   styleUrl: './admin.scss',
   templateUrl: './admin-session-detail.component.html',
 })
@@ -41,13 +42,17 @@ export class AdminSessionDetailComponent {
   protected readonly loadingTranscript = signal(false);
   protected readonly updating = signal(false);
   protected readonly retrying = signal(false);
+  protected readonly savingNote = signal(false);
+  protected readonly previewing = signal(false);
+  protected qaNote = '';
+  private previewRequestId: string | null = null;
 
   constructor() { this.load(); }
 
   protected load(): void {
     this.error.set('');
     this.api.session(this.id).pipe(takeUntilDestroyed(this.destroy)).subscribe({
-      next: (item) => { this.detail.set(item); this.labels.set(item.qaLabels); },
+      next: (item) => { this.detail.set(item); this.labels.set(item.qaLabels); this.qaNote = item.qaNote ?? ''; },
       error: () => this.error.set('Không thể tải chi tiết phiên học.'),
     });
   }
@@ -104,6 +109,34 @@ export class AdminSessionDetailComponent {
         });
       },
       error: () => { this.retrying.set(false); this.error.set('Chưa thể yêu cầu chấm điểm lại.'); },
+    });
+  }
+
+  protected saveNote(): void {
+    this.savingNote.set(true);
+    this.error.set('');
+    this.api.saveQaNote(this.id, this.qaNote.trim() || null).pipe(takeUntilDestroyed(this.destroy)).subscribe({
+      next: ({ note }) => {
+        this.qaNote = note ?? '';
+        this.savingNote.set(false);
+        this.notice.set('Đã lưu ghi chú QA.');
+      },
+      error: () => { this.savingNote.set(false); this.error.set('Không thể lưu ghi chú QA.'); },
+    });
+  }
+
+  protected reevaluate(): void {
+    this.previewing.set(true);
+    this.error.set('');
+    this.previewRequestId ??= crypto.randomUUID();
+    this.api.reevaluateSession(this.id, this.previewRequestId).pipe(takeUntilDestroyed(this.destroy)).subscribe({
+      next: (qaPreview) => {
+        this.detail.update((item) => item ? { ...item, qaPreview } : item);
+        this.previewRequestId = null;
+        this.previewing.set(false);
+        this.notice.set('Đã lưu kết quả chấm lại nội bộ.');
+      },
+      error: () => { this.previewing.set(false); this.error.set('Không thể chấm lại nội bộ.'); },
     });
   }
 

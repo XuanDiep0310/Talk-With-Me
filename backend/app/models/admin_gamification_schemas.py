@@ -1,10 +1,22 @@
 import uuid
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
+from app.models.admin_scenario_schemas import CefrLevel
 from app.models.scenario_schemas import BaseScenarioSchema
+
+Key = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{0,49}$")]
+MissionCondition = Literal["COACH_SESSION", "SCENARIO_LESSON", "STREAK"]
+BadgeCondition = Literal[
+    "SESSIONS_COUNT",
+    "STREAK_DAYS",
+    "SCENARIOS_COMPLETED",
+    "FLUENCY_SCORE",
+    "SPEED_SCORE",
+    "CEFR_LEVEL",
+]
 
 Amount = Annotated[int, Field(ge=0, le=100_000)]
 Target = Annotated[int, Field(ge=1, le=100_000)]
@@ -59,6 +71,55 @@ class AdminMissionUpdate(BaseScenarioSchema):
         return self
 
 
+class AdminMissionCreate(BaseScenarioSchema):
+    key: Key
+    title: Title
+    xp_reward: Amount | None = None
+    condition_type: MissionCondition
+    target_count: Target = 1
+    is_active: bool = False
+
+
+class AdminBadgeInput(BaseScenarioSchema):
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+    description: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)
+    ]
+    icon_emoji: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10)
+    ]
+    criteria_type: BadgeCondition
+    target_value: Target = 1
+    min_level: CefrLevel | None = None
+    is_active: bool = False
+
+    @model_validator(mode="after")
+    def validate_criteria(self) -> "AdminBadgeInput":
+        if self.criteria_type == "CEFR_LEVEL" and (
+            self.min_level is None or self.target_value != 1
+        ):
+            raise ValueError("A CEFR badge needs a minimum level and target 1.")
+        if self.criteria_type != "CEFR_LEVEL" and self.min_level is not None:
+            raise ValueError("Minimum level is only valid for CEFR badges.")
+        if self.criteria_type in {"FLUENCY_SCORE", "SPEED_SCORE"} and self.target_value > 100:
+            raise ValueError("Score targets must be at most 100.")
+        return self
+
+
+class AdminBadgeUpdate(BaseScenarioSchema):
+    name: str | None = None
+    description: str | None = None
+    icon_emoji: str | None = None
+    criteria_type: BadgeCondition | None = None
+    target_value: Target | None = None
+    min_level: CefrLevel | None = None
+    is_active: bool | None = None
+
+
+class AdminBadgeCreate(AdminBadgeInput):
+    key: Key
+
+
 class AdminBadge(BaseScenarioSchema):
     key: str
     name: str
@@ -66,6 +127,8 @@ class AdminBadge(BaseScenarioSchema):
     icon_emoji: str
     criteria_type: str
     target_value: int
+    min_level: str | None = None
+    is_active: bool
 
 
 class AdminXpTransaction(BaseScenarioSchema):

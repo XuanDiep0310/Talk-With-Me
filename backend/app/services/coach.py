@@ -152,9 +152,7 @@ class CoachService:
                 )
         else:
             # Default to first active topic
-            topics = await self.topic_repo.list_topics(active_only=True)
-            if topics:
-                topic = topics[0]
+            topic = await self.topic_repo.first_active_locked()
 
         now = self.clock.now()
 

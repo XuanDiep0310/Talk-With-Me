@@ -4,17 +4,20 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, require_admin
+from app.api.deps import get_auth_service, get_db, require_admin
 from app.models.admin_account_schemas import (
     AdminAccountDetail,
     AdminAccountPage,
     AdminAccountUpdate,
+    AdminLevelAdjustment,
     AdminOverview,
     AdminPlacementPage,
+    AdminXpAdjustment,
 )
 from app.models.admin_scenario_schemas import ADMIN_ACCESS_RESPONSES, AdminScenarioError, SearchText
 from app.models.auth import User
 from app.services.admin_account import AdminAccountService
+from app.services.auth import AuthService
 
 router = APIRouter(prefix="/admin", tags=["Admin Accounts"], responses=ADMIN_ACCESS_RESPONSES)
 
@@ -74,3 +77,34 @@ async def placements(
 @router.post("/users/{id}/force-logout", status_code=204)
 async def force_logout(id: uuid.UUID, accounts: Accounts) -> None:
     await accounts.force_logout(id)
+
+
+@router.patch(
+    "/users/{id}/level",
+    status_code=204,
+    responses={
+        409: {"model": AdminScenarioError, "description": "Learning profile is unavailable"}
+    },
+)
+async def adjust_level(id: uuid.UUID, body: AdminLevelAdjustment, accounts: Accounts) -> None:
+    await accounts.adjust_level(id, body)
+
+
+@router.post(
+    "/users/{id}/xp-adjustments",
+    status_code=204,
+    responses={409: {"model": AdminScenarioError, "description": "XP adjustment conflict"}},
+)
+async def adjust_xp(id: uuid.UUID, body: AdminXpAdjustment, accounts: Accounts) -> None:
+    await accounts.adjust_xp(id, body)
+
+
+@router.post(
+    "/users/{id}/password-reset",
+    status_code=204,
+    responses={409: {"model": AdminScenarioError, "description": "Password reset is unavailable"}},
+)
+async def send_password_reset(
+    id: uuid.UUID, accounts: Accounts, auth: Annotated[AuthService, Depends(get_auth_service)]
+) -> None:
+    await accounts.send_reset(id, auth)

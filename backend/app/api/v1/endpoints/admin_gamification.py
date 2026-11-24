@@ -6,14 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_admin
 from app.models.admin_gamification_schemas import (
     AdminBadge,
+    AdminBadgeCreate,
+    AdminBadgeUpdate,
     AdminMission,
+    AdminMissionCreate,
     AdminMissionUpdate,
     AdminXpFilters,
     AdminXpPage,
     AdminXpRule,
     AdminXpRuleUpdate,
 )
-from app.models.admin_scenario_schemas import ADMIN_ACCESS_RESPONSES
+from app.models.admin_scenario_schemas import ADMIN_ACCESS_RESPONSES, AdminScenarioError
 from app.models.auth import User
 from app.services.admin_audit import AdminAudit
 from app.services.admin_gamification import AdminGamificationService
@@ -62,3 +65,26 @@ async def transactions(
     service: Gamification, filters: Annotated[AdminXpFilters, Query()]
 ) -> AdminXpPage:
     return await service.transactions(filters)
+
+
+@router.post(
+    "/missions",
+    status_code=201,
+    responses={409: {"model": AdminScenarioError, "description": "Mission key already exists"}},
+)
+async def create_mission(body: AdminMissionCreate, service: Gamification) -> AdminMission:
+    return await service.create_mission(body)
+
+
+@router.post(
+    "/badges",
+    status_code=201,
+    responses={409: {"model": AdminScenarioError, "description": "Badge key already exists"}},
+)
+async def create_badge(body: AdminBadgeCreate, service: Gamification) -> AdminBadge:
+    return await service.create_badge(body)
+
+
+@router.patch("/badges/{key}")
+async def update_badge(key: str, body: AdminBadgeUpdate, service: Gamification) -> AdminBadge:
+    return await service.update_badge(key, body)

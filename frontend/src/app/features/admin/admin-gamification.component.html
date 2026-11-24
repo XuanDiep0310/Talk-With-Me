@@ -24,6 +24,27 @@
     }
   }
   @case ('missions') {
+    <div class="section-heading"><h2>Nhiệm vụ hằng ngày</h2>
+      <button class="action primary" type="button" [disabled]="busy()" (click)="newMission()">Tạo nhiệm vụ</button>
+    </div>
+    @if (missionDraft; as draft) {
+      <form class="panel" #createForm="ngForm" (ngSubmit)="createMission(draft)">
+        <div class="form-grid">
+          <label>Mã nhiệm vụ <input name="key" [(ngModel)]="draft.key" pattern="[a-z][a-z0-9_]{0,49}" required></label>
+          <label>Tên nhiệm vụ <input name="title" [(ngModel)]="draft.title" maxlength="255" required></label>
+          <label>Điều kiện <select name="condition" [(ngModel)]="draft.conditionType">
+            @for (kind of missionTypes; track kind.value) { <option [value]="kind.value">{{ kind.label }}</option> }
+          </select></label>
+          <label>Chỉ tiêu <input type="number" name="target" [(ngModel)]="draft.targetCount" min="1" max="100000" [disabled]="draft.conditionType === 'STREAK'" required></label>
+          <label>XP riêng <input type="number" name="reward" [(ngModel)]="draft.xpReward" min="0" max="100000" placeholder="Dùng mức mặc định"></label>
+          <label class="checkbox"><input type="checkbox" name="active" [(ngModel)]="draft.isActive">Cấp cho học viên</label>
+        </div>
+        <div class="actions mt-3">
+          <button class="action primary" [disabled]="busy() || createForm.invalid">Lưu nhiệm vụ mới</button>
+          <button class="action" type="button" [disabled]="busy()" (click)="missionDraft = null">Hủy</button>
+        </div>
+      </form>
+    }
     @for (mission of missions(); track mission.key) {
       <form class="panel" #missionForm="ngForm" (ngSubmit)="saveMission(mission)">
         <h2>{{ mission.key }}</h2>
@@ -39,13 +60,45 @@
     }
   }
   @case ('badges') {
+    <div class="section-heading"><h2>Huy hiệu</h2>
+      <button class="action primary" type="button" [disabled]="busy()" (click)="openBadge()">Tạo huy hiệu</button>
+    </div>
+    @if (badgeDraft; as draft) {
+      <form class="panel" #badgeForm="ngForm" (ngSubmit)="saveBadge(draft)">
+        <div class="form-grid">
+          <label>Mã huy hiệu <input name="key" [(ngModel)]="draft.key" pattern="[a-z][a-z0-9_]{0,49}" [readonly]="editingBadge" required></label>
+          <label>Tên huy hiệu <input name="name" [(ngModel)]="draft.name" maxlength="100" required></label>
+          <label>Emoji <input name="emoji" [(ngModel)]="draft.iconEmoji" maxlength="10" required></label>
+          <label>Mô tả <textarea name="description" [(ngModel)]="draft.description" maxlength="1000" required></textarea></label>
+          <label>Điều kiện <select name="criteria" [(ngModel)]="draft.criteriaType">
+            @for (kind of badgeTypes; track kind.value) { <option [value]="kind.value">{{ kind.label }}</option> }
+          </select></label>
+          @if (draft.criteriaType === 'CEFR_LEVEL') {
+            <label>CEFR tối thiểu <select name="level" [(ngModel)]="draft.minLevel" required>
+              <option [ngValue]="null">Chọn trình độ</option>
+              @for (level of levels; track level) { <option [value]="level">{{ level }}</option> }
+            </select></label>
+          } @else {
+            <label>Chỉ tiêu <input type="number" name="target" [(ngModel)]="draft.targetValue" min="1"
+              [max]="draft.criteriaType === 'FLUENCY_SCORE' || draft.criteriaType === 'SPEED_SCORE' ? 100 : 100000" required></label>
+          }
+          <label class="checkbox"><input type="checkbox" name="active" [(ngModel)]="draft.isActive">Cho phép mở khóa</label>
+        </div>
+        <div class="actions mt-3">
+          <button class="action primary" [disabled]="busy() || badgeForm.invalid">Lưu huy hiệu</button>
+          <button class="action" type="button" [disabled]="busy()" (click)="badgeDraft = null">Hủy</button>
+        </div>
+      </form>
+    }
     <div class="panel results table-wrap">
       <table>
-        <thead><tr><th scope="col">Huy hiệu</th><th scope="col">Mô tả</th><th scope="col">Điều kiện</th></tr></thead>
+        <thead><tr><th scope="col">Huy hiệu</th><th scope="col">Mô tả</th><th scope="col">Điều kiện</th><th scope="col">Thao tác</th></tr></thead>
         <tbody>
           @for (badge of badges(); track badge.key) {
-            <tr><td><span aria-hidden="true">{{ badge.iconEmoji }}</span> {{ badge.name }}</td><td>{{ badge.description }}</td><td>{{ badge.criteriaType }} · {{ badge.targetValue }}</td></tr>
-          } @empty { <tr><td colspan="3">Chưa có huy hiệu.</td></tr> }
+            <tr><td><span aria-hidden="true">{{ badge.iconEmoji }}</span> {{ badge.name }}</td><td>{{ badge.description }}</td><td>{{ badge.criteriaType }} · {{ badge.minLevel || badge.targetValue }}</td>
+              <td><span class="secondary">{{ badge.isActive ? 'Đang mở khóa' : 'Đã tắt' }}</span>
+                <button class="action" type="button" [disabled]="busy()" (click)="openBadge(badge)">Sửa huy hiệu</button></td></tr>
+          } @empty { <tr><td colspan="4">Chưa có huy hiệu.</td></tr> }
         </tbody>
       </table>
     </div>

@@ -4121,6 +4121,239 @@
         }
       }
     },
+    "/api/v1/admin/users/{id}/level": {
+      "patch": {
+        "tags": [
+          "Admin Accounts"
+        ],
+        "summary": "Adjust Level",
+        "operationId": "adjust_level_api_v1_admin_users__id__level_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminLevelAdjustment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Learning profile is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/xp-adjustments": {
+      "post": {
+        "tags": [
+          "Admin Accounts"
+        ],
+        "summary": "Adjust Xp",
+        "operationId": "adjust_xp_api_v1_admin_users__id__xp_adjustments_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminXpAdjustment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "XP adjustment conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/password-reset": {
+      "post": {
+        "tags": [
+          "Admin Accounts"
+        ],
+        "summary": "Send Password Reset",
+        "operationId": "send_password_reset_api_v1_admin_users__id__password_reset_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Password reset is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/coach-topics": {
       "get": {
         "tags": [
@@ -4462,6 +4695,146 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "Admin Coach Topics"
+        ],
+        "summary": "Delete Topic",
+        "operationId": "delete_topic_api_v1_admin_coach_topics__id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Topic is linked to a session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/coach-topics/{id}/move": {
+      "post": {
+        "tags": [
+          "Admin Coach Topics"
+        ],
+        "summary": "Move Topic",
+        "operationId": "move_topic_api_v1_admin_coach_topics__id__move_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminTopicMove"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/gamification/xp-rules": {
@@ -4659,6 +5032,80 @@
             "HTTPBearer": []
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "Admin Gamification"
+        ],
+        "summary": "Create Mission",
+        "operationId": "create_mission_api_v1_admin_gamification_missions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminMissionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMission"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Mission key already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/admin/gamification/missions/{key}": {
@@ -4782,6 +5229,80 @@
           },
           "422": {
             "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Admin Gamification"
+        ],
+        "summary": "Create Badge",
+        "operationId": "create_badge_api_v1_admin_gamification_badges_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminBadgeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBadge"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Badge key already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -4933,6 +5454,83 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AdminXpPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/gamification/badges/{key}": {
+      "patch": {
+        "tags": [
+          "Admin Gamification"
+        ],
+        "summary": "Update Badge",
+        "operationId": "update_badge_api_v1_admin_gamification_badges__key__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminBadgeUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBadge"
                 }
               }
             }
@@ -5519,6 +6117,172 @@
           },
           "422": {
             "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/sessions/{id}/qa-note": {
+      "patch": {
+        "tags": [
+          "Admin Sessions"
+        ],
+        "summary": "Update Note",
+        "operationId": "update_note_api_v1_admin_sessions__id__qa_note_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminQaNote"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminQaNote"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/sessions/{id}/reevaluate": {
+      "post": {
+        "tags": [
+          "Admin Sessions"
+        ],
+        "summary": "Reevaluate",
+        "operationId": "reevaluate_api_v1_admin_sessions__id__reevaluate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminScorePreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionFeedbackResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Session has not ended",
             "content": {
               "application/json": {
                 "schema": {
@@ -6363,6 +7127,21 @@
           "targetValue": {
             "type": "integer",
             "title": "Targetvalue"
+          },
+          "minLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minlevel"
+          },
+          "isActive": {
+            "type": "boolean",
+            "title": "Isactive"
           }
         },
         "type": "object",
@@ -6372,9 +7151,188 @@
           "description",
           "iconEmoji",
           "criteriaType",
-          "targetValue"
+          "targetValue",
+          "isActive"
         ],
         "title": "AdminBadge"
+      },
+      "AdminBadgeCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Description"
+          },
+          "iconEmoji": {
+            "type": "string",
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Iconemoji"
+          },
+          "criteriaType": {
+            "type": "string",
+            "enum": [
+              "SESSIONS_COUNT",
+              "STREAK_DAYS",
+              "SCENARIOS_COMPLETED",
+              "FLUENCY_SCORE",
+              "SPEED_SCORE",
+              "CEFR_LEVEL"
+            ],
+            "title": "Criteriatype"
+          },
+          "targetValue": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Targetvalue",
+            "default": 1
+          },
+          "minLevel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "A1",
+                  "A2",
+                  "B1",
+                  "B2",
+                  "C1"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minlevel"
+          },
+          "isActive": {
+            "type": "boolean",
+            "title": "Isactive",
+            "default": false
+          },
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,49}$",
+            "title": "Key"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "iconEmoji",
+          "criteriaType",
+          "key"
+        ],
+        "title": "AdminBadgeCreate"
+      },
+      "AdminBadgeUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "iconEmoji": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iconemoji"
+          },
+          "criteriaType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "SESSIONS_COUNT",
+                  "STREAK_DAYS",
+                  "SCENARIOS_COMPLETED",
+                  "FLUENCY_SCORE",
+                  "SPEED_SCORE",
+                  "CEFR_LEVEL"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Criteriatype"
+          },
+          "targetValue": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetvalue"
+          },
+          "minLevel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "A1",
+                  "A2",
+                  "B1",
+                  "B2",
+                  "C1"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minlevel"
+          },
+          "isActive": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isactive"
+          }
+        },
+        "type": "object",
+        "title": "AdminBadgeUpdate"
       },
       "AdminChunkDetail": {
         "properties": {
@@ -6822,6 +7780,33 @@
         ],
         "title": "AdminEarnedBadge"
       },
+      "AdminLevelAdjustment": {
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "A1",
+              "A2",
+              "B1",
+              "B2",
+              "C1"
+            ],
+            "title": "Level"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "reason"
+        ],
+        "title": "AdminLevelAdjustment"
+      },
       "AdminMission": {
         "properties": {
           "key": {
@@ -6866,6 +7851,62 @@
           "isActive"
         ],
         "title": "AdminMission"
+      },
+      "AdminMissionCreate": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,49}$",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "xpReward": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Xpreward"
+          },
+          "conditionType": {
+            "type": "string",
+            "enum": [
+              "COACH_SESSION",
+              "SCENARIO_LESSON",
+              "STREAK"
+            ],
+            "title": "Conditiontype"
+          },
+          "targetCount": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Targetcount",
+            "default": 1
+          },
+          "isActive": {
+            "type": "boolean",
+            "title": "Isactive",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "conditionType"
+        ],
+        "title": "AdminMissionCreate"
       },
       "AdminMissionUpdate": {
         "properties": {
@@ -7075,6 +8116,27 @@
           "labels"
         ],
         "title": "AdminQaLabels"
+      },
+      "AdminQaNote": {
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "title": "AdminQaNote"
       },
       "AdminRequirementDetail": {
         "properties": {
@@ -7737,6 +8799,20 @@
         ],
         "title": "AdminScenarioUpdate"
       },
+      "AdminScorePreviewRequest": {
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Requestid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requestId"
+        ],
+        "title": "AdminScorePreviewRequest"
+      },
       "AdminSessionDetail": {
         "properties": {
           "id": {
@@ -7889,6 +8965,27 @@
                 "type": "null"
               }
             ]
+          },
+          "qaNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qanote"
+          },
+          "qaPreview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionFeedbackResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -7911,7 +9008,9 @@
           "turnCount",
           "endReason",
           "feedback",
-          "roleplay"
+          "roleplay",
+          "qaNote",
+          "qaPreview"
         ],
         "title": "AdminSessionDetail"
       },
@@ -8102,6 +9201,23 @@
         ],
         "title": "AdminSkillAverage"
       },
+      "AdminTopicMove": {
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Direction"
+          }
+        },
+        "type": "object",
+        "required": [
+          "direction"
+        ],
+        "title": "AdminTopicMove"
+      },
       "AdminTranscriptItem": {
         "properties": {
           "pk": {
@@ -8267,6 +9383,34 @@
           "items"
         ],
         "title": "AdminTranscriptPage"
+      },
+      "AdminXpAdjustment": {
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Requestid"
+          },
+          "amount": {
+            "type": "integer",
+            "maximum": 100000.0,
+            "minimum": -100000.0,
+            "title": "Amount"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 3,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requestId",
+          "amount",
+          "reason"
+        ],
+        "title": "AdminXpAdjustment"
       },
       "AdminXpPage": {
         "properties": {

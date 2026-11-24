@@ -1,8 +1,10 @@
 import uuid
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import AwareDatetime, model_validator
+from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
+from app.models.admin_scenario_schemas import CefrLevel
 from app.models.auth import UserRole
 from app.models.scenario import ScenarioStatus
 from app.models.scenario_schemas import BaseScenarioSchema
@@ -88,3 +90,25 @@ class AdminAccountDetail(AdminAccountSummary):
     badges: list[AdminEarnedBadge]
     missions_issued: int
     missions_completed: int
+
+
+AdjustmentReason = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=3, max_length=255)
+]
+
+
+class AdminLevelAdjustment(BaseScenarioSchema):
+    level: CefrLevel
+    reason: AdjustmentReason
+
+
+class AdminXpAdjustment(BaseScenarioSchema):
+    request_id: uuid.UUID
+    amount: Annotated[int, Field(ge=-100_000, le=100_000)]
+    reason: AdjustmentReason
+
+    @model_validator(mode="after")
+    def validate_amount(self) -> "AdminXpAdjustment":
+        if self.amount == 0:
+            raise ValueError("An adjustment must change XP.")
+        return self

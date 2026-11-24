@@ -52,6 +52,8 @@ class CoachTopic(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     sessions: Mapped[list[Session]] = relationship(back_populates="topic")
 
     def context(self) -> dict[str, object]:
@@ -105,6 +107,10 @@ class Session(Base, TimestampMixin):
     spoken_seconds: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     # USER_REQUESTED, TIMEOUT, DISCONNECTED, ERROR
     speech_features_version: Mapped[int | None] = mapped_column(Integer)
+    qa_note: Mapped[str | None] = mapped_column(Text)
+    qa_preview: Mapped[dict[str, object] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql")
+    )
     qa_labels: Mapped[list[str]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"), default=list, server_default="[]", nullable=False
     )

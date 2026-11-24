@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import AwareDatetime, Field, model_validator
+from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
 from app.models.scenario_schemas import BaseScenarioSchema
 from app.models.scoring_schemas import SessionFeedbackResponse
@@ -76,12 +76,22 @@ class AdminRoleplayResult(BaseScenarioSchema):
     requirements: list[AdminRoleplayRequirement]
 
 
+class AdminQaNote(BaseScenarioSchema):
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=4000)] | None
+
+
+class AdminScorePreviewRequest(BaseScenarioSchema):
+    request_id: uuid.UUID
+
+
 class AdminSessionDetail(AdminSessionSummary):
     spoken_seconds: float | None
     turn_count: int
     end_reason: str | None
     feedback: SessionFeedbackResponse | None
     roleplay: AdminRoleplayResult | None
+    qa_note: str | None
+    qa_preview: SessionFeedbackResponse | None
 
 
 class AdminTranscriptItem(BaseScenarioSchema):

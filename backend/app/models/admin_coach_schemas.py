@@ -53,3 +53,7 @@ class AdminCoachTopic(AdminCoachTopicInput):
 
 class GenerateCoachTopic(BaseScenarioSchema):
     idea: Description
+
+
+class AdminTopicMove(BaseScenarioSchema):
+    direction: Literal["up", "down"]

@@ -382,17 +382,45 @@ async def test_badge_evaluations() -> None:
     service = GamificationService(mock_db)
 
     badge_first = BadgeDefinition(
-        key="first_speaker", name="Người nói đầu tiên", target_value=1, sort_order=1
+        key="event_speaker",
+        name="Người nói đầu tiên",
+        criteria_type="SESSIONS_COUNT",
+        target_value=5,
+        sort_order=1,
+        is_active=True,
     )
     badge_streak = BadgeDefinition(
-        key="streak_7", name="Streak 7 ngày", target_value=7, sort_order=2
+        key="streak_7",
+        name="Streak 7 ngày",
+        criteria_type="STREAK_DAYS",
+        target_value=7,
+        sort_order=2,
+        is_active=True,
     )
-    badge_b1 = BadgeDefinition(key="b1_achiever", name="B1 Achiever", target_value=1, sort_order=3)
+    badge_b1 = BadgeDefinition(
+        key="b1_achiever",
+        name="B1 Achiever",
+        criteria_type="CEFR_LEVEL",
+        params={"min_level": "B1"},
+        target_value=1,
+        sort_order=3,
+        is_active=True,
+    )
     badge_fluency = BadgeDefinition(
-        key="fluency_master", name="Fluency Master", target_value=85, sort_order=4
+        key="fluency_master",
+        name="Fluency Master",
+        criteria_type="FLUENCY_SCORE",
+        target_value=90,
+        sort_order=4,
+        is_active=True,
     )
     badge_actor = BadgeDefinition(
-        key="master_actor", name="Diễn viên xuất sắc", target_value=20, sort_order=5
+        key="master_actor",
+        name="Diễn viên xuất sắc",
+        criteria_type="SCENARIOS_COMPLETED",
+        target_value=20,
+        sort_order=5,
+        is_active=True,
     )
     service._repo.list_badge_definitions = AsyncMock(
         return_value=[badge_first, badge_streak, badge_b1, badge_fluency, badge_actor]
@@ -429,9 +457,9 @@ async def test_badge_evaluations() -> None:
     awarded = await service.evaluate_badges(user_id)
     awarded_keys = [b.badge_key for b in awarded]
 
-    assert "first_speaker" in awarded_keys
+    assert "event_speaker" in awarded_keys
     assert "streak_7" in awarded_keys
     assert "b1_achiever" in awarded_keys
-    assert "fluency_master" in awarded_keys
+    assert "fluency_master" not in awarded_keys
     assert "master_actor" in awarded_keys
-    assert len(awarded) == 5
+    assert len(awarded) == 4

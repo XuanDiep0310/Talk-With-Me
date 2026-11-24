@@ -96,6 +96,38 @@ export class AdminCoachTopicsComponent {
     this.persist({ isActive: !topic.isActive }, topic.id, false);
   }
 
+  protected canMove(): boolean {
+    return Object.values(this.filters.getRawValue()).every((value) => !value);
+  }
+
+  protected move(topic: Topic, direction: 'up' | 'down'): void {
+    this.changeCatalog(this.api.moveCoachTopic(topic.id, direction));
+  }
+
+  protected remove(topic: Topic): void {
+    if (window.confirm(`Xóa chủ đề “${topic.title}” khỏi danh mục?`)) {
+      this.changeCatalog(this.api.deleteCoachTopic(topic.id));
+    }
+  }
+
+  private changeCatalog(operation: ReturnType<AdminConsoleService['deleteCoachTopic']>): void {
+    this.busy.set(true);
+    this.error.set('');
+    operation.subscribe({
+      next: () => {
+        this.busy.set(false);
+        this.notice.set('Đã cập nhật danh mục.');
+        this.load();
+      },
+      error: (error) => {
+        this.busy.set(false);
+        this.error.set(error?.error?.code === 'COACH_TOPIC_IN_USE'
+          ? 'Chủ đề đã có phiên học. Bạn có thể ẩn chủ đề khỏi danh mục.'
+          : 'Không thể cập nhật danh mục.');
+      },
+    });
+  }
+
   private persist(body: Partial<TopicInput>, id: string | undefined, close: boolean): void {
     this.busy.set(true);
     this.error.set('');

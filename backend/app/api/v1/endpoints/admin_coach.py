@@ -10,10 +10,16 @@ from app.models.admin_coach_schemas import (
     AdminCoachTopic,
     AdminCoachTopicInput,
     AdminCoachTopicUpdate,
+    AdminTopicMove,
     CoachTopicDraft,
     GenerateCoachTopic,
 )
-from app.models.admin_scenario_schemas import ADMIN_ACCESS_RESPONSES, CefrLevel, SearchText
+from app.models.admin_scenario_schemas import (
+    ADMIN_ACCESS_RESPONSES,
+    AdminScenarioError,
+    CefrLevel,
+    SearchText,
+)
 from app.models.auth import User
 from app.services.admin_audit import AdminAudit
 from app.services.admin_coach import AdminCoachService, generate_coach_topic
@@ -60,3 +66,17 @@ async def update_topic(
     id: uuid.UUID, body: AdminCoachTopicUpdate, topics: Topics
 ) -> AdminCoachTopic:
     return await topics.update(id, body)
+
+
+@router.delete(
+    "/{id}",
+    status_code=204,
+    responses={409: {"model": AdminScenarioError, "description": "Topic is linked to a session"}},
+)
+async def delete_topic(id: uuid.UUID, topics: Topics) -> None:
+    await topics.delete(id)
+
+
+@router.post("/{id}/move", status_code=204)
+async def move_topic(id: uuid.UUID, body: AdminTopicMove, topics: Topics) -> None:
+    await topics.move(id, body)

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.admin_cursor import decode_cursor, encode_cursor
 from app.models.admin_gamification_schemas import AdminXpFilters, AdminXpPage, AdminXpTransaction
 from app.models.auth import User
-from app.models.gamification import MissionDefinition, XpRule, XpTransaction
+from app.models.gamification import BadgeDefinition, MissionDefinition, XpRule, XpTransaction
 
 
 class AdminGamificationRepository:
@@ -22,6 +22,10 @@ class AdminGamificationRepository:
                 select(MissionDefinition).where(MissionDefinition.key == key).with_for_update()
             )
         ).one_or_none()
+
+    async def get_badge(self, key: str) -> BadgeDefinition | None:
+        stmt = select(BadgeDefinition).where(BadgeDefinition.key == key).with_for_update()
+        return (await self.db.scalars(stmt)).one_or_none()
 
     async def transactions(self, filters: AdminXpFilters) -> AdminXpPage:
         tx = XpTransaction
