@@ -1,0 +1,107 @@
+<div class="page-heading">
+  <h1>Chi tiết phiên học</h1>
+  <a class="action" routerLink="/admin/sessions">Danh sách phiên</a>
+</div>
+@if (error()) { <p class="panel" role="alert">{{ error() }} <button type="button" class="action" (click)="load()">Tải lại chi tiết</button></p> }
+@if (notice()) { <p class="panel" role="status">{{ notice() }}</p> }
+
+@if (detail(); as item) {
+  <section class="panel" aria-labelledby="session-title">
+    <h2 id="session-title">{{ item.title || (item.type === 'COACH' ? 'Hội thoại tự do' : 'Tình huống') }}</h2>
+    <a class="text-link" [routerLink]="['/admin/users', item.userId]">{{ item.learnerName }}</a>
+    <p class="secondary">{{ item.email }}</p>
+    <dl class="form-grid mt-4">
+      <div><dt>Trạng thái</dt><dd>{{ statuses[item.status] || item.status }}</dd></div>
+      <div><dt>Bắt đầu</dt><dd>{{ (item.startedAt | date:'dd/MM/yyyy HH:mm:ss') ?? 'N/A' }}</dd></div>
+      <div><dt>Kết thúc</dt><dd>{{ (item.endedAt | date:'dd/MM/yyyy HH:mm:ss') ?? 'N/A' }}</dd></div>
+      <div><dt>Thời lượng phiên</dt><dd>{{ item.endedAt ? ((item.durationSeconds | number:'1.0-1') + ' giây') : 'N/A' }}</dd></div>
+      <div><dt>Thời lượng nói đo được</dt><dd>{{ item.spokenSeconds == null ? 'N/A' : ((item.spokenSeconds | number:'1.0-1') + ' giây') }}</dd></div>
+      <div><dt>Lượt đối thoại</dt><dd>{{ item.turnCount }}</dd></div>
+      <div><dt>Lý do kết thúc</dt><dd>{{ item.endReason ?? 'N/A' }}</dd></div>
+      <div><dt>Trạng thái chấm</dt><dd>{{ item.feedbackStatus ? (statuses[item.feedbackStatus] || item.feedbackStatus) : 'Chưa có bản ghi' }}</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel" aria-labelledby="scoring-title">
+    <div class="section-heading">
+      <h2 id="scoring-title">Điểm và phản hồi</h2>
+      @if (item.status === 'FAILED' && item.feedback?.retryable) {
+        <button class="action" type="button" (click)="retry()" [disabled]="retrying()">Chấm điểm lại</button>
+      }
+    </div>
+    @if (item.feedback; as feedback) {
+      <p class="mb-4">Điểm tổng <strong>{{ (feedback.overallScore | number:'1.0-1') ?? 'N/A' }}</strong>
+        @if (feedback.partial) { <span class="status ml-2">Thiếu một chỉ số</span> }
+        <span class="secondary">Công thức {{ feedback.formulaVersion }}</span>
+      </p>
+      @if (feedback.errorMessage) { <p class="mb-3">{{ feedback.errorMessage }}</p> }
+      <ul class="form-grid">
+        @for (skill of feedback.skills; track skill.skillName) {
+          <li class="rounded-lg bg-slate-50 p-3">
+            <strong>{{ skills[skill.skillName] || skill.skillName }}</strong>
+            @if (skill.isReference) { <span class="status ml-2">tham khảo</span> }
+            <div>{{ (skill.score | number:'1.0-1') ?? 'N/A' }}</div>
+            @for (entry of entries(skill.components); track entry[0]) {
+              <span class="secondary">{{ components[entry[0]] }} · {{ entry[1] ?? 'N/A' }}</span>
+            }
+          </li>
+        }
+      </ul>
+      @if (feedback.strengths?.length || feedback.improvements?.length || feedback.nextPractice) {
+        <div class="form-grid mt-4">
+          <div><h3>Điểm mạnh</h3><ul class="list-disc pl-4">@for (text of feedback.strengths; track $index) { <li>{{ text }}</li> }</ul></div>
+          <div><h3>Cần cải thiện</h3><ul class="list-disc pl-4">@for (text of feedback.improvements; track $index) { <li>{{ text }}</li> }</ul></div>
+          <div><h3>Luyện tập tiếp theo</h3><p>{{ feedback.nextPractice ?? 'N/A' }}</p></div>
+        </div>
+      }
+    } @else { <p class="secondary">Phiên chưa có điểm và phản hồi.</p> }
+    @if (item.roleplay; as roleplay) {
+      <h3 class="mt-4">Yêu cầu tình huống</h3>
+      <ul>@for (requirement of roleplay.requirements; track requirement.requirementId) {
+        <li>{{ requirement.description }} · {{ requirement.status === 'PASS' ? 'Đạt' : 'Chưa đạt' }}
+          @if (requirement.isMandatory) { <span class="status">Bắt buộc</span> }
+        </li>
+      } @empty { <li>Chưa có kết quả yêu cầu.</li> }</ul>
+    }
+  </section>
+
+  <section class="panel" aria-labelledby="qa-title">
+    <h2 id="qa-title">Nhãn QA</h2>
+    <div class="actions my-2">
+      @for (option of labelOptions; track option.value) {
+        <label class="checkbox"><input type="checkbox" [checked]="labels().includes(option.value)" (change)="toggleLabel(option.value, $event)">{{ option.name }}</label>
+      }
+    </div>
+    <button class="action" type="button" [disabled]="updating()" (click)="saveLabels()">Lưu nhãn QA</button>
+  </section>
+
+  <section class="panel" aria-labelledby="transcript-title" [attr.aria-busy]="loadingTranscript()">
+    <div class="section-heading">
+      <h2 id="transcript-title">Transcript</h2>
+      @if (!transcriptOpened()) { <button class="action" type="button" [disabled]="loadingTranscript()" (click)="loadTranscript()">Mở transcript</button> }
+    </div>
+    @if (transcriptOpened()) {
+      <ol class="grid gap-3">
+        @for (segment of transcript(); track segment.pk) {
+          <li class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <strong>{{ segment.speaker === 'USER' ? 'Học viên' : 'AI' }}</strong>
+            <span class="secondary">{{ sources[segment.source] || segment.source }}</span>
+            <p class="my-2 whitespace-pre-wrap break-words" lang="en">{{ segment.text }}</p>
+            @if (segment.speaker === 'USER') {
+              <dl class="form-grid text-sm">
+                <div><dt>STT confidence (tham khảo)</dt><dd>{{ (segment.confidence | number:'1.2-3') ?? 'N/A' }}</dd></div>
+                <div><dt>Thời lượng nói (ms)</dt><dd>{{ segment.speechMs ?? 'N/A' }}</dd></div>
+                <div><dt>Khoảng ngừng dài</dt><dd>{{ segment.longPauseCount == null ? 'N/A' : segment.longPauseCount + ' · ' + segment.longPauseMs + ' ms' }}</dd></div>
+                <div><dt>Số từ / từ đệm</dt><dd>{{ segment.wordCount ?? 'N/A' }} / {{ segment.fillerCount ?? 'N/A' }}</dd></div>
+                <div><dt>Độ trễ trả lời (ms)</dt><dd>{{ segment.responseLatencyMs ?? 'N/A' }}</dd></div>
+              </dl>
+            }
+          </li>
+        } @empty { <li>Phiên chưa có transcript.</li> }
+      </ol>
+      @if (next(); as cursor) {
+        <button class="action mt-3" type="button" [disabled]="loadingTranscript()" (click)="loadTranscript(cursor)">Tải thêm transcript</button>
+      }
+    }
+  </section>
+} @else if (!error()) { <p role="status">Đang tải phiên học…</p> }

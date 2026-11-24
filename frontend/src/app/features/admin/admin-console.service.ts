@@ -63,6 +63,42 @@ export class AdminConsoleService {
     return this.http.get<Schemas['AdminXpPage']>(`${this.base}/gamification/transactions`, { params: this.params(filters) });
   }
 
+  sessions(filters: Record<string, string>) {
+    return this.http.get<Schemas['AdminSessionPage']>(`${this.base}/sessions`, { params: this.params(filters) });
+  }
+
+  session(id: string) {
+    return this.http.get<Schemas['AdminSessionDetail']>(`${this.base}/sessions/${id}`);
+  }
+
+  transcript(id: string, cursor?: string) {
+    return this.http.get<Schemas['AdminTranscriptPage']>(`${this.base}/sessions/${id}/transcript`, {
+      params: this.params({ cursor: cursor ?? '' }),
+    });
+  }
+
+  retryFeedback(id: string) {
+    return this.http.post<Schemas['SessionFeedbackResponse']>(`${this.base}/sessions/${id}/retry-feedback`, null);
+  }
+
+  updateQaLabels(id: string, body: Schemas['AdminQaLabels']) {
+    return this.http.patch<Schemas['AdminQaLabels']>(`${this.base}/sessions/${id}/qa-labels`, body);
+  }
+
+  account(id: string) {
+    return this.http.get<Schemas['AdminAccountDetail']>(`${this.base}/users/${id}`);
+  }
+
+  placements(id: string, cursor?: string) {
+    return this.http.get<Schemas['AdminPlacementPage']>(`${this.base}/users/${id}/placements`, {
+      params: this.params({ cursor: cursor ?? '' }),
+    });
+  }
+
+  forceLogout(id: string) {
+    return this.http.post<void>(`${this.base}/users/${id}/force-logout`, null);
+  }
+
   private params(filters: Record<string, string>): HttpParams {
     let params = new HttpParams();
     for (const [name, value] of Object.entries(filters)) {

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from pydantic import AwareDatetime, model_validator
 
@@ -41,3 +42,47 @@ class AdminOverview(BaseScenarioSchema):
     completed_sessions: int
     recent_sessions: int
     scenario_counts: dict[ScenarioStatus, int]
+
+
+class AdminPlacement(BaseScenarioSchema):
+    id: uuid.UUID
+    status: str
+    estimated_level: str | None
+    is_insufficient_data: bool
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class AdminPlacementPage(BaseScenarioSchema):
+    items: list[AdminPlacement]
+    next_cursor: str | None = None
+
+
+class AdminSkillAverage(BaseScenarioSchema):
+    skill: str
+    formula_version: str
+    average: float
+    sample_count: int
+    is_reference: bool
+
+
+class AdminEarnedBadge(BaseScenarioSchema):
+    key: str
+    name: str
+    icon_emoji: str
+    awarded_at: datetime
+
+
+class AdminAccountDetail(AdminAccountSummary):
+    avatar_url: str | None
+    timezone: str | None
+    login_methods: list[str]
+    goals: list[str]
+    weak_points: list[str]
+    skills: list[AdminSkillAverage]
+    total_xp: int
+    current_streak: int
+    best_streak: int
+    badges: list[AdminEarnedBadge]
+    missions_issued: int
+    missions_completed: int

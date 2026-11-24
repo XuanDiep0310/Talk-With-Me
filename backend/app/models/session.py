@@ -90,6 +90,10 @@ class Session(Base, TimestampMixin):
     duration_seconds: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     spoken_seconds: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     # USER_REQUESTED, TIMEOUT, DISCONNECTED, ERROR
+    speech_features_version: Mapped[int | None] = mapped_column(Integer)
+    qa_labels: Mapped[list[str]] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), default=list, server_default="[]", nullable=False
+    )
     end_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     topic: Mapped[CoachTopic | None] = relationship(back_populates="sessions")
@@ -149,6 +153,14 @@ class TranscriptSegment(Base, TimestampMixin):
     start_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     end_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    speech_source: Mapped[str | None] = mapped_column(String(25))
+    speech_ms: Mapped[int | None] = mapped_column(Integer)
+    speech_span_ms: Mapped[int | None] = mapped_column(Integer)
+    long_pause_count: Mapped[int | None] = mapped_column(Integer)
+    long_pause_ms: Mapped[int | None] = mapped_column(Integer)
+    word_count: Mapped[int | None] = mapped_column(Integer)
+    filler_count: Mapped[int | None] = mapped_column(Integer)
+    response_latency_ms: Mapped[int | None] = mapped_column(Integer)
     is_final: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     seq: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 

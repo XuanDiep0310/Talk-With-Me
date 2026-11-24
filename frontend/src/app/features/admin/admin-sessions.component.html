@@ -1,0 +1,43 @@
+<div class="page-heading">
+  <h1>Phiên học</h1>
+  @if (userId) { <a class="action" [routerLink]="['/admin/users', userId]">Về hồ sơ học viên</a> }
+</div>
+<form class="panel filter-form" (ngSubmit)="load()">
+  <label>Email hoặc tên bài/chủ đề <input type="search" maxlength="255" name="q" [(ngModel)]="filters.q"></label>
+  <label>Loại phiên <select name="type" [(ngModel)]="filters.type">
+    <option value="">Tất cả</option><option value="COACH">AI Coach</option><option value="ROLEPLAY">Tình huống</option>
+  </select></label>
+  <label>Trạng thái <select name="status" [(ngModel)]="filters.status">
+    <option value="">Tất cả</option>
+    @for (state of stateKeys; track state) { <option [value]="state">{{ statuses[state] }}</option> }
+  </select></label>
+  <label>Nhãn QA <select name="label" [(ngModel)]="filters.label">
+    <option value="">Tất cả</option>@for (label of labels; track label.value) { <option [value]="label.value">{{ label.name }}</option> }
+  </select></label>
+  <label>Từ thời điểm <input type="datetime-local" name="from" [(ngModel)]="filters.fromDate"></label>
+  <label>Đến trước <input type="datetime-local" name="to" [(ngModel)]="filters.toDate"></label>
+  <label>Điểm từ <input type="number" min="0" max="100" name="minScore" [(ngModel)]="filters.minScore"></label>
+  <label>Điểm đến <input type="number" min="0" max="100" name="maxScore" [(ngModel)]="filters.maxScore"></label>
+  <button class="action" [disabled]="loading()">Lọc phiên</button>
+</form>
+@if (error()) { <p class="panel" role="alert">{{ error() }}</p> }
+<div class="panel results table-wrap" [attr.aria-busy]="loading()" tabindex="0" role="region" aria-label="Danh sách phiên">
+  <table>
+    <thead><tr><th scope="col">Phiên</th><th scope="col">Học viên</th><th scope="col">Thời gian</th><th scope="col">Trạng thái</th><th scope="col">Điểm tổng</th></tr></thead>
+    <tbody>
+      @for (item of items(); track item.id) {
+        <tr>
+          <td><a class="text-link font-semibold" [routerLink]="['/admin/sessions', item.id]">{{ item.title || (item.type === 'COACH' ? 'Hội thoại tự do' : 'Tình huống') }}</a>
+            <span class="secondary">{{ item.type === 'COACH' ? 'AI Coach' : 'Roleplay' }}</span></td>
+          <td><a class="text-link" [routerLink]="['/admin/users', item.userId]">{{ item.learnerName }}</a><span class="secondary">{{ item.email }}</span></td>
+          <td>{{ (item.startedAt || item.createdAt) | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td>{{ statuses[item.status] || item.status }}@if (item.qaLabels.length) { <span class="secondary">{{ item.qaLabels.length }} nhãn QA</span> }</td>
+          <td>{{ (item.overallScore | number:'1.0-1') ?? 'N/A' }}</td>
+        </tr>
+      } @empty { <tr><td colspan="5">{{ loading() ? 'Đang tải phiên học…' : 'Không tìm thấy phiên học.' }}</td></tr> }
+    </tbody>
+  </table>
+</div>
+@if (cursor(); as next) {
+  <button class="action" type="button" [disabled]="loading()" (click)="load(next)">Tải thêm phiên</button>
+}

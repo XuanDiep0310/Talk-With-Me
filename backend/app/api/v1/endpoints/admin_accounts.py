@@ -1,11 +1,17 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_admin
-from app.models.admin_account_schemas import AdminAccountPage, AdminAccountUpdate, AdminOverview
+from app.models.admin_account_schemas import (
+    AdminAccountDetail,
+    AdminAccountPage,
+    AdminAccountUpdate,
+    AdminOverview,
+    AdminPlacementPage,
+)
 from app.models.admin_scenario_schemas import ADMIN_ACCESS_RESPONSES, AdminScenarioError, SearchText
 from app.models.auth import User
 from app.services.admin_account import AdminAccountService
@@ -47,3 +53,24 @@ async def update_account(id: uuid.UUID, body: AdminAccountUpdate, accounts: Acco
 @router.get("/overview")
 async def get_overview(accounts: Accounts) -> AdminOverview:
     return await accounts.overview()
+
+
+@router.get("/users/{id}")
+async def get_account(id: uuid.UUID, accounts: Accounts, response: Response) -> AdminAccountDetail:
+    response.headers["Cache-Control"] = "no-store"
+    return await accounts.detail(id)
+
+
+@router.get("/users/{id}/placements")
+async def placements(
+    id: uuid.UUID,
+    accounts: Accounts,
+    cursor: Annotated[str | None, Query(max_length=512)] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> AdminPlacementPage:
+    return await accounts.placements(id, cursor, limit)
+
+
+@router.post("/users/{id}/force-logout", status_code=204)
+async def force_logout(id: uuid.UUID, accounts: Accounts) -> None:
+    await accounts.force_logout(id)

@@ -46,6 +46,18 @@ export const adminRoutes: Routes = [
         path: 'gamification',
         loadComponent: () => import('./admin-gamification.component').then((m) => m.AdminGamificationComponent)
       },
+      {
+        path: 'sessions',
+        loadComponent: () => import('./admin-sessions.component').then((m) => m.AdminSessionsComponent)
+      },
+      {
+        path: 'sessions/:id',
+        loadComponent: () => import('./admin-session-detail.component').then((m) => m.AdminSessionDetailComponent)
+      },
+      {
+        path: 'users/:id',
+        loadComponent: () => import('./admin-user-detail.component').then((m) => m.AdminUserDetailComponent)
+      },
       { path: '**', redirectTo: 'scenarios' }
     ]
   }

@@ -27,6 +27,7 @@ from app.services.session_state_machine import (
     SessionState,
     SessionStateMachine,
 )
+from app.services.speech_features import apply_speech_features
 from app.services.topic_ranking import rank_topics
 
 
@@ -166,6 +167,7 @@ class CoachService:
             topic_snapshot=topic.context() if topic else {},
             level=user_level,
             status=SessionState.CREATED.value,
+            speech_features_version=1,
             started_at=now,
             duration_seconds=0.0,
             spoken_seconds=0.0,
@@ -234,7 +236,6 @@ class CoachService:
                 detail=f"Cannot add transcript segment when session is in status '{session.status}'",
             )
 
-        max_seq = await self.transcript_repo.get_max_seq(session_id)
         segment = TranscriptSegment(
             pk=uuid.uuid4(),
             id=data.id,
@@ -244,18 +245,15 @@ class CoachService:
             text=data.text,
             start_ms=data.start_ms,
             end_ms=data.end_ms,
-            confidence=data.confidence,
             is_final=data.is_final,
-            seq=max_seq + 1,
         )
-        saved = await self.transcript_repo.add_segment(segment)
-
-        # Update spoken seconds if speaker is USER
-        if data.speaker.upper() == "USER" and data.end_ms > data.start_ms:
-            delta_spoken = (data.end_ms - data.start_ms) / 1000.0
-            session.spoken_seconds += delta_spoken
-            await self.session_repo.save(session)
-
+        if segment.speaker == "USER":
+            apply_speech_features(segment, pause_threshold_ms=0)
+        else:
+            segment.speech_source = "AI"
+        saved, _ = await self.transcript_repo.add_active_segment(segment, user_id)
+        if saved is None:
+            raise HTTPException(400, detail="The session is no longer active.")
         return self._to_transcript_response(saved)
 
     async def list_transcripts(

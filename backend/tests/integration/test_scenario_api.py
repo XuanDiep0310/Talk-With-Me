@@ -1010,3 +1010,181 @@ async def test_admin_gamification_preserves_issued_terms_and_claims_once(
         repo = GamificationRepository(db)
         profile = await repo.get_or_create_profile(env["other_user_id"])
         assert profile.total_xp == await repo.get_xp_sum(env["other_user_id"]) == 50
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_session_qa_scopes_pagination_and_serializes_retry(
+    scenario_test_env: dict,
+    scenario_db: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unittest.mock import AsyncMock
+
+    from app.core.providers.stt_provider import SttResult, WordTiming
+    from app.models.admin_audit import AdminAuditEvent
+    from app.models.scoring import SessionFeedback
+    from app.models.session import Session, TranscriptSegment
+    from app.repositories.session import TranscriptRepository
+    from app.services.scoring import tasks
+    from app.services.speech_features import apply_speech_features
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    session_id, segment_id = uuid.uuid4(), str(uuid.uuid4())
+    async with scenario_db.begin() as db:
+        db.add(
+            Session(
+                id=session_id,
+                user_id=env["other_user_id"],
+                level="B1",
+                type="COACH",
+                status="ACTIVE",
+                speech_features_version=1,
+            )
+        )
+
+    async def store():
+        async with scenario_db() as db:
+            row = TranscriptSegment(
+                id=segment_id,
+                session_id=session_id,
+                user_id=env["other_user_id"],
+                speaker="USER",
+                text="Um, hello.",
+                start_ms=0,
+                end_ms=0,
+                is_final=True,
+            )
+            apply_speech_features(
+                row,
+                pause_threshold_ms=1500,
+                capture_offset_ms=500,
+                playback_end_ms=100,
+                stt=SttResult(
+                    "Um, hello.",
+                    0.8,
+                    1.2,
+                    [WordTiming("Um", 0, 600, 0.8), WordTiming("hello", 2200, 2800, 0.8)],
+                    word_times_measured=True,
+                    measured_confidence=0.8,
+                ),
+            )
+            _, inserted = await TranscriptRepository(db).add_active_segment(
+                row, env["other_user_id"]
+            )
+            return inserted
+
+    assert sorted(await asyncio.gather(store(), store())) == [False, True]
+    async with scenario_db.begin() as db:
+        session = await db.get(Session, session_id)
+        assert session is not None and session.spoken_seconds == 1.2
+        session.status = "FAILED"
+        session.ended_at = datetime.now(UTC)
+        db.add(SessionFeedback(session_id=session_id, status="FAILED", retryable=True))
+        db.add(
+            TranscriptSegment(
+                id=str(uuid.uuid4()),
+                session_id=session_id,
+                speaker="USER",
+                seq=2,
+                text="Legacy utterance",
+                confidence=0.95,
+                start_ms=0,
+                end_ms=2000,
+                is_final=True,
+            )
+        )
+
+    path = f"/api/v1/admin/sessions/{session_id}"
+    assert (await client.get(path, headers=learner)).status_code == 403
+    first = await client.get(path + "/transcript", headers=admin, params={"limit": 1})
+    assert first.status_code == 200, first.text
+    assert first.headers["cache-control"] == "no-store"
+    item = first.json()["items"][0]
+    assert item["confidence"] == 0.8 and item["speechMs"] == 1200
+    assert item["longPauseCount"] == 1 and item["longPauseMs"] == 1600
+    second = (
+        await client.get(
+            path + "/transcript",
+            headers=admin,
+            params={"cursor": first.json()["nextCursor"], "limit": 1},
+        )
+    ).json()
+    assert second["items"][0]["confidence"] is None
+    assert second["items"][0]["speechMs"] is None
+    assert (
+        await client.patch(path + "/qa-labels", headers=admin, json={"labels": ["UNUSUAL_SCORE"]})
+    ).status_code == 200
+    assert (
+        await client.get("/api/v1/admin/sessions", headers=admin, params={"label": "STT"})
+    ).json()["items"] == []
+    found = (
+        await client.get(
+            "/api/v1/admin/sessions",
+            headers=admin,
+            params={
+                "label": "UNUSUAL_SCORE",
+                "userId": str(env["other_user_id"]),
+            },
+        )
+    ).json()
+    assert [row["id"] for row in found["items"]] == [str(session_id)]
+
+    enqueue = AsyncMock()
+    monkeypatch.setattr(tasks, "enqueue_feedback_job", enqueue)
+    retries = await asyncio.gather(
+        *(client.post(path + "/retry-feedback", headers=admin) for _ in range(2))
+    )
+    assert [response.status_code for response in retries] == [202, 202]
+    enqueue.assert_awaited_once_with(session_id, strict=True)
+    async with scenario_db() as db:
+        audit = (
+            await db.scalars(
+                select(AdminAuditEvent).where(AdminAuditEvent.action == "SESSION_TRANSCRIPT_VIEWED")
+            )
+        ).all()
+        assert len(audit) == 2
+        assert all(event.before is None and event.after is None for event in audit)
+
+
+@pytest.mark.integration
+async def test_admin_force_logout_revokes_access_refresh_and_ticket(
+    scenario_test_env: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from unittest.mock import AsyncMock
+
+    from fastapi import WebSocket
+
+    from app.api.v1.endpoints import ws_session
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    secret = {"email": "other@talkwithme.vn", "password": "Pass1234"}
+    login = await client.post("/api/v1/auth/login", json=secret)
+    assert login.status_code == 200, login.text
+    body = login.json()
+    learner = {"Authorization": f"Bearer {body['accessToken']}"}
+    session = await client.post("/api/v1/coach/sessions", json={}, headers=learner)
+    assert session.status_code == 201
+    ticket = (await client.post("/api/v1/ws-tickets", headers=learner)).json()["ticket"]
+    user_route = f"/api/v1/admin/users/{env['other_user_id']}"
+    profile = await client.get(user_route, headers=admin)
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["loginMethods"] == ["password"]
+    assert (await client.post(user_route + "/force-logout", headers=admin)).status_code == 204
+    assert (await client.get("/api/v1/me", headers=learner)).status_code == 401
+    assert (
+        await client.post("/api/v1/auth/refresh", json={"refreshToken": body["refreshToken"]})
+    ).status_code == 401
+    from app.api.deps import get_redis
+
+    redis = app.dependency_overrides[get_redis]()
+    monkeypatch.setattr(ws_session, "get_redis_client", lambda: redis)
+    monkeypatch.setattr(ws_session, "async_session_factory", env["db_factory"])
+    ws = AsyncMock(spec=WebSocket)
+    await ws_session.session_websocket_endpoint(ws, uuid.UUID(session.json()["id"]), ticket, 0)
+    ws.close.assert_awaited_once_with(code=4004)

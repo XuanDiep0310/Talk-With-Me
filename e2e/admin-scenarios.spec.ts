@@ -271,3 +271,38 @@ test('admin edits a rule and opens the XP ledger', async ({ page, request }) => 
   await page.getByRole('button', { name: 'Sổ cái XP' }).click();
   await expect(page.getByRole('columnheader', { name: 'Mã giao dịch' })).toBeVisible();
 });
+
+test('admin inspects a session and revokes the learner login', async ({ page, request }) => {
+  test.skip(process.env.RUN_ADMIN_E2E !== 'true', 'Requires an isolated DB and the admin CLI');
+  const admin = await register(request, 'qa-admin');
+  const learner = await register(request, 'qa-learner');
+  execFileSync(process.env.PLAYWRIGHT_PYTHON ?? 'python', ['-m', 'scripts.admin_role', 'grant', admin.id], {
+    cwd: resolve('backend'), env: process.env,
+  });
+  const choices = await (await request.get(api + '/onboarding/options')).json();
+  expect((await request.put(api + '/me/level', {
+    headers: learner.headers, data: { level: 'A2', source: 'SELF' },
+  })).ok()).toBeTruthy();
+  expect((await request.put(api + '/me/preferences', {
+    headers: learner.headers,
+    data: { interests: [choices.interests[0].key], goals: [choices.goals[0].key], weakPoints: [choices.weakPoints[0].key] },
+  })).ok()).toBeTruthy();
+  expect((await request.post(api + '/me/onboarding/complete', { headers: learner.headers })).ok()).toBeTruthy();
+  const created = await request.post(api + '/coach/sessions', { headers: learner.headers, data: {} });
+  expect(created.status()).toBe(201);
+  const session = await created.json();
+
+  await prepareBrowser(page);
+  await page.goto('/admin/sessions/' + session.id);
+  await logIn(page, admin.email);
+  await page.getByRole('button', { name: 'Mở transcript' }).click();
+  await expect(page.getByText(session.initialMessage, { exact: true })).toBeVisible();
+  await page.getByLabel('Lỗi chấm điểm').check();
+  await page.getByRole('button', { name: 'Lưu nhãn QA' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã lưu nhãn QA');
+  await page.goto('/admin/users/' + learner.id);
+  await page.getByRole('button', { name: 'Thu hồi phiên đăng nhập' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
+  await expect(page.getByRole('status')).toContainText('Đã thu hồi các phiên đăng nhập');
+  expect((await request.get(api + '/me', { headers: learner.headers })).status()).toBe(401);
+});

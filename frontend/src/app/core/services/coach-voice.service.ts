@@ -51,6 +51,7 @@ export class CoachVoiceService {
   private mediaStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
+  private audioChunkWrites = Promise.resolve();
   private turnAudioUrls = new Map<string, string>();
   private currentTurnSegmentId: string | null = null;
   private currentAudioEl: HTMLAudioElement | null = null;
@@ -312,10 +313,7 @@ export class CoachVoiceService {
     const segmentId = crypto.randomUUID();
     this.currentTurnSegmentId = segmentId;
     this.recordedChunks = [];
-
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'user.speech_start', segmentId }));
-    }
+    this.audioChunkWrites = Promise.resolve();
 
     if (this.isMockMode()) {
       this.isRecordingTurn.set(true);
@@ -341,16 +339,19 @@ export class CoachVoiceService {
 
       this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: mime });
 
-      this.mediaRecorder.ondataavailable = async (e: BlobEvent) => {
-        if (e.data.size > 0) {
-          this.recordedChunks.push(e.data);
-          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            const buffer = await e.data.arrayBuffer();
-            this.ws.send(buffer);
-          }
-        }
+      this.mediaRecorder.ondataavailable = (event: BlobEvent) => {
+        if (event.data.size === 0) return;
+        this.recordedChunks.push(event.data);
+        const socket = this.ws;
+        this.audioChunkWrites = this.audioChunkWrites.then(async () => {
+          const buffer = await event.data.arrayBuffer();
+          if (socket?.readyState === WebSocket.OPEN) socket.send(buffer);
+        });
       };
 
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: 'user.speech_start', segmentId }));
+      }
       this.mediaRecorder.start(200);
       this.isRecordingTurn.set(true);
       this.uxState.set('user_speaking');
@@ -394,6 +395,7 @@ export class CoachVoiceService {
         }
       });
       this.mediaRecorder = null;
+      await this.audioChunkWrites;
     }
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -444,6 +446,7 @@ export class CoachVoiceService {
       const audio = new Audio(item.audioUrl);
       this.currentAudioEl = audio;
       audio.onended = () => {
+        this.reportPlaybackEnd(item);
         if (this.playingSegmentId() === item.id) {
           this.playingSegmentId.set(null);
         }
@@ -461,6 +464,12 @@ export class CoachVoiceService {
 
     // 2. Otherwise use Web Speech Synthesis (for AI Coach or Mock User voice)
     this.speakWithSynthesis(item);
+  }
+
+  private reportPlaybackEnd(item: LiveTranscriptItem): void {
+    if (item.speaker === 'AI' && this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'ai.playback_end', segmentId: item.id }));
+    }
   }
 
   private getSpeechRate(): number {
@@ -550,6 +559,7 @@ export class CoachVoiceService {
       }
 
       utterance.onend = () => {
+        this.reportPlaybackEnd(item);
         if (this.playingSegmentId() === item.id) {
           this.playingSegmentId.set(null);
         }

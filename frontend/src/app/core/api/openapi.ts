@@ -1206,7 +1206,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Account */
+        get: operations["get_account_api_v1_admin_users__id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1227,6 +1228,40 @@ export interface paths {
         get: operations["get_overview_api_v1_admin_overview_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/placements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Placements */
+        get: operations["placements_api_v1_admin_users__id__placements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/force-logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Force Logout */
+        post: operations["force_logout_api_v1_admin_users__id__force_logout_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1387,6 +1422,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sessions */
+        get: operations["list_sessions_api_v1_admin_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["get_session_api_v1_admin_sessions__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}/transcript": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Transcript */
+        get: operations["get_transcript_api_v1_admin_sessions__id__transcript_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}/qa-labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Labels */
+        patch: operations["update_labels_api_v1_admin_sessions__id__qa_labels_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}/retry-feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Feedback */
+        post: operations["retry_feedback_api_v1_admin_sessions__id__retry_feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1419,6 +1539,58 @@ export interface components {
              * @default true
              */
             isFinal: boolean;
+        };
+        /** AdminAccountDetail */
+        AdminAccountDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Fullname */
+            fullName: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Cefrlevel */
+            cefrLevel: string | null;
+            /** Completedsessions */
+            completedSessions: number;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "LEARNER" | "ADMIN";
+            /** Isactive */
+            isActive: boolean;
+            /** Avatarurl */
+            avatarUrl: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Loginmethods */
+            loginMethods: string[];
+            /** Goals */
+            goals: string[];
+            /** Weakpoints */
+            weakPoints: string[];
+            /** Skills */
+            skills: components["schemas"]["AdminSkillAverage"][];
+            /** Totalxp */
+            totalXp: number;
+            /** Currentstreak */
+            currentStreak: number;
+            /** Beststreak */
+            bestStreak: number;
+            /** Badges */
+            badges: components["schemas"]["AdminEarnedBadge"][];
+            /** Missionsissued */
+            missionsIssued: number;
+            /** Missionscompleted */
+            missionsCompleted: number;
         };
         /** AdminAccountPage */
         AdminAccountPage: {
@@ -1618,6 +1790,20 @@ export interface components {
             /** Sortorder */
             sortOrder?: number | null;
         };
+        /** AdminEarnedBadge */
+        AdminEarnedBadge: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Iconemoji */
+            iconEmoji: string;
+            /**
+             * Awardedat
+             * Format: date-time
+             */
+            awardedAt: string;
+        };
         /** AdminMission */
         AdminMission: {
             /** Key */
@@ -1660,6 +1846,39 @@ export interface components {
             scenarioCounts: {
                 [key: string]: number;
             };
+        };
+        /** AdminPlacement */
+        AdminPlacement: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /** Estimatedlevel */
+            estimatedLevel: string | null;
+            /** Isinsufficientdata */
+            isInsufficientData: boolean;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Completedat */
+            completedAt: string | null;
+        };
+        /** AdminPlacementPage */
+        AdminPlacementPage: {
+            /** Items */
+            items: components["schemas"]["AdminPlacement"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** AdminQaLabels */
+        AdminQaLabels: {
+            /** Labels */
+            labels: ("STT" | "AI_RESPONSE" | "SCORING" | "UNUSUAL_SCORE")[];
         };
         /** AdminRequirementDetail */
         AdminRequirementDetail: {
@@ -1707,6 +1926,26 @@ export interface components {
              * @default true
              */
             isMandatory: boolean;
+        };
+        /** AdminRoleplayRequirement */
+        AdminRoleplayRequirement: {
+            /** Requirementid */
+            requirementId: string;
+            /** Description */
+            description: string;
+            /** Ismandatory */
+            isMandatory: boolean;
+            /** Status */
+            status: string;
+        };
+        /** AdminRoleplayResult */
+        AdminRoleplayResult: {
+            /** Status */
+            status: string;
+            /** Passed */
+            passed: boolean | null;
+            /** Requirements */
+            requirements: components["schemas"]["AdminRoleplayRequirement"][];
         };
         /** AdminScenarioDetail */
         AdminScenarioDetail: {
@@ -1944,6 +2183,157 @@ export interface components {
             requirements?: components["schemas"]["AdminRequirementInput"][];
             /** Revision */
             revision: number;
+        };
+        /** AdminSessionDetail */
+        AdminSessionDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Email */
+            email: string;
+            /** Learnername */
+            learnerName: string;
+            /** Title */
+            title: string | null;
+            /** Type */
+            type: string;
+            /** Status */
+            status: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Startedat */
+            startedAt: string | null;
+            /** Endedat */
+            endedAt: string | null;
+            /** Durationseconds */
+            durationSeconds: number;
+            /** Overallscore */
+            overallScore: number | null;
+            /** Feedbackstatus */
+            feedbackStatus: string | null;
+            /** Qalabels */
+            qaLabels: ("STT" | "AI_RESPONSE" | "SCORING" | "UNUSUAL_SCORE")[];
+            /** Spokenseconds */
+            spokenSeconds: number | null;
+            /** Turncount */
+            turnCount: number;
+            /** Endreason */
+            endReason: string | null;
+            feedback: components["schemas"]["SessionFeedbackResponse"] | null;
+            roleplay: components["schemas"]["AdminRoleplayResult"] | null;
+        };
+        /** AdminSessionPage */
+        AdminSessionPage: {
+            /** Items */
+            items: components["schemas"]["AdminSessionSummary"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** AdminSessionSummary */
+        AdminSessionSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Email */
+            email: string;
+            /** Learnername */
+            learnerName: string;
+            /** Title */
+            title: string | null;
+            /** Type */
+            type: string;
+            /** Status */
+            status: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Startedat */
+            startedAt: string | null;
+            /** Endedat */
+            endedAt: string | null;
+            /** Durationseconds */
+            durationSeconds: number;
+            /** Overallscore */
+            overallScore: number | null;
+            /** Feedbackstatus */
+            feedbackStatus: string | null;
+            /** Qalabels */
+            qaLabels: ("STT" | "AI_RESPONSE" | "SCORING" | "UNUSUAL_SCORE")[];
+        };
+        /** AdminSkillAverage */
+        AdminSkillAverage: {
+            /** Skill */
+            skill: string;
+            /** Formulaversion */
+            formulaVersion: string;
+            /** Average */
+            average: number;
+            /** Samplecount */
+            sampleCount: number;
+            /** Isreference */
+            isReference: boolean;
+        };
+        /** AdminTranscriptItem */
+        AdminTranscriptItem: {
+            /**
+             * Pk
+             * Format: uuid
+             */
+            pk: string;
+            /** Id */
+            id: string;
+            /** Seq */
+            seq: number;
+            /** Speaker */
+            speaker: string;
+            /** Text */
+            text: string;
+            /** Source */
+            source: string;
+            /** Startms */
+            startMs?: number | null;
+            /** Endms */
+            endMs?: number | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Speechms */
+            speechMs?: number | null;
+            /** Longpausecount */
+            longPauseCount?: number | null;
+            /** Longpausems */
+            longPauseMs?: number | null;
+            /** Wordcount */
+            wordCount?: number | null;
+            /** Fillercount */
+            fillerCount?: number | null;
+            /** Responselatencyms */
+            responseLatencyMs?: number | null;
+        };
+        /** AdminTranscriptPage */
+        AdminTranscriptPage: {
+            /** Items */
+            items: components["schemas"]["AdminTranscriptItem"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
         };
         /** AdminXpPage */
         AdminXpPage: {
@@ -3372,6 +3762,11 @@ export interface components {
             /** Transcripts */
             transcripts?: components["schemas"]["TranscriptSegmentResponse"][];
         };
+        /**
+         * SessionState
+         * @enum {string}
+         */
+        SessionState: "CREATED" | "ACTIVE" | "RECONNECTING" | "ENDING" | "ENDED" | "FEEDBACK_READY" | "INSUFFICIENT_DATA" | "FAILED";
         /** SessionSuggestionsResponse */
         SessionSuggestionsResponse: {
             /**
@@ -6197,6 +6592,55 @@ export interface operations {
             };
         };
     };
+    get_account_api_v1_admin_users__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccountDetail"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
     update_account_api_v1_admin_users__id__patch: {
         parameters: {
             query?: never;
@@ -6283,6 +6727,105 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AdminOverview"];
                 };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    placements_api_v1_admin_users__id__placements_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPlacementPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    force_logout_api_v1_admin_users__id__force_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Authentication required */
             401: {
@@ -6791,6 +7334,268 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminXpPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_admin_sessions_get: {
+        parameters: {
+            query?: {
+                type?: ("COACH" | "ROLEPLAY") | null;
+                status?: components["schemas"]["SessionState"] | null;
+                userId?: string | null;
+                fromDate?: string | null;
+                toDate?: string | null;
+                minScore?: number | null;
+                maxScore?: number | null;
+                q?: string | null;
+                label?: ("STT" | "AI_RESPONSE" | "SCORING" | "UNUSUAL_SCORE") | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSessionPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    get_session_api_v1_admin_sessions__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSessionDetail"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    get_transcript_api_v1_admin_sessions__id__transcript_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTranscriptPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    update_labels_api_v1_admin_sessions__id__qa_labels_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminQaLabels"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminQaLabels"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    retry_feedback_api_v1_admin_sessions__id__retry_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionFeedbackResponse"];
                 };
             };
             /** @description Authentication required */

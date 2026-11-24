@@ -16,11 +16,13 @@ import contextlib
 import json
 import logging
 import uuid
+from datetime import UTC
 from typing import Any
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy import select
 
+from app.core.clock import get_clock
 from app.core.config import get_settings
 from app.core.database import async_session_factory
 from app.core.providers.llm_provider import get_llm_provider
@@ -28,7 +30,7 @@ from app.core.providers.stt_provider import get_stt_provider
 from app.core.redis import get_redis_client
 from app.core.ws_manager import session_ws_manager
 from app.models.auth import User, UserSettings
-from app.models.session import TranscriptSegment
+from app.models.session import Session, TranscriptSegment
 from app.repositories.scenario import ScenarioRepository
 from app.repositories.session import SessionRepository, TranscriptRepository
 from app.services.session_state_machine import (
@@ -36,6 +38,7 @@ from app.services.session_state_machine import (
     SessionState,
     SessionStateMachine,
 )
+from app.services.speech_features import apply_speech_features
 from app.services.turn_taking_policy import TurnTakingPolicy
 from app.services.ws_ticket import WsTicketService
 
@@ -100,15 +103,15 @@ async def session_websocket_endpoint(
 
     # 1. Authenticate one-time ticket
     redis = get_redis_client()
-    user_id: uuid.UUID | None = None
+    identity: tuple[uuid.UUID, int] | None = None
     try:
         ticket_service = WsTicketService(redis)
         if ticket:
-            user_id = await ticket_service.consume_ticket(ticket)
+            identity = await ticket_service.consume_ticket(ticket)
     finally:
         await redis.aclose()
 
-    if not user_id:
+    if identity is None:
         await websocket.send_json(
             {
                 "type": "error",
@@ -119,13 +122,17 @@ async def session_websocket_endpoint(
         await websocket.close(code=4003)
         return
 
+    user_id, auth_version = identity
+
     # 2. Verify session ownership and lifecycle state
     async with async_session_factory() as db:
         session_repo = SessionRepository(db)
         transcript_repo = TranscriptRepository(db)
         session = await session_repo.get_by_id(session_id)
 
-        active = await db.scalar(select(User.is_active).where(User.id == user_id))
+        active = await db.scalar(
+            select(User.is_active).where(User.id == user_id, User.auth_version == auth_version)
+        )
         if not active or not session or session.user_id != user_id:
             await websocket.send_json(
                 {
@@ -138,6 +145,12 @@ async def session_websocket_endpoint(
             return
 
         # Transition session to ACTIVE if CREATED or RECONNECTING
+        started_at = session.started_at or get_clock().now()
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=UTC)
+        latest_ai_id = next(
+            (s.id for s in reversed(session.transcripts) if s.speaker == "AI"), None
+        )
         current_status = session.status
         if current_status in (SessionState.CREATED.value, SessionState.RECONNECTING.value):
             try:
@@ -228,17 +241,37 @@ async def session_websocket_endpoint(
                 if init_suggs:
                     await websocket.send_json({"type": "ai.suggestions", "suggestions": init_suggs})
     except Exception as init_err:
-        logger.warning("Initial suggestions generation fallback: %s", init_err)
+        logger.warning("Initial suggestions generation fallback: %s", type(init_err).__name__)
 
     # Session in-memory state
     audio_buffer = bytearray()
     current_segment_id = str(uuid.uuid4())
     current_user_text = ""
-    is_session_active = True
+    capture_offset_ms: int | None = None
+    playback_end_ms: int | None = None
+    playback_eligible = latest_ai_id is not None
 
     try:
-        while is_session_active:
-            message = await websocket.receive()
+        while True:
+            try:
+                message = await asyncio.wait_for(websocket.receive(), timeout=5)
+            except TimeoutError:
+                message = {}
+            async with async_session_factory() as db:
+                allowed = await db.scalar(
+                    select(User.is_active).where(
+                        User.id == user_id, User.auth_version == auth_version
+                    )
+                )
+                session_status = await db.scalar(
+                    select(Session.status).where(Session.id == session_id)
+                )
+            if not allowed:
+                await websocket.close(code=4003)
+                break
+            if not message:
+                continue
+            offset_ms = max(0, int((get_clock().now() - started_at).total_seconds() * 1000))
             if message.get("type") == "websocket.disconnect":
                 logger.info("Client initiated disconnect for session %s", session_id)
                 break
@@ -246,9 +279,12 @@ async def session_websocket_endpoint(
             if "bytes" in message and message["bytes"]:
                 raw_bytes = message["bytes"]
                 # Rule: accept audio only when session status is ACTIVE
-                if not is_session_active:
+                if session_status != SessionState.ACTIVE.value:
+                    audio_buffer.clear()
                     continue
 
+                if capture_offset_ms is None:
+                    capture_offset_ms = offset_ms
                 audio_buffer.extend(raw_bytes)
 
                 # Only emit interim transcript if we have actual partial speech text
@@ -270,9 +306,18 @@ async def session_websocket_endpoint(
                 if msg_type == "ping":
                     await websocket.send_json({"type": "pong"})
 
+                elif session_status != SessionState.ACTIVE.value:
+                    audio_buffer.clear()
+
+                elif msg_type == "ai.playback_end":
+                    if playback_eligible and data.get("segmentId") == latest_ai_id:
+                        playback_end_ms = offset_ms
+                        playback_eligible = False
+
                 elif msg_type == "user.speech_start":
                     current_segment_id = data.get("segmentId") or str(uuid.uuid4())
                     audio_buffer.clear()
+                    capture_offset_ms = offset_ms
                     current_user_text = ""
 
                 elif msg_type in ("user.speech_end", "user.text"):
@@ -280,10 +325,11 @@ async def session_websocket_endpoint(
                         current_segment_id = data.get("segmentId")
                     # Extract text: either from STT of audio buffer, or directly from user.text message
                     user_text = ""
-                    confidence = 0.95
+                    stt_res = None
 
                     if msg_type == "user.text":
-                        user_text = data.get("text", "").strip()
+                        audio_buffer.clear()
+                        user_text = str(data.get("text", "")).strip()
                     elif audio_buffer:
                         # Process audio buffer with retry backoff
                         try:
@@ -291,9 +337,10 @@ async def session_websocket_endpoint(
                                 stt_provider.transcribe, bytes(audio_buffer)
                             )
                             user_text = stt_res.transcript.strip()
-                            confidence = stt_res.confidence
                         except Exception as exc:
-                            logger.warning("STT transcription failed after retries: %s", exc)
+                            logger.warning(
+                                "STT transcription failed after retries: %s", type(exc).__name__
+                            )
                             await websocket.send_json(
                                 {
                                     "type": "error",
@@ -320,53 +367,52 @@ async def session_websocket_endpoint(
                         )
                         continue
 
-                    # Pre-translate user speech immediately so translation is ready with 0 wait time
-                    user_translation = ""
-                    with contextlib.suppress(Exception):
-                        user_translation = await llm_provider.translate_text(user_text)
-
-                    # 1. Save USER transcript segment (idempotent)
-                    user_seq = 1
+                    user_segment = TranscriptSegment(
+                        pk=uuid.uuid4(),
+                        id=current_segment_id,
+                        session_id=session_id,
+                        speaker="USER",
+                        user_id=user_id,
+                        text=user_text,
+                        start_ms=capture_offset_ms or 0,
+                        end_ms=capture_offset_ms or 0,
+                        is_final=True,
+                    )
+                    apply_speech_features(
+                        user_segment,
+                        stt=stt_res,
+                        capture_offset_ms=capture_offset_ms,
+                        playback_end_ms=playback_end_ms,
+                        pause_threshold_ms=settings.PAUSE_THRESHOLD_MS,
+                    )
                     async with async_session_factory() as db:
-                        t_repo = TranscriptRepository(db)
-                        s_repo = SessionRepository(db)
-                        sess = await s_repo.get_by_id(session_id)
-                        max_seq = await t_repo.get_max_seq(session_id)
-                        user_seq = max_seq + 1
-
-                        user_segment = TranscriptSegment(
-                            pk=uuid.uuid4(),
-                            id=current_segment_id,
-                            session_id=session_id,
-                            speaker="USER",
-                            user_id=user_id,
-                            text=user_text,
-                            start_ms=0,
-                            end_ms=max(1000, len(user_text.split()) * 350),
-                            confidence=confidence,
-                            is_final=True,
-                            seq=user_seq,
+                        saved, inserted = await TranscriptRepository(db).add_active_segment(
+                            user_segment, user_id, auth_version=auth_version
                         )
-                        await t_repo.add_segment(user_segment)
+                    if saved is None:
+                        continue
 
-                        # Update session spoken duration
-                        if sess:
-                            sess.spoken_seconds += user_segment.end_ms / 1000.0
-                            await s_repo.save(sess)
-
+                    user_translation = ""
+                    if inserted:
+                        with contextlib.suppress(Exception):
+                            user_translation = await llm_provider.translate_text(saved.text)
                     await websocket.send_json(
                         {
                             "type": "transcript.final",
                             "speaker": "USER",
-                            "segmentId": current_segment_id,
-                            "text": user_text,
+                            "segmentId": saved.id,
+                            "text": saved.text,
                             "translation": user_translation,
-                            "confidence": confidence,
-                            "seq": user_seq,
-                            "startMs": 0,
-                            "endMs": user_segment.end_ms,
+                            "confidence": saved.confidence,
+                            "seq": saved.seq,
+                            "startMs": saved.start_ms,
+                            "endMs": saved.end_ms,
                         }
                     )
+                    if not inserted:
+                        continue
+                    playback_end_ms = None
+                    playback_eligible = False
 
                     # 2. Trigger AI turn
                     await websocket.send_json({"type": "ai.speaking", "isSpeaking": True})
@@ -435,7 +481,7 @@ async def session_websocket_endpoint(
                                     topic_min_level,
                                 )
                     except Exception as err:
-                        logger.error("LLM reply generation error: %s", err)
+                        logger.error("LLM reply generation error: %s", type(err).__name__)
                         ai_reply = "I see! Could you tell me a little bit more about that?"
 
                     # Pre-generate translation and suggested replies concurrently
@@ -454,12 +500,12 @@ async def session_websocket_endpoint(
                         )
                     except Exception as trans_err:
                         logger.warning(
-                            "Error pre-generating translation or suggestions: %s", trans_err
+                            "Error pre-generating translation or suggestions: %s",
+                            type(trans_err).__name__,
                         )
 
                     # 3. Save AI transcript segment
-                    ai_segment_id = str(uuid.uuid4())
-                    ai_seq = user_seq + 1
+                    ai_segment_id = str(uuid.uuid5(session_id, saved.id))
                     async with async_session_factory() as db:
                         t_repo = TranscriptRepository(db)
                         ai_segment = TranscriptSegment(
@@ -471,11 +517,16 @@ async def session_websocket_endpoint(
                             text=ai_reply,
                             start_ms=0,
                             end_ms=max(1000, len(ai_reply.split()) * 300),
-                            confidence=1.0,
                             is_final=True,
-                            seq=ai_seq,
+                            speech_source="AI",
                         )
-                        await t_repo.add_segment(ai_segment)
+                        stored_ai, _ = await t_repo.add_active_segment(
+                            ai_segment, user_id, auth_version=auth_version
+                        )
+                    if stored_ai is None:
+                        break
+                    latest_ai_id = stored_ai.id
+                    playback_eligible = True
 
                     await websocket.send_json(
                         {
@@ -483,7 +534,7 @@ async def session_websocket_endpoint(
                             "segmentId": ai_segment_id,
                             "text": ai_reply,
                             "translation": ai_translation,
-                            "seq": ai_seq,
+                            "seq": stored_ai.seq,
                         }
                     )
                     if suggestions:
@@ -496,13 +547,16 @@ async def session_websocket_endpoint(
                     await websocket.send_json({"type": "ai.speaking", "isSpeaking": False})
 
                     # Reset for next turn
+                    capture_offset_ms = None
                     current_segment_id = str(uuid.uuid4())
                     current_user_text = ""
 
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected for session %s", session_id)
     except Exception as exc:
-        logger.error("Unexpected WebSocket error for session %s: %s", session_id, exc)
+        logger.error(
+            "Unexpected WebSocket error for session %s: %s", session_id, type(exc).__name__
+        )
     finally:
         # Reconnection resilience: transition to RECONNECTING if session was ACTIVE
         async with async_session_factory() as db:

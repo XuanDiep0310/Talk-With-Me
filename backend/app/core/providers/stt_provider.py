@@ -28,7 +28,15 @@ class WordTiming:
 class SttResult:
     """Result from STT transcription."""
 
-    __slots__ = ("transcript", "confidence", "speaking_duration_seconds", "words", "is_final")
+    __slots__ = (
+        "transcript",
+        "confidence",
+        "speaking_duration_seconds",
+        "words",
+        "is_final",
+        "word_times_measured",
+        "measured_confidence",
+    )
 
     def __init__(
         self,
@@ -37,12 +45,16 @@ class SttResult:
         speaking_duration_seconds: float,
         words: list[WordTiming] | None = None,
         is_final: bool = True,
+        word_times_measured: bool = False,
+        measured_confidence: float | None = None,
     ) -> None:
         self.transcript = transcript
         self.confidence = confidence  # 0.0–1.0
         self.speaking_duration_seconds = speaking_duration_seconds
         self.words = words or []
         self.is_final = is_final
+        self.word_times_measured = word_times_measured
+        self.measured_confidence = measured_confidence
 
 
 class SttProvider(Protocol):
@@ -94,6 +106,8 @@ class FakeSttProvider:
             speaking_duration_seconds=duration,
             words=word_timings,
             is_final=True,
+            word_times_measured=True,
+            measured_confidence=0.92,
         )
 
 
@@ -134,7 +148,8 @@ class DeepgramSttProvider:
             channel = data["results"]["channels"][0]
             alt = channel["alternatives"][0]
             transcript = alt.get("transcript", "")
-            confidence = float(alt.get("confidence", 0.0))
+            measured_confidence = alt.get("confidence")
+            confidence = float(measured_confidence) if measured_confidence is not None else 0.0
 
             words_data = alt.get("words", [])
             word_timings = [
@@ -157,6 +172,8 @@ class DeepgramSttProvider:
                 speaking_duration_seconds=duration,
                 words=word_timings,
                 is_final=True,
+                word_times_measured=True,
+                measured_confidence=confidence if measured_confidence is not None else None,
             )
         except (KeyError, IndexError):
             return SttResult(transcript="", confidence=0.0, speaking_duration_seconds=0.0, words=[])
@@ -183,6 +200,7 @@ class GroqSttProvider:
         data = {
             "model": "whisper-large-v3",
             "response_format": "verbose_json",
+            "timestamp_granularities[]": "word",
             "language": "en",
         }
         headers = {
@@ -196,42 +214,22 @@ class GroqSttProvider:
 
         transcript = res_data.get("text", "").strip()
         duration = float(res_data.get("duration", 0.0))
-        segments = res_data.get("segments", [])
-        words_list = transcript.split()
-
-        word_timings: list[WordTiming] = []
-        if segments:
-            for seg in segments:
-                seg_words = seg.get("text", "").split()
-                st = int(float(seg.get("start", 0)) * 1000)
-                et = int(float(seg.get("end", 0)) * 1000)
-                step = (et - st) // max(1, len(seg_words))
-                for idx, w in enumerate(seg_words):
-                    word_timings.append(
-                        WordTiming(
-                            word=w,
-                            start_ms=st + idx * step,
-                            end_ms=st + (idx + 1) * step,
-                            confidence=0.92,
-                        )
-                    )
-        else:
-            word_timings = [
-                WordTiming(
-                    word=w,
-                    start_ms=int(i * 350),
-                    end_ms=int((i + 1) * 350),
-                    confidence=0.92,
-                )
-                for i, w in enumerate(words_list)
-            ]
-
+        words = [
+            WordTiming(
+                word=item.get("word", ""),
+                start_ms=round(float(item["start"]) * 1000),
+                end_ms=round(float(item["end"]) * 1000),
+                confidence=0.0,
+            )
+            for item in res_data.get("words", [])
+            if item.get("start") is not None and item.get("end") is not None
+        ]
         return SttResult(
             transcript=transcript,
-            confidence=0.92,
-            speaking_duration_seconds=duration or (len(words_list) * 0.35),
-            words=word_timings,
-            is_final=True,
+            confidence=0.0,
+            speaking_duration_seconds=duration,
+            words=words,
+            word_times_measured=True,
         )
 
 

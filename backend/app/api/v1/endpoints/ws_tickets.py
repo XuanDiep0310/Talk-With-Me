@@ -28,5 +28,5 @@ async def create_ws_ticket(
     Clients connect to WebSocket using `?ticket=<ticket_value>` without passing JWT in URL.
     """
     service = WsTicketService(redis)
-    ticket = await service.create_ticket(user_id=current_user.id)
+    ticket = await service.create_ticket(user_id=current_user.id, auth_version=current_user.auth_version)
     return WsTicketResponse(ticket=ticket, expires_in=30)

@@ -20,8 +20,10 @@ from app.models.scoring_schemas import (
     SessionFeedbackResponse,
     SkillScoreResponse,
 )
+from app.models.session import Session
 from app.repositories.scoring import ScoringRepository
 from app.repositories.session import SessionRepository
+from app.services.admin_audit import AdminAudit
 from app.services.scoring.metrics import (
     compute_filler_word_score,
     compute_fluency_score,
@@ -79,10 +81,10 @@ class ScoringService:
             return status.HTTP_202_ACCEPTED, SessionFeedbackResponse(
                 session_id=session_id,
                 status="PENDING",
-                formula_version=self.settings.SCORING_FORMULA_VERSION,
+                formula_version=self._formula_version(session),
             )
 
-        return status.HTTP_200_OK, self._to_feedback_response(feedback)
+        return status.HTTP_200_OK, self.feedback_response(feedback)
 
     async def generate_feedback(self, session_id: uuid.UUID) -> SessionFeedbackResponse:
         """
@@ -102,21 +104,22 @@ class ScoringService:
             "FEEDBACK_READY",
             "INSUFFICIENT_DATA",
         ):
-            return self._to_feedback_response(existing_feedback)
+            return self.feedback_response(existing_feedback)
 
         # 1. Safely get or create feedback record in PENDING status (idempotent)
         feedback = await self.scoring_repo.get_or_create_pending_feedback(
             session_id=session_id,
-            formula_version=self.settings.SCORING_FORMULA_VERSION,
+            formula_version=self._formula_version(session),
         )
         if feedback.status in ("FEEDBACK_READY", "INSUFFICIENT_DATA"):
-            return self._to_feedback_response(feedback)
+            return self.feedback_response(feedback)
 
         # 2. Extract conversational turn metrics from transcripts
         transcripts = session.transcripts or []
         metrics = extract_session_turn_metrics(
             transcripts,
             pause_threshold_ms=self.settings.PAUSE_THRESHOLD_MS,
+            measured_speech=session.speech_features_version is not None,
         )
 
         now = self.clock.now()
@@ -133,7 +136,7 @@ class ScoringService:
 
         if not sufficient:
             # Below threshold: mark as INSUFFICIENT_DATA without fabricating scores
-            logger.info("Session %s has insufficient data for scoring: %s", session_id, metrics)
+            logger.info("Session %s has insufficient data for scoring", session_id)
             feedback.status = "INSUFFICIENT_DATA"
             feedback.overall_score = None
             feedback.partial = False
@@ -164,10 +167,12 @@ class ScoringService:
             audit = ScoringAudit(
                 session_id=session_id,
                 input_summary={
-                    "metrics": {k: v for k, v in metrics.items() if k != "tokens"},
+                    "metrics": {
+                        k: v for k, v in metrics.items() if k not in {"tokens", "all_user_text"}
+                    },
                     "reason": "INSUFFICIENT_DATA",
                 },
-                formula_version=self.settings.SCORING_FORMULA_VERSION,
+                formula_version=self._formula_version(session),
                 created_at=now,
             )
             await self.scoring_repo.record_audit(audit)
@@ -203,7 +208,7 @@ class ScoringService:
             )
 
             reloaded = await self.scoring_repo.get_feedback(session_id)
-            return self._to_feedback_response(reloaded or feedback)
+            return self.feedback_response(reloaded or feedback)
 
         # 4. Compute Pure Metric Components
         # Fluency: Continuity, Pause, Filler
@@ -219,7 +224,7 @@ class ScoringService:
         )
         filler, filler_na = compute_filler_word_score(
             filler_count=metrics["filler_count"],
-            total_words=metrics["total_words"],
+            total_words=metrics["spoken_word_count"],
             penalty_per_100=self.settings.FILLER_PENALTY_PER_100,
         )
         fluency_score, fluency_components, fluency_na = compute_fluency_score(
@@ -248,7 +253,9 @@ class ScoringService:
         # 5. Call LLM for Qualitative Analysis (Comprehension & Context Relevance)
         llm = get_llm_provider()
         history = [
-            {"speaker": s.speaker, "text": s.text} for s in sorted(transcripts, key=lambda x: x.seq)
+            {"speaker": s.speaker, "text": s.text}
+            for s in sorted(transcripts, key=lambda x: x.seq)
+            if s.is_final
         ]
         topic_title = session.coach_title("General English Conversation")
 
@@ -260,10 +267,14 @@ class ScoringService:
             )
         except Exception as exc:
             # Per Rule 1: Never fabricate scores on error. Mark FAILED with retryable=True
-            logger.error("LLM post-session evaluation failed for session %s: %s", session_id, exc)
+            logger.error(
+                "LLM post-session evaluation failed for session %s: %s",
+                session_id,
+                type(exc).__name__,
+            )
             feedback.status = "FAILED"
             feedback.retryable = True
-            feedback.error_message = f"Lỗi phân tích hội thoại từ AI: {exc}"
+            feedback.error_message = "Lỗi phân tích hội thoại từ AI."
             feedback.overall_score = None
             feedback.generated_at = now
             await self.scoring_repo.save_feedback(feedback)
@@ -290,7 +301,7 @@ class ScoringService:
                     "retryable": True,
                 },
             )
-            return self._to_feedback_response(feedback, skill_scores=[])
+            return self.feedback_response(feedback, skill_scores=[])
 
         # 6. Synthesize Listening & Vocabulary with LLM results
         listening_score, listening_components, listening_na = compute_listening_score(
@@ -374,12 +385,16 @@ class ScoringService:
         audit = ScoringAudit(
             session_id=session_id,
             input_summary={
-                "metrics": {k: v for k, v in metrics.items() if k != "tokens"},
-                "llm_eval": llm_eval.model_dump(),
+                "metrics": {
+                    k: v for k, v in metrics.items() if k not in {"tokens", "all_user_text"}
+                },
+                "llm_eval": llm_eval.model_dump(
+                    include={"response_relevance", "task_completion", "context_relevance"}
+                ),
                 "overall_score": overall_score,
                 "partial": partial,
             },
-            formula_version=self.settings.SCORING_FORMULA_VERSION,
+            formula_version=self._formula_version(session),
             created_at=now,
         )
         await self.scoring_repo.record_audit(audit)
@@ -423,60 +438,89 @@ class ScoringService:
         )
 
         reloaded = await self.scoring_repo.get_feedback(session_id)
-        return self._to_feedback_response(reloaded or feedback)
+        return self.feedback_response(reloaded or feedback)
 
     async def retry_feedback(
-        self, session_id: uuid.UUID, user_id: uuid.UUID
+        self,
+        session_id: uuid.UUID,
+        user_id: uuid.UUID | None,
+        *,
+        audit: AdminAudit | None = None,
     ) -> SessionFeedbackResponse:
-        """
-        Manually retry feedback generation for a failed session.
-        Transitions session state back from FAILED to ENDED per AGENTS.md §9.
-        """
-        session = await self.session_repo.get_by_id_and_user(session_id, user_id)
-        if not session:
+        if user_id is None and audit is None:
+            raise ValueError("Retry requires a learner or an administrator.")
+        session = await self.session_repo.lock(session_id, user_id)
+        if session is None:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Session not found",
+                404, detail={"code": "SESSION_NOT_FOUND", "message": "Session not found."}
             )
 
         feedback = await self.scoring_repo.get_feedback(session_id)
-        if not feedback:
-            feedback = SessionFeedback(
-                session_id=session_id,
-                status="PENDING",
-                formula_version=self.settings.SCORING_FORMULA_VERSION,
-                retryable=False,
+        if (
+            session.status == SessionState.ENDED.value
+            and feedback is not None
+            and feedback.status == "PENDING"
+        ):
+            return self.feedback_response(feedback)
+        if (
+            session.status != SessionState.FAILED.value
+            or feedback is None
+            or feedback.status != "FAILED"
+            or not feedback.retryable
+        ):
+            raise HTTPException(
+                409,
+                detail={"code": "FEEDBACK_NOT_RETRYABLE", "message": "Feedback cannot be retried."},
             )
-            feedback = await self.scoring_repo.create_feedback(feedback)
-        else:
-            feedback.status = "PENDING"
-            feedback.retryable = False
-            feedback.error_message = None
-            await self.scoring_repo.save_feedback(feedback)
 
-        # Session state machine transition: FAILED -> ENDED
-        if session.status == SessionState.FAILED.value:
-            try:
-                SessionStateMachine.transition(SessionState.FAILED, SessionState.ENDED)
-                session.status = SessionState.ENDED.value
-                await self.session_repo.save(session)
-            except Exception as e:
-                logger.warning("Could not transition FAILED to ENDED: %s", e)
-
+        SessionStateMachine.transition(SessionState.FAILED, SessionState.ENDED)
+        session.status = SessionState.ENDED.value
+        feedback.status = "PENDING"
+        feedback.retryable = False
+        feedback.error_message = None
+        result = self.feedback_response(feedback)
+        if audit is not None:
+            audit.record("FEEDBACK_RETRY_REQUESTED", "SESSION", session_id)
         await self.db.commit()
 
-        # Enqueue background feedback job
         from app.services.scoring.tasks import enqueue_feedback_job
 
-        await enqueue_feedback_job(session_id)
+        try:
+            await enqueue_feedback_job(session_id, strict=True)
+        except Exception as exc:
+            await self.mark_job_failed(session_id)
+            raise HTTPException(
+                503,
+                detail={
+                    "code": "FEEDBACK_QUEUE_UNAVAILABLE",
+                    "message": "Feedback queue is temporarily unavailable.",
+                },
+            ) from exc
+        return result
 
-        return SessionFeedbackResponse(
-            session_id=session_id,
-            status="PENDING",
-            formula_version=self.settings.SCORING_FORMULA_VERSION,
-        )
+    async def mark_job_failed(self, session_id: uuid.UUID) -> None:
+        await self.db.rollback()
+        session = await self.session_repo.lock(session_id)
+        feedback = await self.scoring_repo.get_feedback(session_id)
+        if (
+            session is not None
+            and session.status == SessionState.ENDED.value
+            and feedback is not None
+            and feedback.status == "PENDING"
+        ):
+            SessionStateMachine.transition(SessionState.ENDED, SessionState.FAILED)
+            session.status = SessionState.FAILED.value
+            feedback.status = "FAILED"
+            feedback.retryable = True
+            feedback.error_message = "Không thể xử lý chấm điểm. Vui lòng thử lại."
+            await self.db.commit()
 
-    def _to_feedback_response(
+    def _formula_version(self, session: Session) -> str:
+        if session.speech_features_version is not None:
+            return self.settings.SCORING_MEASURED_FORMULA_VERSION
+        return self.settings.SCORING_FORMULA_VERSION
+
+    def feedback_response(
         self,
         feedback: SessionFeedback,
         skill_scores: Sequence[SessionSkillScore] | None = None,

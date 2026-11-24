@@ -54,3 +54,4 @@ Ghi lại mọi quyết định kỹ thuật và thiết kế quan trọng, đ�
 | D-48 | Thao tác xuất bản trong trình soạn | Một lần bấm kiểm tra nội dung, lưu thay đổi rồi xuất bản qua API hiện có. Nếu lưu thành công và xuất bản lỗi, dùng bản nháp vừa lưu khi thử lại. Mở đúng trường từ checklist và thông báo lỗi. | 10 | DECIDED |
 | D-49 | Danh mục AI Coach | Admin quản trị chủ đề và duyệt bản nháp AI. Chủ đề ẩn chỉ dành cho lịch sử, phiên mới chụp ngữ cảnh tại lúc tạo. Seed bổ sung theo ID ổn định. | 11 | DECIDED |
 | D-50 | Cấu hình XP và nhiệm vụ | XP của nhiệm vụ lấy từ mức mặc định hoặc mức ghi đè. Snapshot tại lúc cấp giữ cam kết với người học. Seed chỉ bổ sung. Sổ cái giữ tính bất biến. | 12 | DECIDED |
+| D-51 | Đặc trưng giọng nói và Session QA | Lưu văn bản, số đo và nguồn khi chốt đoạn STT. Dữ liệu không xác minh được hiển thị N/A. Truy cập transcript và retry có audit. Thu hồi phiên dùng phiên bản xác thực cho HTTP và WebSocket. | 13 | DECIDED |

@@ -62,7 +62,7 @@ export class AdminCoachTopicsComponent {
     this.idea.reset();
     this.form.reset(topic ? {
       ...topic,
-      targetSkills: this.skills.filter((skill) => topic.targetSkills.includes(skill)),
+      targetSkills: this.skills.filter((skill) => topic.targetSkills?.includes(skill)),
     } : undefined);
     this.editing.set(true);
   }
