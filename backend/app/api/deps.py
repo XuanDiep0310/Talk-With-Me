@@ -179,7 +179,7 @@ async def get_current_user(
 
     user_repo = UserRepository(session)
     user = await user_repo.get_by_id_with_relations(user_id)
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or payload.get("ver", 0) != (user.auth_version or 0):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={
@@ -190,6 +190,15 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    return user
+
+
+async def require_admin(user: User = Depends(get_current_user)) -> User:
+    if user.role != "ADMIN":
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "ADMIN_REQUIRED", "message": "Administrator access is required."},
+        )
     return user
 
 

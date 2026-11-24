@@ -11,6 +11,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from pydantic.alias_generators import to_camel
 
+from app.models.auth import UserRole
+
 
 class _CamelModel(BaseModel):
     """Base schema with camelCase aliases and populate-by-name support."""
@@ -97,6 +99,7 @@ class UserResponse(_CamelModel):
 
 class MeResponse(_CamelModel):
     id: uuid.UUID
+    role: UserRole = "LEARNER"
     email: str
     full_name: str
     avatar_url: str | None = None

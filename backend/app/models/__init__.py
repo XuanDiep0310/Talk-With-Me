@@ -29,6 +29,7 @@ from app.models.scenario import (
     ScenarioRequirement,
     UserScenarioProgress,
 )
+from app.models.scenario_category import ScenarioCategory
 from app.models.scoring import ScoringAudit, SessionFeedback, SessionSkillScore
 from app.models.session import CoachTopic, Session, TranscriptSegment
 
@@ -51,6 +52,7 @@ __all__ = [
     "SessionSkillScore",
     "ScoringAudit",
     "Scenario",
+    "ScenarioCategory",
     "ScenarioRequirement",
     "ScenarioChunk",
     "UserScenarioProgress",

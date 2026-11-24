@@ -1,12 +1,13 @@
 import { Component, ChangeDetectionStrategy, signal, computed, inject, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { AppStateService } from '../../../core/services/app-state.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { GamificationService } from '../../../core/services/gamification.service';
 import { GamificationSummaryResponse, NotificationItem } from '../../../core/models/gamification.models';
 import { AppPage } from '../../../core/models/app.models';
 import { formatDateTimeDDMMYYYY } from '../../../core/utils/date.utils';
+import { resolveAvatarUrl } from '../../../core/utils/avatar.utils';
 
 interface NavItem {
   id: AppPage;
@@ -16,7 +17,7 @@ interface NavItem {
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex h-screen overflow-hidden bg-slate-50">
@@ -116,6 +117,11 @@ interface NavItem {
               </span>
               <span class="font-medium text-sm">{{ item.label }}</span>
             </button>
+          }
+          @if (authService.currentUser()?.role === 'ADMIN') {
+            <a routerLink="/admin" class="sidebar-link block px-4 py-3 font-medium text-sm">
+              Quản trị bài học
+            </a>
           }
         </nav>
 
@@ -361,13 +367,7 @@ export class LayoutComponent implements OnInit {
   });
 
   readonly userAvatar = computed(() => {
-    const raw = this.authService.currentUser()?.avatarUrl;
-    if (raw) {
-      if (raw.startsWith('http')) return raw;
-      if (raw.startsWith('/')) return `http://localhost:8000${raw}`;
-      return raw;
-    }
-    return null;
+    return resolveAvatarUrl(this.authService.currentUser()?.avatarUrl);
   });
 
   readonly userInitial = computed(() => {

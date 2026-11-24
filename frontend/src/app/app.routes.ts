@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, onboardingGuard } from './core/guards/auth.guard';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   // Standalone pages without app layout shell
@@ -28,6 +29,12 @@ export const routes: Routes = [
     path: 'reset-password',
     loadComponent: () =>
       import('./features/auth/reset-password.component').then((m) => m.ResetPasswordComponent)
+  },
+  {
+    path: 'admin',
+    canActivate: [adminGuard],
+    canActivateChild: [adminGuard],
+    loadChildren: () => import('./features/admin/admin.routes').then((m) => m.adminRoutes)
   },
   {
     path: 'onboarding',

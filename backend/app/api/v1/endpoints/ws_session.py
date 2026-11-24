@@ -27,7 +27,7 @@ from app.core.providers.llm_provider import get_llm_provider
 from app.core.providers.stt_provider import get_stt_provider
 from app.core.redis import get_redis_client
 from app.core.ws_manager import session_ws_manager
-from app.models.auth import UserSettings
+from app.models.auth import User, UserSettings
 from app.models.session import TranscriptSegment
 from app.repositories.scenario import ScenarioRepository
 from app.repositories.session import SessionRepository, TranscriptRepository
@@ -125,7 +125,8 @@ async def session_websocket_endpoint(
         transcript_repo = TranscriptRepository(db)
         session = await session_repo.get_by_id(session_id)
 
-        if not session or session.user_id != user_id:
+        active = await db.scalar(select(User.is_active).where(User.id == user_id))
+        if not active or not session or session.user_id != user_id:
             await websocket.send_json(
                 {
                     "type": "error",

@@ -11,6 +11,7 @@ All LLM operations adhere to the Communication-First rules (AGENTS.md §8 rule 9
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -41,6 +42,8 @@ class LlmLevelEvaluation:
 
 
 class LlmProvider(Protocol):
+    async def generate_editor_json(self, instruction: str, data: dict[str, object]) -> object: ...
+
     """Abstract interface for LLM services."""
 
     async def evaluate_placement(self, transcripts: list[str]) -> LlmLevelEvaluation:
@@ -122,6 +125,83 @@ class FakeLlmProvider:
         "That's really inspiring! If you could change one thing about it, what would it be?",
     ]
     _counter: int = 0
+
+    async def generate_editor_json(self, instruction: str, data: dict[str, object]) -> object:  # noqa: ARG002
+        if data.get("task") == "distractors":
+            return {
+                "meaningVi": data.get("meaningVi") or "Tôi có thể giúp gì cho bạn?",
+                "distractorsEn": [
+                    "Are you staying here?",
+                    "When does it open?",
+                    "How much is the total?",
+                ],
+                "distractorsVi": ["Bạn ở lại đây à?", "Mấy giờ mở cửa?", "Tổng cộng bao nhiêu?"],
+            }
+        phrases = [
+            ("Good afternoon.", "Chào buổi chiều.", "Hello there.", "Good afternoon. How are you?"),
+            (
+                "Could you help me?",
+                "Bạn giúp tôi được không?",
+                "Can you help me?",
+                "Could you help me with my booking?",
+            ),
+            (
+                "Could you repeat that?",
+                "Bạn nhắc lại được không?",
+                "Can you say that again?",
+                "Could you repeat that number?",
+            ),
+            (
+                "That works for me.",
+                "Như vậy phù hợp với tôi.",
+                "That sounds good to me.",
+                "That works for me. Thank you.",
+            ),
+            (
+                "Thank you for your help.",
+                "Cảm ơn bạn đã giúp đỡ.",
+                "Thanks for helping.",
+                "Thank you for your help today.",
+            ),
+            (
+                "May I check the details?",
+                "Tôi kiểm tra chi tiết được không?",
+                "Can I check the details?",
+                "May I check the details before confirming?",
+            ),
+        ]
+        count = data.get("chunkCount")
+        tags = ["OPENING", "REQUEST", "CLARIFY", "AGREE_DECLINE", "CLOSING", "REQUEST"]
+        return {
+            "titleVi": data.get("topic"),
+            "titleEn": "Practice a conversation",
+            "context": "Bạn cần hỏi thông tin và xác nhận chi tiết trước khi kết thúc cuộc hội thoại.",
+            "userRole": "Khách hàng",
+            "aiRole": "Nhân viên hỗ trợ",
+            "goals": ["Hỏi và xác nhận thông tin."],
+            "chunks": [
+                {
+                    "functionTag": tags[index],
+                    "text": text,
+                    "meaningVi": meaning,
+                    "acceptedVariations": [variation],
+                    "exampleSentence": example,
+                    "distractorsEn": ["How far is it?", "Did you call me?", "What day is it?"],
+                    "distractorsVi": [
+                        "Cách đây bao xa?",
+                        "Bạn đã gọi tôi à?",
+                        "Hôm nay là ngày gì?",
+                    ],
+                }
+                for index, (text, meaning, variation, example) in enumerate(
+                    phrases[: count if isinstance(count, int) else 4]
+                )
+            ],
+            "requirements": [
+                {"description": "Đặt một câu hỏi.", "isMandatory": True},
+                {"description": "Xác nhận thông tin.", "isMandatory": True},
+            ],
+        }
 
     async def evaluate_post_session(
         self,
@@ -526,10 +606,23 @@ class GeminiLlmProvider:
     Activated when LLM_PROVIDER=gemini and LLM_API_KEY is configured.
     """
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-3.5-flash-lite") -> None:
         self.api_key = api_key
         self.model = model
         self.endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+
+    async def generate_editor_json(self, instruction: str, data: dict[str, object]) -> object:
+        payload = {
+            "systemInstruction": {"parts": [{"text": instruction}]},
+            "contents": [{"parts": [{"text": json.dumps(data, ensure_ascii=False)}]}],
+            "generationConfig": {"responseMimeType": "application/json"},
+        }
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            response = await client.post(
+                self.endpoint.split("?")[0], json=payload, headers={"x-goog-api-key": self.api_key}
+            )
+            response.raise_for_status()
+        return json.loads(response.json()["candidates"][0]["content"]["parts"][0]["text"])
 
     async def evaluate_placement(self, transcripts: list[str]) -> LlmLevelEvaluation:
         prompt = (
@@ -813,6 +906,22 @@ class GroqLlmProvider:
         self.api_key = api_key
         self.model = model
         self.api_url = "https://api.groq.com/openai/v1/chat/completions"
+
+    async def generate_editor_json(self, instruction: str, data: dict[str, object]) -> object:
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": instruction},
+                {"role": "user", "content": json.dumps(data, ensure_ascii=False)},
+            ],
+            "response_format": {"type": "json_object"},
+        }
+        async with httpx.AsyncClient(timeout=25.0) as client:
+            response = await client.post(
+                self.api_url, json=payload, headers={"Authorization": f"Bearer {self.api_key}"}
+            )
+            response.raise_for_status()
+        return json.loads(response.json()["choices"][0]["message"]["content"])
 
     async def evaluate_placement(self, transcripts: list[str]) -> LlmLevelEvaluation:
         system_prompt = (

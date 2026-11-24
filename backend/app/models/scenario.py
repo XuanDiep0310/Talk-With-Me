@@ -6,9 +6,19 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -20,15 +30,25 @@ if TYPE_CHECKING:
     from app.models.session import Session
 
 
+ScenarioStatus = Literal["DRAFT", "PUBLISHED", "ARCHIVED"]
+
+
 class Scenario(Base, TimestampMixin):
     """Scenario catalog entry (e.g. Daily Life, Social Talk, Travel & Shopping, Workplace)."""
 
     __tablename__ = "scenarios"
+    __table_args__ = (
+        CheckConstraint("status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED')", name="ck_scenarios_status"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
-    # DAILY_LIFE | SOCIAL | TRAVEL_SHOPPING | WORKPLACE
-    category: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    category: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("scenario_categories.code", name="fk_scenarios_category"),
+        nullable=False,
+        index=True,
+    )
     title_vi: Mapped[str] = mapped_column(String(255), nullable=False)
     title_en: Mapped[str] = mapped_column(String(255), nullable=False)
     # A1 | A2 | B1 | B2 | C1
@@ -41,6 +61,8 @@ class Scenario(Base, TimestampMixin):
         JSON().with_variant(JSONB, "postgresql"), default=list, nullable=False
     )
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[ScenarioStatus] = mapped_column(String(10), server_default="PUBLISHED")
+    revision: Mapped[int] = mapped_column(Integer, server_default="1")
 
     requirements: Mapped[list[ScenarioRequirement]] = relationship(
         "ScenarioRequirement",
@@ -59,6 +81,17 @@ class Scenario(Base, TimestampMixin):
         back_populates="scenario",
         cascade="all, delete-orphan",
     )
+
+
+class ScenarioAdminAudit(Base):
+    __tablename__ = "scenario_admin_audit"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    scenario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scenarios.id"), index=True)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    action: Mapped[str] = mapped_column(String(20))
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    trace_id: Mapped[str] = mapped_column(Text)
 
 
 class ScenarioRequirement(Base, TimestampMixin):

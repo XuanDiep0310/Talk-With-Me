@@ -34,6 +34,7 @@ async def get_me(
 
     return MeResponse(
         id=current_user.id,
+        role=current_user.role,
         email=current_user.email,
         full_name=current_user.full_name,
         avatar_url=current_user.avatar_url,
@@ -69,6 +70,7 @@ async def update_me(
 
     return MeResponse(
         id=updated.id,
+        role=updated.role,
         email=updated.email,
         full_name=updated.full_name,
         avatar_url=updated.avatar_url,

@@ -26,7 +26,11 @@ interface GooglePromptNotification {
 declare const google: {
   accounts: {
     id: {
-      initialize(config: { client_id: string; callback: (resp: { credential: string }) => void }): void;
+      initialize(config: {
+        client_id: string;
+        callback: (resp: { credential: string }) => void;
+        use_fedcm_for_prompt?: boolean;
+      }): void;
       prompt(momentListener?: (notification: GooglePromptNotification) => void): void;
     };
   };
@@ -266,6 +270,7 @@ export class LoginComponent {
     try {
       google.accounts.id.initialize({
         client_id: clientId,
+        use_fedcm_for_prompt: true,
         callback: async (resp) => {
           try {
             await this.authService.loginWithGoogle(resp.credential);

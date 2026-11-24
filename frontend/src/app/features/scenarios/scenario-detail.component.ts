@@ -1,5 +1,5 @@
 import {
-  Component,
+  Component, input,
   ChangeDetectionStrategy,
   signal,
   computed,
@@ -91,7 +91,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                   type="button"
                   aria-label="Quay lại"
                   class="w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-xs border border-slate-200 text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                  (click)="goBack()"
+                  (click)="goBack()" [disabled]="!!previewLesson()"
                 >
                   <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path d="M15 19l-7-7 7-7" />
@@ -159,7 +159,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                 <button
                   type="button"
                   class="w-full py-4 rounded-2xl text-white font-extrabold text-base bg-[#286FB4] hover:bg-[#1d5a94] active:scale-[0.99] shadow-lg shadow-[#286FB4]/25 transition cursor-pointer"
-                  (click)="startDrillFlow()"
+                  (click)="startDrillFlow()" [disabled]="!!previewLesson()"
                 >
                   Bắt đầu nạp cụm
                 </button>
@@ -843,7 +843,15 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     );
   });
 
+  readonly previewLesson = input<ScenarioDetail | null>(null);
+
   ngOnInit(): void {
+    const preview = this.previewLesson();
+    if (preview) {
+      this.scenario.set(preview);
+      this.isLoading.set(false);
+      return;
+    }
     this.loadScenario();
     this.speechSub = this.speechService.speechResult$.subscribe((res) => {
       this.handleSpokenResult(res.text);
