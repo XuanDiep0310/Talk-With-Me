@@ -34,6 +34,17 @@ describe('adminGuard', () => {
     expect(TestBed.runInInjectionContext(() => adminGuard(route, target))).toBeTrue();
   });
 
+  it('retains new admin pages and scoped history after login', () => {
+    const id = '12345678-1234-1234-1234-123456789abc';
+    for (const url of [
+      '/admin/coach-topics', '/admin/gamification', '/admin/analytics', '/admin/audit-logs',
+      '/admin/sessions/' + id, '/admin/users/' + id, '/admin/sessions?userId=' + id,
+    ]) {
+      expect(adminReturnUrl(url)).toBe(url);
+    }
+    expect(adminReturnUrl('/admin/sessions?userId=' + id + '&next=//example.com')).toBeNull();
+  });
+
   it('rejects arbitrary and external login return URLs', () => {
     for (const url of ['//example.com/admin', '/admin/../dashboard', '/onboarding']) {
       expect(adminReturnUrl(url)).toBeNull();

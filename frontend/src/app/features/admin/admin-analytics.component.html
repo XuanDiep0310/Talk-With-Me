@@ -1,0 +1,107 @@
+<div class="page-heading">
+  <h1>Phân tích học tập</h1>
+  <div class="actions" aria-label="Khoảng thời gian báo cáo">
+    <button type="button" class="action" [attr.aria-pressed]="period() === '7d'" (click)="select('7d')">7 ngày</button>
+    <button type="button" class="action" [attr.aria-pressed]="period() === '30d'" (click)="select('30d')">30 ngày</button>
+    <button type="button" class="action primary" [disabled]="loading()" (click)="refresh()">Làm mới</button>
+  </div>
+</div>
+@if (error()) { <p class="panel" role="alert">{{ error() }}</p> }
+
+@if (data(); as report) {
+  <p class="secondary mb-4" role="status">Cập nhật {{ report.generatedAt | date:'dd/MM/yyyy HH:mm:ss':'+0700' }} · UTC+7 · Hôm nay đang diễn ra</p>
+  <div class="form-grid">
+    <section class="panel"><h2>Học viên hôm nay</h2><p class="mt-2 text-2xl font-bold">{{ report.activeToday }}</p></section>
+    <section class="panel"><h2>Học viên 7 ngày</h2><p class="mt-2 text-2xl font-bold">{{ report.activeLastSevenDays }}</p></section>
+    <section class="panel"><h2>Phút nói trung bình</h2><p class="mt-2 text-2xl font-bold">{{ (report.speakingMinutes.average | number:'1.0-2') ?? 'N/A' }}</p>
+      <span class="secondary">{{ report.speakingMinutes.sampleCount }} phiên có số đo</span></section>
+    <section class="panel"><h2>STT confidence</h2><p class="mt-2 text-2xl font-bold">{{ (report.sttConfidence.average | percent:'1.0-1') ?? 'N/A' }}</p>
+      <span class="secondary">{{ report.sttConfidence.sampleCount }} đoạn · tham khảo</span></section>
+  </div>
+
+  <section class="panel" aria-labelledby="activity-title">
+    <h2 id="activity-title">Phiên kết thúc theo ngày</h2>
+    <div class="actions my-3 text-sm">
+      <span class="flex items-center gap-2"><span class="size-3 rounded bg-blue-600" aria-hidden="true"></span>AI Coach</span>
+      <span class="flex items-center gap-2"><span class="size-3 rounded bg-teal-600" aria-hidden="true"></span>Roleplay</span>
+    </div>
+    <svg class="block max-h-52 w-full" viewBox="0 0 700 125" preserveAspectRatio="none" aria-hidden="true">
+      <line x1="0" x2="700" y1="120" y2="120" class="stroke-slate-300"/>
+      @for (day of report.days; track day.day; let i = $index) {
+        <rect class="fill-blue-600" [attr.x]="i * (700 / report.days.length) + 3"
+          [attr.width]="700 / report.days.length - 6" [attr.y]="120 - height(day.coachSessions)" [attr.height]="height(day.coachSessions)"/>
+        <rect class="fill-teal-600" [attr.x]="i * (700 / report.days.length) + 3"
+          [attr.width]="700 / report.days.length - 6" [attr.y]="120 - height(day.coachSessions + day.roleplaySessions)" [attr.height]="height(day.roleplaySessions)"/>
+      }
+    </svg>
+    <details class="mt-3">
+      <summary class="text-link cursor-pointer">Xem số liệu theo ngày</summary>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Ngày (UTC+7)</th><th scope="col">AI Coach</th><th scope="col">Roleplay</th><th scope="col">Học viên</th></tr></thead>
+          <tbody>@for (day of report.days; track day.day) {
+            <tr><td>{{ day.day | date:'dd/MM/yyyy':'+0700' }} @if (day.isPartial) { <span class="status">Đang diễn ra</span> }</td><td>{{ day.coachSessions }}</td><td>{{ day.roleplaySessions }}</td><td>{{ day.activeLearners }}</td></tr>
+          }</tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <div class="grid gap-4 lg:grid-cols-2">
+    <section class="panel" aria-labelledby="cefr-title">
+      <h2 id="cefr-title">Phân bố CEFR hiện tại</h2>
+      <table class="mt-3">
+        <thead><tr><th scope="col">Trình độ</th><th scope="col">Học viên</th><th scope="col">Tỷ lệ</th></tr></thead>
+        <tbody>@for (level of levels; track level) {
+          <tr><td>{{ level === 'UNKNOWN' ? 'Chưa xác định' : level }}</td><td>{{ report.cefr[level] }}</td>
+            <td>@if (levelTotal()) { {{ (report.cefr[level] / levelTotal()) | percent:'1.0-1' }} } @else { N/A }</td></tr>
+        }</tbody>
+      </table>
+    </section>
+    <section class="panel" aria-labelledby="pipeline-title">
+      <h2 id="pipeline-title">Trạng thái chấm điểm</h2>
+      <table class="mt-3">
+        <thead><tr><th scope="col">Kết quả</th><th scope="col">Phiên</th><th scope="col">Tỷ lệ</th></tr></thead>
+        <tbody>@for (key of statusKeys; track key) {
+          <tr><td>{{ statuses[key] }}</td><td>{{ report.feedbackStatuses[key] }}</td>
+            <td>@if (totalFeedback()) { {{ (report.feedbackStatuses[key] / totalFeedback()) | percent:'1.0-1' }} } @else { N/A }</td></tr>
+        }</tbody>
+      </table>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="skills-title">
+    <h2 id="skills-title">Điểm kỹ năng trung bình</h2>
+    <div class="table-wrap mt-3">
+      <table>
+        <thead><tr><th scope="col">Kỹ năng</th><th scope="col">Điểm</th><th scope="col">Số mẫu</th><th scope="col">Công thức</th></tr></thead>
+        <tbody>@for (metric of report.skills; track metric.skill + metric.formulaVersion) {
+          <tr><td>{{ metrics[metric.skill] || metric.skill }} @if (metric.isReference) { <span class="status">tham khảo</span> }</td>
+            <td>{{ (metric.average | number:'1.0-1') ?? 'N/A' }}</td><td>{{ metric.sampleCount }}</td><td>{{ metric.formulaVersion }}</td></tr>
+        } @empty { <tr><td colspan="4">Chưa có điểm trong khoảng đã chọn.</td></tr> }</tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="grid gap-4 lg:grid-cols-2">
+    <section class="panel" aria-labelledby="popular-title">
+      <h2 id="popular-title">Tình huống luyện nhiều nhất</h2>
+      <table class="mt-3">
+        <thead><tr><th scope="col">Bài học</th><th scope="col">Lượt</th></tr></thead>
+        <tbody>@for (scenario of report.popularScenarios; track scenario.id) {
+          <tr><td>{{ scenario.title }}</td><td>{{ scenario.attempts }}</td></tr>
+        } @empty { <tr><td colspan="2">Chưa có lượt luyện.</td></tr> }</tbody>
+      </table>
+    </section>
+    <section class="panel" aria-labelledby="difficult-title">
+      <h2 id="difficult-title">Tình huống có tỷ lệ chưa đạt cao</h2>
+      <table class="mt-3">
+        <thead><tr><th scope="col">Bài học</th><th scope="col">Chưa đạt / đã đánh giá</th><th scope="col">Tỷ lệ</th></tr></thead>
+        <tbody>@for (scenario of report.difficultScenarios; track scenario.id) {
+          <tr><td>{{ scenario.title }}</td><td>{{ scenario.failedAttempts }} / {{ scenario.evaluatedAttempts }}</td>
+            <td>{{ (scenario.failureRate | percent:'1.0-1') ?? 'N/A' }}</td></tr>
+        } @empty { <tr><td colspan="3">Chưa có đánh giá yêu cầu bắt buộc.</td></tr> }</tbody>
+      </table>
+    </section>
+  </div>
+} @else if (!error()) { <p role="status">Đang tải báo cáo…</p> }

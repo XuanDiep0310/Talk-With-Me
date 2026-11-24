@@ -91,6 +91,7 @@ class ScoringService:
         Execute scoring engine for a completed session.
         Idempotent: if already in terminal state (FEEDBACK_READY, INSUFFICIENT_DATA), returns existing report.
         """
+        await self.session_repo.lock(session_id)
         session = await self.session_repo.get_by_id(session_id)
         if not session:
             logger.error("Cannot score non-existent session %s", session_id)
@@ -545,7 +546,7 @@ class ScoringService:
                         skill_name=skill_key,
                         label=label,
                         score=record.score,
-                        is_reference=record.is_reference,
+                        is_reference=(skill_key == "pronunciation"),
                         na_reason=record.na_reason,
                         components=record.components or {},
                     )

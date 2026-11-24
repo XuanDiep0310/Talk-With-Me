@@ -246,7 +246,6 @@ async def session_websocket_endpoint(
     # Session in-memory state
     audio_buffer = bytearray()
     current_segment_id = str(uuid.uuid4())
-    current_user_text = ""
     capture_offset_ms: int | None = None
     playback_end_ms: int | None = None
     playback_eligible = latest_ai_id is not None
@@ -258,15 +257,17 @@ async def session_websocket_endpoint(
             except TimeoutError:
                 message = {}
             async with async_session_factory() as db:
-                allowed = await db.scalar(
-                    select(User.is_active).where(
-                        User.id == user_id, User.auth_version == auth_version
+                session_status = await db.scalar(
+                    select(Session.status)
+                    .join(User, User.id == Session.user_id)
+                    .where(
+                        Session.id == session_id,
+                        User.id == user_id,
+                        User.auth_version == auth_version,
+                        User.is_active.is_(True),
                     )
                 )
-                session_status = await db.scalar(
-                    select(Session.status).where(Session.id == session_id)
-                )
-            if not allowed:
+            if session_status is None:
                 await websocket.close(code=4003)
                 break
             if not message:
@@ -287,18 +288,6 @@ async def session_websocket_endpoint(
                     capture_offset_ms = offset_ms
                 audio_buffer.extend(raw_bytes)
 
-                # Only emit interim transcript if we have actual partial speech text
-                if current_user_text:
-                    await websocket.send_json(
-                        {
-                            "type": "transcript.partial",
-                            "speaker": "USER",
-                            "segmentId": current_segment_id,
-                            "text": f"{current_user_text}...",
-                            "startMs": 0,
-                        }
-                    )
-
             elif "text" in message and message["text"]:
                 data = json.loads(message["text"])
                 msg_type = data.get("type", "")
@@ -318,7 +307,6 @@ async def session_websocket_endpoint(
                     current_segment_id = data.get("segmentId") or str(uuid.uuid4())
                     audio_buffer.clear()
                     capture_offset_ms = offset_ms
-                    current_user_text = ""
 
                 elif msg_type in ("user.speech_end", "user.text"):
                     if data.get("segmentId"):
@@ -353,20 +341,7 @@ async def session_websocket_endpoint(
                     if not user_text:
                         continue
 
-                    # Turn-taking check: If ending with filler, do not close turn
-                    if turn_policy.ends_with_filler(user_text):
-                        current_user_text = user_text
-                        await websocket.send_json(
-                            {
-                                "type": "transcript.partial",
-                                "speaker": "USER",
-                                "segmentId": current_segment_id,
-                                "text": user_text,
-                                "startMs": 0,
-                            }
-                        )
-                        continue
-
+                    continues_turn = turn_policy.ends_with_filler(user_text)
                     user_segment = TranscriptSegment(
                         pk=uuid.uuid4(),
                         id=current_segment_id,
@@ -407,12 +382,18 @@ async def session_websocket_endpoint(
                             "seq": saved.seq,
                             "startMs": saved.start_ms,
                             "endMs": saved.end_ms,
+                            "continuesTurn": continues_turn or not inserted,
                         }
                     )
                     if not inserted:
+                        capture_offset_ms = None
                         continue
                     playback_end_ms = None
                     playback_eligible = False
+                    if continues_turn:
+                        capture_offset_ms = None
+                        current_segment_id = str(uuid.uuid4())
+                        continue
 
                     # 2. Trigger AI turn
                     await websocket.send_json({"type": "ai.speaking", "isSpeaking": True})
@@ -549,7 +530,6 @@ async def session_websocket_endpoint(
                     # Reset for next turn
                     capture_offset_ms = None
                     current_segment_id = str(uuid.uuid4())
-                    current_user_text = ""
 
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected for session %s", session_id)

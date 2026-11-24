@@ -99,6 +99,16 @@ export class AdminConsoleService {
     return this.http.post<void>(`${this.base}/users/${id}/force-logout`, null);
   }
 
+  analytics(period: Schemas['AdminAnalytics']['range']) {
+    return this.http.get<Schemas['AdminAnalytics']>(`${this.base}/analytics/overview`, {
+      params: this.params({ range: period }),
+    });
+  }
+
+  auditLogs(filters: Record<string, string>) {
+    return this.http.get<Schemas['AdminAuditPage']>(`${this.base}/audit-logs`, { params: this.params(filters) });
+  }
+
   private params(filters: Record<string, string>): HttpParams {
     let params = new HttpParams();
     for (const [name, value] of Object.entries(filters)) {

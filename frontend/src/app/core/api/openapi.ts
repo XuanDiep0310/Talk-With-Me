@@ -1507,6 +1507,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/analytics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Analytics */
+        get: operations["analytics_api_v1_admin_analytics_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audit Logs */
+        get: operations["audit_logs_api_v1_admin_audit_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1633,6 +1667,85 @@ export interface components {
             role?: ("LEARNER" | "ADMIN") | null;
             /** Isactive */
             isActive?: boolean | null;
+        };
+        /** AdminAnalytics */
+        AdminAnalytics: {
+            /**
+             * Range
+             * @enum {string}
+             */
+            range: "7d" | "30d";
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /** Timezone */
+            timezone: string;
+            /** Activetoday */
+            activeToday: number;
+            /** Activelastsevendays */
+            activeLastSevenDays: number;
+            /** Days */
+            days: components["schemas"]["AnalyticsDay"][];
+            /** Cefr */
+            cefr: {
+                [key: string]: number;
+            };
+            speakingMinutes: components["schemas"]["AnalyticsMeasurement"];
+            sttConfidence: components["schemas"]["AnalyticsMeasurement"];
+            /** Skills */
+            skills: components["schemas"]["AnalyticsSkill"][];
+            /** Feedbackstatuses */
+            feedbackStatuses: {
+                [key: string]: number;
+            };
+            /** Popularscenarios */
+            popularScenarios: components["schemas"]["AnalyticsScenario"][];
+            /** Difficultscenarios */
+            difficultScenarios: components["schemas"]["AnalyticsScenario"][];
+        };
+        /** AdminAuditItem */
+        AdminAuditItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Source */
+            source: string;
+            /** Actorid */
+            actorId: string | null;
+            /** Actoremail */
+            actorEmail: string | null;
+            /** Targettype */
+            targetType: string;
+            /** Targetid */
+            targetId: string;
+            /** Action */
+            action: string;
+            /** Before */
+            before: {
+                [key: string]: unknown;
+            } | null;
+            /** After */
+            after: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            /** Traceid */
+            traceId: string;
+        };
+        /** AdminAuditPage */
+        AdminAuditPage: {
+            /** Items */
+            items: components["schemas"]["AdminAuditItem"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
         };
         /** AdminBadge */
         AdminBadge: {
@@ -2393,6 +2506,60 @@ export interface components {
              * Format: date-time
              */
             createdAt: string;
+        };
+        /** AnalyticsDay */
+        AnalyticsDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Coachsessions */
+            coachSessions: number;
+            /** Roleplaysessions */
+            roleplaySessions: number;
+            /** Activelearners */
+            activeLearners: number;
+            /** Ispartial */
+            isPartial: boolean;
+        };
+        /** AnalyticsMeasurement */
+        AnalyticsMeasurement: {
+            /** Average */
+            average: number | null;
+            /** Samplecount */
+            sampleCount: number;
+        };
+        /** AnalyticsScenario */
+        AnalyticsScenario: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Attempts */
+            attempts: number;
+            /** Evaluatedattempts */
+            evaluatedAttempts: number;
+            /** Failedattempts */
+            failedAttempts: number;
+            /** Failurerate */
+            failureRate: number | null;
+        };
+        /** AnalyticsSkill */
+        AnalyticsSkill: {
+            /** Average */
+            average: number | null;
+            /** Samplecount */
+            sampleCount: number;
+            /** Skill */
+            skill: string;
+            /** Formulaversion */
+            formulaVersion: string;
+            /** Isreference */
+            isReference: boolean;
         };
         /** AnswerResponse */
         AnswerResponse: {
@@ -7596,6 +7763,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionFeedbackResponse"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    analytics_api_v1_admin_analytics_overview_get: {
+        parameters: {
+            query?: {
+                range?: "7d" | "30d";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAnalytics"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    audit_logs_api_v1_admin_audit_logs_get: {
+        parameters: {
+            query?: {
+                fromDate?: string | null;
+                toDate?: string | null;
+                action?: string | null;
+                targetType?: string | null;
+                traceId?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditPage"];
                 };
             };
             /** @description Authentication required */

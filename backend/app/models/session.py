@@ -13,7 +13,18 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -59,6 +70,9 @@ class Session(Base, TimestampMixin):
     """Shared practice session (COACH, ROLEPLAY) across the application."""
 
     __tablename__ = "sessions"
+    __table_args__ = (
+        Index("ix_sessions_ended_at", "ended_at", postgresql_where=text("ended_at IS NOT NULL")),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     # COACH | ROLEPLAY

@@ -44,7 +44,7 @@
       </p>
       <div class="actions">
         <button class="action primary" type="button" [disabled]="busy()" (click)="act(actionDialog, account)">Xác nhận</button>
-        <button class="action" type="button" [disabled]="busy()" (click)="actionDialog.close()" autofocus>Hủy</button>
+        <button class="action" type="button" [disabled]="busy()" (click)="actionDialog.close()" data-cancel>Hủy</button>
       </div>
     </dialog>
   </section>

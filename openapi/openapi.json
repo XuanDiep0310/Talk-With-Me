@@ -5529,6 +5529,250 @@
           }
         }
       }
+    },
+    "/api/v1/admin/analytics/overview": {
+      "get": {
+        "tags": [
+          "Admin Reporting"
+        ],
+        "summary": "Analytics",
+        "operationId": "analytics_api_v1_admin_analytics_overview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "7d",
+                "30d"
+              ],
+              "type": "string",
+              "default": "7d",
+              "title": "Range"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAnalytics"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/audit-logs": {
+      "get": {
+        "tags": [
+          "Admin Reporting"
+        ],
+        "summary": "Audit Logs",
+        "operationId": "audit_logs_api_v1_admin_audit_logs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "fromDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fromdate"
+            }
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Todate"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 50
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "name": "targetType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 40
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Targettype"
+            }
+          },
+          {
+            "name": "traceId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 255
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Traceid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 25,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAuditPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5853,6 +6097,223 @@
         },
         "type": "object",
         "title": "AdminAccountUpdate"
+      },
+      "AdminAnalytics": {
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "7d",
+              "30d"
+            ],
+            "title": "Range"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generatedat"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "activeToday": {
+            "type": "integer",
+            "title": "Activetoday"
+          },
+          "activeLastSevenDays": {
+            "type": "integer",
+            "title": "Activelastsevendays"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsDay"
+            },
+            "type": "array",
+            "title": "Days"
+          },
+          "cefr": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Cefr"
+          },
+          "speakingMinutes": {
+            "$ref": "#/components/schemas/AnalyticsMeasurement"
+          },
+          "sttConfidence": {
+            "$ref": "#/components/schemas/AnalyticsMeasurement"
+          },
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsSkill"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "feedbackStatuses": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Feedbackstatuses"
+          },
+          "popularScenarios": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsScenario"
+            },
+            "type": "array",
+            "title": "Popularscenarios"
+          },
+          "difficultScenarios": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsScenario"
+            },
+            "type": "array",
+            "title": "Difficultscenarios"
+          }
+        },
+        "type": "object",
+        "required": [
+          "range",
+          "generatedAt",
+          "timezone",
+          "activeToday",
+          "activeLastSevenDays",
+          "days",
+          "cefr",
+          "speakingMinutes",
+          "sttConfidence",
+          "skills",
+          "feedbackStatuses",
+          "popularScenarios",
+          "difficultScenarios"
+        ],
+        "title": "AdminAnalytics"
+      },
+      "AdminAuditItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "actorId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actorid"
+          },
+          "actorEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actoremail"
+          },
+          "targetType": {
+            "type": "string",
+            "title": "Targettype"
+          },
+          "targetId": {
+            "type": "string",
+            "title": "Targetid"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurredat"
+          },
+          "traceId": {
+            "type": "string",
+            "title": "Traceid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "actorId",
+          "actorEmail",
+          "targetType",
+          "targetId",
+          "action",
+          "before",
+          "after",
+          "occurredAt",
+          "traceId"
+        ],
+        "title": "AdminAuditItem"
+      },
+      "AdminAuditPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAuditItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "AdminAuditPage"
       },
       "AdminBadge": {
         "properties": {
@@ -7955,6 +8416,151 @@
           "createdAt"
         ],
         "title": "AdminXpTransaction"
+      },
+      "AnalyticsDay": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "coachSessions": {
+            "type": "integer",
+            "title": "Coachsessions"
+          },
+          "roleplaySessions": {
+            "type": "integer",
+            "title": "Roleplaysessions"
+          },
+          "activeLearners": {
+            "type": "integer",
+            "title": "Activelearners"
+          },
+          "isPartial": {
+            "type": "boolean",
+            "title": "Ispartial"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "coachSessions",
+          "roleplaySessions",
+          "activeLearners",
+          "isPartial"
+        ],
+        "title": "AnalyticsDay"
+      },
+      "AnalyticsMeasurement": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "sampleCount": {
+            "type": "integer",
+            "title": "Samplecount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "average",
+          "sampleCount"
+        ],
+        "title": "AnalyticsMeasurement"
+      },
+      "AnalyticsScenario": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "evaluatedAttempts": {
+            "type": "integer",
+            "title": "Evaluatedattempts"
+          },
+          "failedAttempts": {
+            "type": "integer",
+            "title": "Failedattempts"
+          },
+          "failureRate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurerate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "attempts",
+          "evaluatedAttempts",
+          "failedAttempts",
+          "failureRate"
+        ],
+        "title": "AnalyticsScenario"
+      },
+      "AnalyticsSkill": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "sampleCount": {
+            "type": "integer",
+            "title": "Samplecount"
+          },
+          "skill": {
+            "type": "string",
+            "title": "Skill"
+          },
+          "formulaVersion": {
+            "type": "string",
+            "title": "Formulaversion"
+          },
+          "isReference": {
+            "type": "boolean",
+            "title": "Isreference"
+          }
+        },
+        "type": "object",
+        "required": [
+          "average",
+          "sampleCount",
+          "skill",
+          "formulaVersion",
+          "isReference"
+        ],
+        "title": "AnalyticsSkill"
       },
       "AnswerResponse": {
         "properties": {

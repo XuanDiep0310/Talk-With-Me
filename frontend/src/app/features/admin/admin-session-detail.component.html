@@ -15,7 +15,7 @@
       <div><dt>Bắt đầu</dt><dd>{{ (item.startedAt | date:'dd/MM/yyyy HH:mm:ss') ?? 'N/A' }}</dd></div>
       <div><dt>Kết thúc</dt><dd>{{ (item.endedAt | date:'dd/MM/yyyy HH:mm:ss') ?? 'N/A' }}</dd></div>
       <div><dt>Thời lượng phiên</dt><dd>{{ item.endedAt ? ((item.durationSeconds | number:'1.0-1') + ' giây') : 'N/A' }}</dd></div>
-      <div><dt>Thời lượng nói đo được</dt><dd>{{ item.spokenSeconds == null ? 'N/A' : ((item.spokenSeconds | number:'1.0-1') + ' giây') }}</dd></div>
+      <div><dt>Thời lượng nói đo được</dt><dd>{{ item.spokenSeconds === null ? 'N/A' : ((item.spokenSeconds | number:'1.0-1') + ' giây') }}</dd></div>
       <div><dt>Lượt đối thoại</dt><dd>{{ item.turnCount }}</dd></div>
       <div><dt>Lý do kết thúc</dt><dd>{{ item.endReason ?? 'N/A' }}</dd></div>
       <div><dt>Trạng thái chấm</dt><dd>{{ item.feedbackStatus ? (statuses[item.feedbackStatus] || item.feedbackStatus) : 'Chưa có bản ghi' }}</dd></div>
@@ -91,7 +91,7 @@
               <dl class="form-grid text-sm">
                 <div><dt>STT confidence (tham khảo)</dt><dd>{{ (segment.confidence | number:'1.2-3') ?? 'N/A' }}</dd></div>
                 <div><dt>Thời lượng nói (ms)</dt><dd>{{ segment.speechMs ?? 'N/A' }}</dd></div>
-                <div><dt>Khoảng ngừng dài</dt><dd>{{ segment.longPauseCount == null ? 'N/A' : segment.longPauseCount + ' · ' + segment.longPauseMs + ' ms' }}</dd></div>
+                <div><dt>Khoảng ngừng dài</dt><dd>{{ (segment.longPauseCount ?? null) === null ? 'N/A' : segment.longPauseCount + ' · ' + segment.longPauseMs + ' ms' }}</dd></div>
                 <div><dt>Số từ / từ đệm</dt><dd>{{ segment.wordCount ?? 'N/A' }} / {{ segment.fillerCount ?? 'N/A' }}</dd></div>
                 <div><dt>Độ trễ trả lời (ms)</dt><dd>{{ segment.responseLatencyMs ?? 'N/A' }}</dd></div>
               </dl>

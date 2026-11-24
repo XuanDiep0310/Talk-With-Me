@@ -58,6 +58,14 @@ export const adminRoutes: Routes = [
         path: 'users/:id',
         loadComponent: () => import('./admin-user-detail.component').then((m) => m.AdminUserDetailComponent)
       },
+      {
+        path: 'analytics',
+        loadComponent: () => import('./admin-analytics.component').then((m) => m.AdminAnalyticsComponent)
+      },
+      {
+        path: 'audit-logs',
+        loadComponent: () => import('./admin-audit-logs.component').then((m) => m.AdminAuditLogsComponent)
+      },
       { path: '**', redirectTo: 'scenarios' }
     ]
   }

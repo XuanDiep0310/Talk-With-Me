@@ -227,6 +227,7 @@ test('admin creates and replaces a scenario visible to a learner', async ({ page
 
 test('admin reviews and enables an AI Coach topic', async ({ page, request }) => {
   test.skip(process.env.RUN_ADMIN_E2E !== 'true', 'Requires an isolated DB and the admin CLI');
+  test.setTimeout(60_000);
   const admin = await register(request, 'topic-editor');
   execFileSync(process.env.PLAYWRIGHT_PYTHON ?? 'python', ['-m', 'scripts.admin_role', 'grant', admin.id], {
     cwd: resolve('backend'),
@@ -252,6 +253,7 @@ test('admin reviews and enables an AI Coach topic', async ({ page, request }) =>
 
 test('admin edits a rule and opens the XP ledger', async ({ page, request }) => {
   test.skip(process.env.RUN_ADMIN_E2E !== 'true', 'Requires an isolated DB and the admin CLI');
+  test.setTimeout(60_000);
   const admin = await register(request, 'gamification-admin');
   execFileSync(process.env.PLAYWRIGHT_PYTHON ?? 'python', ['-m', 'scripts.admin_role', 'grant', admin.id], {
     cwd: resolve('backend'), env: process.env,
@@ -274,6 +276,7 @@ test('admin edits a rule and opens the XP ledger', async ({ page, request }) => 
 
 test('admin inspects a session and revokes the learner login', async ({ page, request }) => {
   test.skip(process.env.RUN_ADMIN_E2E !== 'true', 'Requires an isolated DB and the admin CLI');
+  test.setTimeout(60_000);
   const admin = await register(request, 'qa-admin');
   const learner = await register(request, 'qa-learner');
   execFileSync(process.env.PLAYWRIGHT_PYTHON ?? 'python', ['-m', 'scripts.admin_role', 'grant', admin.id], {
@@ -305,4 +308,39 @@ test('admin inspects a session and revokes the learner login', async ({ page, re
   await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận' }).click();
   await expect(page.getByRole('status')).toContainText('Đã thu hồi các phiên đăng nhập');
   expect((await request.get(api + '/me', { headers: learner.headers })).status()).toBe(401);
+});
+
+test('admin refreshes analytics and searches the audit log', async ({ page, request }) => {
+  test.skip(process.env.RUN_ADMIN_E2E !== 'true', 'Requires an isolated DB and the admin CLI');
+  test.setTimeout(60_000);
+  const admin = await register(request, 'report-admin');
+  execFileSync(process.env.PLAYWRIGHT_PYTHON ?? 'python', ['-m', 'scripts.admin_role', 'grant', admin.id], {
+    cwd: resolve('backend'), env: process.env,
+  });
+  const traceId = randomUUID();
+  const topic = await request.post(api + '/admin/coach-topics', {
+    headers: { ...admin.headers, 'X-Trace-Id': traceId },
+    data: { title: 'Practice cafes', category: 'Daily Communication', minLevel: 'A1', description: 'Order a drink and ask the price.' },
+  });
+  expect(topic.status()).toBe(201);
+  await prepareBrowser(page);
+  await page.goto('/admin/analytics');
+  await logIn(page, admin.email);
+  await expect(page.getByRole('heading', { name: 'Phiên kết thúc theo ngày' })).toBeVisible();
+  await page.getByRole('button', { name: '30 ngày', exact: true }).click();
+  await page.getByText('Xem số liệu theo ngày').click();
+  await expect(page.getByRole('row').filter({ hasText: 'Đang diễn ra' })).toBeVisible();
+  await page.getByRole('button', { name: 'Làm mới' }).click();
+
+  await page.getByRole('link', { name: 'Kiểm toán', exact: true }).click();
+  await page.getByLabel('Mã vết').fill(traceId);
+  const filtered = page.waitForResponse((response) =>
+    new URL(response.url()).searchParams.get('traceId') === traceId && response.ok());
+  await page.getByRole('button', { name: 'Lọc nhật ký' }).click();
+  await filtered;
+  await expect(page.locator('tbody tr')).toHaveCount(1);
+  const event = page.getByRole('row').filter({ hasText: traceId });
+  await expect(event).toContainText('COACH_TOPIC_CREATED');
+  await event.getByText('Xem thay đổi', { exact: true }).click();
+  await expect(event.getByText(/Practice cafes/)).toBeVisible();
 });

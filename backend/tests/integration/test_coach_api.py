@@ -346,13 +346,16 @@ async def test_ws_ticket_and_websocket_flow(test_env: dict) -> None:
     # 3. Connect via session_websocket_endpoint with AsyncMock WebSocket
     mock_ws = AsyncMock(spec=WebSocket)
     user_seg_id = str(uuid.uuid4())
+    filler_id = str(uuid.uuid4())
     messages_to_receive = [
         {"type": "ping"},
+        {"type": "user.text", "segmentId": filler_id, "text": "I think, um"},
         {
             "type": "user.text",
             "segmentId": user_seg_id,
             "text": "I really love traveling to ancient cities.",
         },
+        {"type": "user.text", "segmentId": user_seg_id, "text": "This is a replay."},
     ]
     sent_messages = []
 
@@ -391,9 +394,13 @@ async def test_ws_ticket_and_websocket_flow(test_env: dict) -> None:
             m.get("type") == "transcript.final" and "traveling" in m.get("text", "")
             for m in sent_messages
         )
-        assert any(
-            m.get("type") == "ai.message" and len(m.get("text", "")) > 0 for m in sent_messages
-        )
+        assert len([m for m in sent_messages if m.get("type") == "ai.message"]) == 1
+        filler = next(m for m in sent_messages if m.get("segmentId") == filler_id)
+        assert filler["continuesTurn"] is True and filler["confidence"] is None
+        final = [m for m in sent_messages if m.get("segmentId") == user_seg_id]
+        assert len(final) == 2 and final[0]["seq"] == final[1]["seq"]
+        assert final[0]["text"] == final[1]["text"]
+        assert final[1]["continuesTurn"] is True
 
         # 4. Verify ticket reuse is rejected (one-time use)
         mock_ws_reused = AsyncMock(spec=WebSocket)
@@ -413,3 +420,20 @@ async def test_ws_ticket_and_websocket_flow(test_env: dict) -> None:
 
         assert any(m.get("code") == "INVALID_WS_TICKET" for m in reused_sent)
         mock_ws_reused.close.assert_awaited_once_with(code=4003)
+
+
+@pytest.mark.asyncio
+async def test_practice_websocket_hides_ticket_from_server_scope() -> None:
+    from app.core.ws_privacy import PracticeSocketQueryPrivacy
+
+    path = "/api/v1/ws/sessions/fixture"
+    scope = {"type": "websocket", "path": path, "query_string": b"ticket=fixture&lastSeq=3"}
+    downstream = AsyncMock()
+    receive, send = AsyncMock(), AsyncMock()
+    middleware = PracticeSocketQueryPrivacy(downstream, "/api/v1/ws/sessions/")
+
+    await middleware(scope, receive, send)
+
+    assert scope["query_string"] == b""
+    received = downstream.await_args.args[0]
+    assert received["query_string"] == b"ticket=fixture&lastSeq=3"

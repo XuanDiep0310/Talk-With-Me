@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import Field, StringConstraints, model_validator
+from pydantic import AwareDatetime, Field, StringConstraints, model_validator
 
 from app.models.scenario_schemas import BaseScenarioSchema
 
@@ -90,7 +90,13 @@ class AdminXpFilters(BaseScenarioSchema):
     learner: str | None = Field(default=None, max_length=255)
     rule_key: str | None = Field(default=None, max_length=50)
     idempotency_key: str | None = Field(default=None, max_length=150)
-    from_date: datetime | None = None
-    to_date: datetime | None = None
+    from_date: AwareDatetime | None = None
+    to_date: AwareDatetime | None = None
     cursor: str | None = Field(default=None, max_length=512)
     limit: int = Field(default=25, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def validate_range(self) -> "AdminXpFilters":
+        if self.from_date and self.to_date and self.from_date >= self.to_date:
+            raise ValueError("Date range must be increasing.")
+        return self

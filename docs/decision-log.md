@@ -55,3 +55,5 @@ Ghi lại mọi quyết định kỹ thuật và thiết kế quan trọng, đ�
 | D-49 | Danh mục AI Coach | Admin quản trị chủ đề và duyệt bản nháp AI. Chủ đề ẩn chỉ dành cho lịch sử, phiên mới chụp ngữ cảnh tại lúc tạo. Seed bổ sung theo ID ổn định. | 11 | DECIDED |
 | D-50 | Cấu hình XP và nhiệm vụ | XP của nhiệm vụ lấy từ mức mặc định hoặc mức ghi đè. Snapshot tại lúc cấp giữ cam kết với người học. Seed chỉ bổ sung. Sổ cái giữ tính bất biến. | 12 | DECIDED |
 | D-51 | Đặc trưng giọng nói và Session QA | Lưu văn bản, số đo và nguồn khi chốt đoạn STT. Dữ liệu không xác minh được hiển thị N/A. Truy cập transcript và retry có audit. Thu hồi phiên dùng phiên bản xác thực cho HTTP và WebSocket. | 13 | DECIDED |
+| D-52 | Báo cáo trực tiếp và audit hợp nhất | Tổng hợp PostgreSQL trên dữ liệu đã commit, nhóm ngày UTC+7, ghi số mẫu và tách theo công thức. Audit hợp nhất theo thời điểm, nguồn và ID. | 14 | DECIDED |
+| D-53 | Tương thích lịch sử và đăng nhập Admin | Giữ các phiên đã kết thúc trong lịch sử kể cả khi thiếu số đo và bảo toàn liên kết khi đăng nhập vào các trang Admin mới. Bỏ query ticket khỏi thông điệp kết nối của máy chủ ASGI. | 14 | DECIDED |

@@ -34,12 +34,14 @@ class AdminGamificationService:
             raise HTTPException(
                 404, detail={"code": "XP_RULE_NOT_FOUND", "message": "XP rule not found."}
             )
-        before = AdminXpRule.model_validate(rule).model_dump()
+        before = AdminXpRule.model_validate(rule).model_dump(by_alias=True)
         for field, value in body.model_dump(exclude_unset=True).items():
             setattr(rule, field, value)
         result = AdminXpRule.model_validate(rule)
-        if before != result.model_dump():
-            self.audit.record("XP_RULE_UPDATED", "XP_RULE", key, before, result.model_dump())
+        if before != result.model_dump(by_alias=True):
+            self.audit.record(
+                "XP_RULE_UPDATED", "XP_RULE", key, before, result.model_dump(by_alias=True)
+            )
         await self.db.commit()
         return result
 
@@ -65,12 +67,14 @@ class AdminGamificationService:
                     "message": "Streak missions support one event per day.",
                 },
             )
-        before = AdminMission.model_validate(mission).model_dump()
+        before = AdminMission.model_validate(mission).model_dump(by_alias=True)
         for field, value in body.model_dump(exclude_unset=True).items():
             setattr(mission, field, value)
         result = AdminMission.model_validate(mission)
-        if before != result.model_dump():
-            self.audit.record("MISSION_UPDATED", "MISSION", key, before, result.model_dump())
+        if before != result.model_dump(by_alias=True):
+            self.audit.record(
+                "MISSION_UPDATED", "MISSION", key, before, result.model_dump(by_alias=True)
+            )
         await self.db.commit()
         return result
 

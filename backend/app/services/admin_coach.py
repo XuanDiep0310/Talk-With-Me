@@ -37,7 +37,10 @@ class AdminCoachService:
         self.db.add(item)
         result = AdminCoachTopic.model_validate(item)
         self.audit.record(
-            "COACH_TOPIC_CREATED", "COACH_TOPIC", item.id, after=result.model_dump(mode="json")
+            "COACH_TOPIC_CREATED",
+            "COACH_TOPIC",
+            item.id,
+            after=result.model_dump(mode="json", by_alias=True),
         )
         await self.db.commit()
         return result
@@ -48,11 +51,11 @@ class AdminCoachService:
             raise HTTPException(
                 404, detail={"code": "COACH_TOPIC_NOT_FOUND", "message": "Coach topic not found."}
             )
-        before = AdminCoachTopic.model_validate(item).model_dump(mode="json")
+        before = AdminCoachTopic.model_validate(item).model_dump(mode="json", by_alias=True)
         for name, value in body.model_dump(exclude_unset=True).items():
             setattr(item, name, value)
         result = AdminCoachTopic.model_validate(item)
-        after = result.model_dump(mode="json")
+        after = result.model_dump(mode="json", by_alias=True)
         if before != after:
             self.audit.record("COACH_TOPIC_UPDATED", "COACH_TOPIC", item.id, before, after)
         await self.db.commit()

@@ -68,7 +68,10 @@ class CoachTopicRepository:
         ).all()
 
     async def ensure_defaults(self) -> None:
-        existing = set(await self.db.scalars(select(CoachTopic.id)))
+        seed_ids = [uuid.UUID(item["id"]) for item in COACH_TOPICS_SEED]
+        existing = set(
+            await self.db.scalars(select(CoachTopic.id).where(CoachTopic.id.in_(seed_ids)))
+        )
         missing = [
             {**item, "id": uuid.UUID(item["id"])}
             for item in COACH_TOPICS_SEED

@@ -60,6 +60,7 @@ export class AdminUserDetailComponent {
   protected confirm(dialog: HTMLDialogElement, action: Action): void {
     this.pending.set(action);
     dialog.showModal();
+    dialog.querySelector<HTMLButtonElement>('[data-cancel]')?.focus();
   }
 
   protected act(dialog: HTMLDialogElement, user: Schemas['AdminAccountDetail']): void {

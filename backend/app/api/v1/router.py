@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     admin_categories,
     admin_coach,
     admin_gamification,
+    admin_reporting,
     admin_scenarios,
     admin_sessions,
     auth,
@@ -40,3 +41,4 @@ api_router.include_router(admin_accounts.router)
 api_router.include_router(admin_coach.router)
 api_router.include_router(admin_gamification.router)
 api_router.include_router(admin_sessions.router)
+api_router.include_router(admin_reporting.router)

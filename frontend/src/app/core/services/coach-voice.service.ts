@@ -161,6 +161,7 @@ export class CoachVoiceService {
     suggestions?: SuggestedReply[];
     seq?: number;
     isSpeaking?: boolean;
+    continuesTurn?: boolean;
     code?: string;
     message?: string;
     aiVoice?: 'female' | 'male';
@@ -206,7 +207,9 @@ export class CoachVoiceService {
             msg.translation
           );
 
-          if (msg.speaker === 'USER') {
+          if (msg.speaker === 'USER' && msg.continuesTurn) {
+            this.uxState.set('ready');
+          } else if (msg.speaker === 'USER') {
             this.uxState.set('processing');
             // Auto-play user's recorded turn first time right after finishing
             this.playSegmentAudio(item);
