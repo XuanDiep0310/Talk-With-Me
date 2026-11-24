@@ -28,8 +28,12 @@ export class AdminAnalyticsComponent {
   protected readonly metrics = skillLabels;
   protected readonly statuses = sessionStatuses;
   protected readonly statusKeys = ['FEEDBACK_READY', 'PENDING', 'INSUFFICIENT_DATA', 'FAILED', 'NOT_REQUESTED'];
-  protected readonly maxActivity = computed(() =>
-    Math.max(1, ...(this.data()?.days.map((day) => day.coachSessions + day.roleplaySessions) ?? [])));
+  protected readonly chartDay = signal<Overview['days'][number] | null>(null);
+  protected readonly chartStep = computed(() => {
+    const maximum = Math.max(1, ...(this.data()?.days.map((day) => day.coachSessions + day.roleplaySessions) ?? []));
+    return Math.ceil(maximum / 4);
+  });
+  protected readonly yTicks = computed(() => [0, 1, 2, 3, 4].map((tick) => tick * this.chartStep()));
   protected readonly levelTotal = computed(() =>
     Object.values(this.data()?.cefr ?? {}).reduce((total, count) => total + count, 0));
   protected readonly totalFeedback = computed(() =>
@@ -60,11 +64,12 @@ export class AdminAnalyticsComponent {
     if (period !== this.period()) {
       this.period.set(period);
       this.data.set(null);
+      this.chartDay.set(null);
       this.refresh();
     }
   }
 
   protected height(count: number): number {
-    return count / this.maxActivity() * 115;
+    return count / (this.chartStep() * 4) * 128;
   }
 }

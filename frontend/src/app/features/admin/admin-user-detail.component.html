@@ -53,8 +53,8 @@
     <h2 id="skill-title">Năng lực giao tiếp</h2>
     <dl class="form-grid mt-3">
       <div><dt>CEFR hiện tại</dt><dd>{{ account.cefrLevel ?? 'Chưa xác định' }}</dd></div>
-      <div><dt>Mục tiêu</dt><dd>{{ account.goals.join(', ') || 'Chưa chọn' }}</dd></div>
-      <div><dt>Kỹ năng cần cải thiện</dt><dd>{{ account.weakPoints.join(', ') || 'Chưa chọn' }}</dd></div>
+      <div><dt>Mục tiêu</dt><dd>{{ account.goalLabels.join(', ') || 'Chưa chọn' }}</dd></div>
+      <div><dt>Kỹ năng cần cải thiện</dt><dd>{{ account.weakPointLabels.join(', ') || 'Chưa chọn' }}</dd></div>
     </dl>
     <div class="table-wrap mt-4">
       <table>

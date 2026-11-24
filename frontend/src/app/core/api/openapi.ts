@@ -1611,6 +1611,10 @@ export interface components {
             goals: string[];
             /** Weakpoints */
             weakPoints: string[];
+            /** Goallabels */
+            goalLabels: string[];
+            /** Weakpointlabels */
+            weakPointLabels: string[];
             /** Skills */
             skills: components["schemas"]["AdminSkillAverage"][];
             /** Totalxp */
@@ -1684,15 +1688,15 @@ export interface components {
             timezone: string;
             /** Activetoday */
             activeToday: number;
-            /** Activelastsevendays */
-            activeLastSevenDays: number;
+            /** Activeinperiod */
+            activeInPeriod: number;
             /** Days */
             days: components["schemas"]["AnalyticsDay"][];
             /** Cefr */
             cefr: {
                 [key: string]: number;
             };
-            speakingMinutes: components["schemas"]["AnalyticsMeasurement"];
+            speakingMinutes: components["schemas"]["AnalyticsSpeakingTime"];
             sttConfidence: components["schemas"]["AnalyticsMeasurement"];
             /** Skills */
             skills: components["schemas"]["AnalyticsSkill"][];
@@ -1700,6 +1704,8 @@ export interface components {
             feedbackStatuses: {
                 [key: string]: number;
             };
+            /** Popularcoachtopics */
+            popularCoachTopics: components["schemas"]["AnalyticsCoachTopic"][];
             /** Popularscenarios */
             popularScenarios: components["schemas"]["AnalyticsScenario"][];
             /** Difficultscenarios */
@@ -2507,6 +2513,18 @@ export interface components {
              */
             createdAt: string;
         };
+        /** AnalyticsCoachTopic */
+        AnalyticsCoachTopic: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Attempts */
+            attempts: number;
+        };
         /** AnalyticsDay */
         AnalyticsDay: {
             /**
@@ -2560,6 +2578,15 @@ export interface components {
             formulaVersion: string;
             /** Isreference */
             isReference: boolean;
+        };
+        /** AnalyticsSpeakingTime */
+        AnalyticsSpeakingTime: {
+            /** Average */
+            average: number | null;
+            /** Samplecount */
+            sampleCount: number;
+            /** Legacysamplecount */
+            legacySampleCount: number;
         };
         /** AnswerResponse */
         AnswerResponse: {

@@ -9,3 +9,6 @@ D-49 đến D-53 ghi các quyết định về chủ đề, phần thưởng nhi
 Bộ kiểm thử backend đạt 370 ca unit, integration và Schemathesis với PostgreSQL và Redis kiểm thử. Nhóm Coach, WebSocket và Scoring chạy lại đạt 11 ca sau cập nhật quyền riêng tư của ticket. Frontend đạt 116 ca và Playwright đạt 5 luồng Admin trên production build với provider Fake. Ruff, mypy và ESLint đều qua. Angular build thành công với cảnh báo ngân sách sẵn có của `admin.scss`.
 
 Đã nâng Alembic trên DB trống, hạ một phiên bản rồi nâng lại. Cả bốn migration Sprint 11–14 cũng đã được rollback về Sprint 10 và chạy lại thành công trên DB thử nghiệm. OpenAPI và kiểu dữ liệu Angular đã được tái sinh.
+
+Đợt sửa sau review đồng bộ thẻ học viên với khoảng 7 hoặc 30 ngày và tính hoạt động đang diễn ra từ phiên đã kích hoạt, cùng bài placement đã hoàn tất. Báo cáo hiển thị số mẫu thời lượng lịch sử ước tính. Trang thêm xếp hạng chủ đề AI Coach, trục và số liệu khi chọn cột. Tìm kiếm phiên hỗ trợ họ tên, danh sách tài khoản ưu tiên đăng ký mới nhất và hồ sơ lấy nhãn tiếng Việt từ danh mục onboarding. Các thay đổi được ghi ở D-54.
+Đợt sửa đã qua 6 ca hồi quy và hợp đồng API, Ruff, mypy, ESLint và Angular build. Cả API và bundle Angular local đã phục vụ trường activeInPeriod.

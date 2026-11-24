@@ -3,7 +3,7 @@
   @if (userId) { <a class="action" [routerLink]="['/admin/users', userId]">Về hồ sơ học viên</a> }
 </div>
 <form class="panel filter-form" (ngSubmit)="load()">
-  <label>Email hoặc tên bài/chủ đề <input type="search" maxlength="255" name="q" [(ngModel)]="filters.q"></label>
+  <label>Tên học viên, email hoặc tên bài/chủ đề <input type="search" maxlength="255" name="q" [(ngModel)]="filters.q"></label>
   <label>Loại phiên <select name="type" [(ngModel)]="filters.type">
     <option value="">Tất cả</option><option value="COACH">AI Coach</option><option value="ROLEPLAY">Tình huống</option>
   </select></label>

@@ -21,7 +21,7 @@ class AdminAccountSummary(BaseScenarioSchema):
 
 class AdminAccountPage(BaseScenarioSchema):
     items: list[AdminAccountSummary]
-    next_cursor: uuid.UUID | None
+    next_cursor: str | None
 
 
 class AdminAccountUpdate(BaseScenarioSchema):
@@ -79,6 +79,8 @@ class AdminAccountDetail(AdminAccountSummary):
     login_methods: list[str]
     goals: list[str]
     weak_points: list[str]
+    goal_labels: list[str]
+    weak_point_labels: list[str]
     skills: list[AdminSkillAverage]
     total_xp: int
     current_streak: int

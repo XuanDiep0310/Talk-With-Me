@@ -25,13 +25,11 @@ class AdminReportingService:
         now = get_clock().now()
         today = now.astimezone(REPORT_ZONE).date()
         first = today - timedelta(days=6 if period == "7d" else 29)
-        week = today - timedelta(days=6)
         totals = await self.analytics.overview(
             timezone=REPORT_ZONE.key,
             first_day=first,
             last_day=today,
             start_at=datetime.combine(first, time.min, REPORT_ZONE).astimezone(UTC),
-            week_start=datetime.combine(week, time.min, REPORT_ZONE).astimezone(UTC),
             generated_at=now,
         )
         result = AdminAnalytics.model_validate(

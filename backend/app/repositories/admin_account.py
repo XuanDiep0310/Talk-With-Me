@@ -20,7 +20,7 @@ class AdminAccountRepository:
         self.db = db
 
     async def search(
-        self, q: str | None, cursor: uuid.UUID | None, limit: int
+        self, q: str | None, cursor: str | None, limit: int
     ) -> list[tuple[User, str | None, int]]:
         count = (
             select(func.count(Session.id))
@@ -31,7 +31,7 @@ class AdminAccountRepository:
         stmt = (
             select(User, UserProfile.cefr_level, count)
             .outerjoin(UserProfile, UserProfile.user_id == User.id)
-            .order_by(User.id)
+            .order_by(User.created_at.desc(), User.id.desc())
             .limit(limit)
         )
         if q:
@@ -42,7 +42,20 @@ class AdminAccountRepository:
                 )
             )
         if cursor:
-            stmt = stmt.where(User.id > cursor)
+            try:
+                legacy_id = uuid.UUID(cursor)
+            except ValueError:
+                at, account_id, _ = decode_cursor(cursor)
+            else:
+                created_at = await self.db.scalar(
+                    select(User.created_at).where(User.id == legacy_id)
+                )
+                if created_at is None:
+                    return []
+                at, account_id = created_at, legacy_id
+            stmt = stmt.where(
+                tuple_(User.created_at, User.id) < tuple_(literal(at), literal(account_id))
+            )
         return [(user, level, completed) for user, level, completed in await self.db.execute(stmt)]
 
     async def lock_management_accounts(

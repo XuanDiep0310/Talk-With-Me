@@ -32,7 +32,7 @@ Accounts = Annotated[AdminAccountService, Depends(get_account_service)]
 async def list_accounts(
     accounts: Accounts,
     q: SearchText | None = None,
-    cursor: uuid.UUID | None = None,
+    cursor: Annotated[str | None, Query(max_length=512)] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
 ) -> AdminAccountPage:
     return await accounts.list(q, cursor, limit)

@@ -43,6 +43,7 @@ class AdminSessionRepository:
             query = query.where(
                 or_(
                     User.email.icontains(filters.q, autoescape=True),
+                    User.full_name.icontains(filters.q, autoescape=True),
                     self.title.icontains(filters.q, autoescape=True),
                     Scenario.title_en.icontains(filters.q, autoescape=True),
                 )

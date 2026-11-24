@@ -12,9 +12,12 @@
   <p class="secondary mb-4" role="status">Cập nhật {{ report.generatedAt | date:'dd/MM/yyyy HH:mm:ss':'+0700' }} · UTC+7 · Hôm nay đang diễn ra</p>
   <div class="form-grid">
     <section class="panel"><h2>Học viên hôm nay</h2><p class="mt-2 text-2xl font-bold">{{ report.activeToday }}</p></section>
-    <section class="panel"><h2>Học viên 7 ngày</h2><p class="mt-2 text-2xl font-bold">{{ report.activeLastSevenDays }}</p></section>
+    <section class="panel"><h2>Học viên {{ report.range === "7d" ? 7 : 30 }} ngày</h2><p class="mt-2 text-2xl font-bold">{{ report.activeInPeriod }}</p></section>
     <section class="panel"><h2>Phút nói trung bình</h2><p class="mt-2 text-2xl font-bold">{{ (report.speakingMinutes.average | number:'1.0-2') ?? 'N/A' }}</p>
-      <span class="secondary">{{ report.speakingMinutes.sampleCount }} phiên có số đo</span></section>
+      <span class="secondary">{{ report.speakingMinutes.sampleCount }} phiên có dữ liệu
+        @if (report.speakingMinutes.legacySampleCount) {
+          · {{ report.speakingMinutes.legacySampleCount }} phiên dùng thời lượng lịch sử ước tính
+        }</span></section>
     <section class="panel"><h2>STT confidence</h2><p class="mt-2 text-2xl font-bold">{{ (report.sttConfidence.average | percent:'1.0-1') ?? 'N/A' }}</p>
       <span class="secondary">{{ report.sttConfidence.sampleCount }} đoạn · tham khảo</span></section>
   </div>
@@ -25,15 +28,35 @@
       <span class="flex items-center gap-2"><span class="size-3 rounded bg-blue-600" aria-hidden="true"></span>AI Coach</span>
       <span class="flex items-center gap-2"><span class="size-3 rounded bg-teal-600" aria-hidden="true"></span>Roleplay</span>
     </div>
-    <svg class="block max-h-52 w-full" viewBox="0 0 700 125" preserveAspectRatio="none" aria-hidden="true">
-      <line x1="0" x2="700" y1="120" y2="120" class="stroke-slate-300"/>
-      @for (day of report.days; track day.day; let i = $index) {
-        <rect class="fill-blue-600" [attr.x]="i * (700 / report.days.length) + 3"
-          [attr.width]="700 / report.days.length - 6" [attr.y]="120 - height(day.coachSessions)" [attr.height]="height(day.coachSessions)"/>
-        <rect class="fill-teal-600" [attr.x]="i * (700 / report.days.length) + 3"
-          [attr.width]="700 / report.days.length - 6" [attr.y]="120 - height(day.coachSessions + day.roleplaySessions)" [attr.height]="height(day.roleplaySessions)"/>
-      }
-    </svg>
+    <div class="overflow-x-auto">
+      <svg class="block w-full min-w-[480px]" viewBox="0 0 700 175" aria-label="Số phiên kết thúc theo ngày">
+        @for (tick of yTicks(); track tick) {
+          <line x1="42" x2="696" [attr.y1]="144 - height(tick)" [attr.y2]="144 - height(tick)" class="stroke-slate-300"/>
+          <text x="36" [attr.y]="148 - height(tick)" text-anchor="end" class="fill-slate-700 text-[11px]">{{ tick }}</text>
+        }
+        @for (day of report.days; track day.day; let i = $index) {
+          @let x = 42 + i * (654 / report.days.length);
+          @let width = 654 / report.days.length;
+          <g tabindex="0" role="img"
+            [attr.aria-label]="day.day + ', AI Coach ' + day.coachSessions + ', Roleplay ' + day.roleplaySessions"
+            (mouseenter)="chartDay.set(day)" (mouseleave)="chartDay.set(null)"
+            (focus)="chartDay.set(day)" (blur)="chartDay.set(null)">
+            <title>{{ day.day }} · AI Coach {{ day.coachSessions }} · Roleplay {{ day.roleplaySessions }}</title>
+            <rect [attr.x]="x" y="16" [attr.width]="width" height="128" fill="transparent"/>
+            <rect class="fill-blue-600" [attr.x]="x + 3" [attr.width]="width - 6"
+              [attr.y]="144 - height(day.coachSessions)" [attr.height]="height(day.coachSessions)"/>
+            <rect class="fill-teal-600" [attr.x]="x + 3" [attr.width]="width - 6"
+              [attr.y]="144 - height(day.coachSessions + day.roleplaySessions)" [attr.height]="height(day.roleplaySessions)"/>
+          </g>
+          @if (report.days.length === 7 || i % 5 === 0 || $last) {
+            <text [attr.x]="x + width / 2" y="163" text-anchor="middle" class="fill-slate-700 text-[11px]">{{ day.day | date:'dd/MM':'+0700' }}</text>
+          }
+        }
+      </svg>
+    </div>
+    @if (chartDay(); as day) {
+      <p class="status" role="status">{{ day.day | date:'dd/MM/yyyy':'+0700' }} · AI Coach {{ day.coachSessions }} · Roleplay {{ day.roleplaySessions }}</p>
+    }
     <details class="mt-3">
       <summary class="text-link cursor-pointer">Xem số liệu theo ngày</summary>
       <div class="table-wrap">
@@ -81,6 +104,16 @@
         } @empty { <tr><td colspan="4">Chưa có điểm trong khoảng đã chọn.</td></tr> }</tbody>
       </table>
     </div>
+  </section>
+
+  <section class="panel" aria-labelledby="coach-topics-title">
+    <h2 id="coach-topics-title">Chủ đề AI Coach được luyện nhiều nhất</h2>
+    <table class="mt-3">
+      <thead><tr><th scope="col">Chủ đề</th><th scope="col">Lượt</th></tr></thead>
+      <tbody>@for (topic of report.popularCoachTopics; track topic.id) {
+        <tr><td>{{ topic.title }}</td><td>{{ topic.attempts }}</td></tr>
+      } @empty { <tr><td colspan="2">Chưa có lượt luyện theo chủ đề.</td></tr> }</tbody>
+    </table>
   </section>
 
   <div class="grid gap-4 lg:grid-cols-2">

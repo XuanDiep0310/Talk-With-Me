@@ -3684,7 +3684,7 @@
               "anyOf": [
                 {
                   "type": "string",
-                  "format": "uuid"
+                  "maxLength": 512
                 },
                 {
                   "type": "null"
@@ -5916,6 +5916,20 @@
             "type": "array",
             "title": "Weakpoints"
           },
+          "goalLabels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goallabels"
+          },
+          "weakPointLabels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weakpointlabels"
+          },
           "skills": {
             "items": {
               "$ref": "#/components/schemas/AdminSkillAverage"
@@ -5966,6 +5980,8 @@
           "loginMethods",
           "goals",
           "weakPoints",
+          "goalLabels",
+          "weakPointLabels",
           "skills",
           "totalXp",
           "currentStreak",
@@ -5988,8 +6004,7 @@
           "nextCursor": {
             "anyOf": [
               {
-                "type": "string",
-                "format": "uuid"
+                "type": "string"
               },
               {
                 "type": "null"
@@ -6121,9 +6136,9 @@
             "type": "integer",
             "title": "Activetoday"
           },
-          "activeLastSevenDays": {
+          "activeInPeriod": {
             "type": "integer",
-            "title": "Activelastsevendays"
+            "title": "Activeinperiod"
           },
           "days": {
             "items": {
@@ -6140,7 +6155,7 @@
             "title": "Cefr"
           },
           "speakingMinutes": {
-            "$ref": "#/components/schemas/AnalyticsMeasurement"
+            "$ref": "#/components/schemas/AnalyticsSpeakingTime"
           },
           "sttConfidence": {
             "$ref": "#/components/schemas/AnalyticsMeasurement"
@@ -6158,6 +6173,13 @@
             },
             "type": "object",
             "title": "Feedbackstatuses"
+          },
+          "popularCoachTopics": {
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsCoachTopic"
+            },
+            "type": "array",
+            "title": "Popularcoachtopics"
           },
           "popularScenarios": {
             "items": {
@@ -6180,13 +6202,14 @@
           "generatedAt",
           "timezone",
           "activeToday",
-          "activeLastSevenDays",
+          "activeInPeriod",
           "days",
           "cefr",
           "speakingMinutes",
           "sttConfidence",
           "skills",
           "feedbackStatuses",
+          "popularCoachTopics",
           "popularScenarios",
           "difficultScenarios"
         ],
@@ -8417,6 +8440,30 @@
         ],
         "title": "AdminXpTransaction"
       },
+      "AnalyticsCoachTopic": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "attempts"
+        ],
+        "title": "AnalyticsCoachTopic"
+      },
       "AnalyticsDay": {
         "properties": {
           "day": {
@@ -8561,6 +8608,36 @@
           "isReference"
         ],
         "title": "AnalyticsSkill"
+      },
+      "AnalyticsSpeakingTime": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "sampleCount": {
+            "type": "integer",
+            "title": "Samplecount"
+          },
+          "legacySampleCount": {
+            "type": "integer",
+            "title": "Legacysamplecount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "average",
+          "sampleCount",
+          "legacySampleCount"
+        ],
+        "title": "AnalyticsSpeakingTime"
       },
       "AnswerResponse": {
         "properties": {

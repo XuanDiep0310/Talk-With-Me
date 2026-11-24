@@ -22,6 +22,16 @@ class AnalyticsMeasurement(BaseScenarioSchema):
     sample_count: int
 
 
+class AnalyticsSpeakingTime(AnalyticsMeasurement):
+    legacy_sample_count: int
+
+
+class AnalyticsCoachTopic(BaseScenarioSchema):
+    id: uuid.UUID
+    title: str
+    attempts: int
+
+
 class AnalyticsSkill(AnalyticsMeasurement):
     skill: str
     formula_version: str
@@ -42,13 +52,14 @@ class AdminAnalytics(BaseScenarioSchema):
     generated_at: datetime
     timezone: str
     active_today: int
-    active_last_seven_days: int
+    active_in_period: int
     days: list[AnalyticsDay]
     cefr: dict[str, int]
-    speaking_minutes: AnalyticsMeasurement
+    speaking_minutes: AnalyticsSpeakingTime
     stt_confidence: AnalyticsMeasurement
     skills: list[AnalyticsSkill]
     feedback_statuses: dict[str, int]
+    popular_coach_topics: list[AnalyticsCoachTopic]
     popular_scenarios: list[AnalyticsScenario]
     difficult_scenarios: list[AnalyticsScenario]
 

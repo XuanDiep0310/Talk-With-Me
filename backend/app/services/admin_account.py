@@ -22,6 +22,7 @@ from app.repositories.admin_account import AdminAccountRepository
 from app.repositories.admin_scenario import AdminScenarioRepository
 from app.repositories.auth import AuthRepository
 from app.repositories.gamification import GamificationRepository
+from app.seeds.onboarding_catalog import GOALS, WEAK_POINTS
 from app.seeds.scenario_loader import seed_scenarios_if_empty
 from app.services.admin_audit import AdminAudit
 
@@ -33,7 +34,7 @@ class AdminAccountService:
         self.trace_id = trace_id
         self.repo = AdminAccountRepository(db)
 
-    async def list(self, q: str | None, cursor: uuid.UUID | None, limit: int) -> AdminAccountPage:
+    async def list(self, q: str | None, cursor: str | None, limit: int) -> AdminAccountPage:
         rows = await self.repo.search(q, cursor, limit + 1)
         return AdminAccountPage(
             items=[
@@ -51,7 +52,11 @@ class AdminAccountService:
                 )
                 for user, level, count in rows[:limit]
             ],
-            next_cursor=rows[limit - 1][0].id if len(rows) > limit else None,
+            next_cursor=(
+                encode_cursor(rows[limit - 1][0].created_at, rows[limit - 1][0].id)
+                if len(rows) > limit
+                else None
+            ),
         )
 
     async def update(self, target_id: uuid.UUID, body: AdminAccountUpdate) -> None:
@@ -128,6 +133,10 @@ class AdminAccountService:
             )
         profile = user.profile
         gamification = user.gamification_profile
+        goals = _preference_list(profile.goals if profile else None)
+        weak_points = _preference_list(profile.weak_points if profile else None)
+        goal_labels = {item["key"]: item["label"] for item in GOALS}
+        weak_point_labels = {item["key"]: item["label"] for item in WEAK_POINTS}
         issued, completed = await self.repo.mission_totals(user_id)
         badges = await GamificationRepository(self.db).get_user_badges(user_id)
         return AdminAccountDetail(
@@ -147,8 +156,10 @@ class AdminAccountService:
                 ({identity.provider for identity in user.identities})
                 | ({"password"} if user.password_hash else set())
             ),
-            goals=_preference_list(profile.goals if profile else None),
-            weak_points=_preference_list(profile.weak_points if profile else None),
+            goals=goals,
+            weak_points=weak_points,
+            goal_labels=[goal_labels.get(key, key) for key in goals],
+            weak_point_labels=[weak_point_labels.get(key, key) for key in weak_points],
             skills=await self.repo.skills(user_id),
             total_xp=gamification.total_xp if gamification else 0,
             current_streak=gamification.current_streak if gamification else 0,

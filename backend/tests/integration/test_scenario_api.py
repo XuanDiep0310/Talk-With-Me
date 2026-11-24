@@ -1131,6 +1131,7 @@ async def test_session_qa_scopes_pagination_and_serializes_retry(
             headers=admin,
             params={
                 "label": "UNUSUAL_SCORE",
+                "q": "other learner",
                 "userId": str(env["other_user_id"]),
             },
         )
@@ -1182,9 +1183,16 @@ async def test_admin_force_logout_revokes_access_refresh_and_ticket(
     assert session.status_code == 201
     ticket = (await client.post("/api/v1/ws-tickets", headers=learner)).json()["ticket"]
     user_route = f"/api/v1/admin/users/{env['other_user_id']}"
+    async with env["db_factory"].begin() as db:
+        preferences = await db.get(UserProfile, env["other_user_id"])
+        assert preferences is not None
+        preferences.goals = '["job_interview"]'
+        preferences.weak_points = '["pronunciation"]'
     profile = await client.get(user_route, headers=admin)
     assert profile.status_code == 200, profile.text
     assert profile.json()["loginMethods"] == ["password"]
+    assert profile.json()["goalLabels"] == ["Phỏng vấn xin việc"]
+    assert profile.json()["weakPointLabels"] == ["Phát âm"]
     assert (await client.post(user_route + "/force-logout", headers=admin)).status_code == 204
     assert (await client.get("/api/v1/me", headers=learner)).status_code == 401
     assert (
@@ -1209,9 +1217,10 @@ async def test_admin_analytics_uses_local_days_and_fresh_measured_data(
 ) -> None:
     from types import SimpleNamespace
 
+    from app.models.onboarding import PlacementTest
     from app.models.scenario import RoleplayEvaluation
     from app.models.scoring import SessionFeedback, SessionSkillScore
-    from app.models.session import Session, TranscriptSegment
+    from app.models.session import CoachTopic, Session, TranscriptSegment
 
     now = datetime(2026, 11, 24, 18, 0, tzinfo=UTC)
     monkeypatch.setattr(
@@ -1229,8 +1238,8 @@ async def test_admin_analytics_uses_local_days_and_fresh_measured_data(
     response = await client.get(path, headers=admin)
     assert response.status_code == 200, response.text
     before = response.json()
-    assert before["speakingMinutes"] == {"average": None, "sampleCount": 0}
-    assert before["activeToday"] == before["activeLastSevenDays"] == 0
+    assert before["speakingMinutes"] == {"average": None, "sampleCount": 0, "legacySampleCount": 0}
+    assert before["activeToday"] == before["activeInPeriod"] == 0
     assert len(before["days"]) == 7
     assert before["days"][-1]["day"] == "2026-11-25"
     assert before["days"][-1]["isPartial"]
@@ -1240,8 +1249,36 @@ async def test_admin_analytics_uses_local_days_and_fresh_measured_data(
         scenario_id = await db.scalar(select(Scenario.id).limit(1))
         assert scenario_id is not None
         boundary = datetime(2026, 11, 24, 17, 0, tzinfo=UTC)
+        active_id, placement_id, older_id, created_id = (uuid.uuid4() for _ in range(4))
+        topic_id = uuid.uuid4()
+        db.add(
+            CoachTopic(
+                id=topic_id, title="Travel plans", category="Travel", description="Plan a trip"
+            )
+        )
+        for user_id in (active_id, placement_id, older_id, created_id):
+            db.add(User(id=user_id, email=f"{user_id}@example.com", full_name="Analytics fixture"))
+        await db.flush()
         db.add_all(
             [
+                Session(
+                    user_id=active_id,
+                    type="COACH",
+                    level="A1",
+                    status="ACTIVE",
+                    started_at=boundary - timedelta(seconds=1),
+                ),
+                Session(
+                    user_id=created_id,
+                    type="COACH",
+                    level="A1",
+                    status="CREATED",
+                    started_at=boundary,
+                ),
+                PlacementTest(
+                    user_id=older_id, status="COMPLETED", completed_at=boundary - timedelta(days=12)
+                ),
+                PlacementTest(user_id=placement_id, status="COMPLETED", completed_at=boundary),
                 Session(
                     id=today,
                     user_id=learner_id,
@@ -1250,6 +1287,7 @@ async def test_admin_analytics_uses_local_days_and_fresh_measured_data(
                     status="FEEDBACK_READY",
                     ended_at=boundary,
                     speech_features_version=1,
+                    topic_id=topic_id,
                 ),
                 Session(
                     id=yesterday,
@@ -1259,6 +1297,7 @@ async def test_admin_analytics_uses_local_days_and_fresh_measured_data(
                     scenario_id=scenario_id,
                     status="FEEDBACK_READY",
                     ended_at=boundary - timedelta(seconds=1),
+                    spoken_seconds=120,
                 ),
                 Session(
                     id=pending,
@@ -1309,14 +1348,17 @@ async def test_admin_analytics_uses_local_days_and_fresh_measured_data(
                 SessionSkillScore(session_id=today, skill_name="listening", score=None),
             ]
         )
+    week = await client.get(path, headers=admin)
+    assert week.json()["activeInPeriod"] == 3
     response = await client.get(path, headers=admin, params={"range": "30d"})
     assert response.status_code == 200, response.text
     report = response.json()
     assert len(report["days"]) == 30
-    assert report["activeToday"] == report["activeLastSevenDays"] == 1
+    assert report["activeToday"] == report["days"][-1]["activeLearners"] == 3
+    assert report["activeInPeriod"] == 4
     assert report["days"][-2]["roleplaySessions"] == 1
     assert report["days"][-1]["coachSessions"] == report["days"][-1]["roleplaySessions"] == 1
-    assert report["speakingMinutes"] == {"average": 1.0, "sampleCount": 1}
+    assert report["speakingMinutes"] == {"average": 1.5, "sampleCount": 2, "legacySampleCount": 1}
     assert report["sttConfidence"] == {"average": 0.8, "sampleCount": 1}
     assert report["feedbackStatuses"]["NOT_REQUESTED"] == 2
     assert report["skills"] == [
@@ -1327,6 +1369,9 @@ async def test_admin_analytics_uses_local_days_and_fresh_measured_data(
             "average": 80.0,
             "sampleCount": 1,
         }
+    ]
+    assert report["popularCoachTopics"] == [
+        {"id": str(topic_id), "title": "Travel plans", "attempts": 1}
     ]
     hardest = report["difficultScenarios"][0]
     assert (hardest["attempts"], hardest["evaluatedAttempts"], hardest["failureRate"]) == (2, 1, 1)
@@ -1397,3 +1442,40 @@ async def test_admin_audit_merges_sources_and_keeps_cursor_stable(
         next(event for event in rows if event["source"] == "ACCOUNT")["after"]["isActive"] is False
     )
     assert next(event for event in rows if event["source"] == "SCENARIO")["before"] is None
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["sqlite", "postgresql"], indirect=True)
+async def test_admin_accounts_page_uses_newest_date_and_stable_ties(
+    scenario_test_env: dict,
+) -> None:
+    env = scenario_test_env
+    admin = await grant_scenario_admin(env)
+    async with env["db_factory"].begin() as db:
+        times = [datetime(2026, 1, 2, tzinfo=UTC)] * 2 + [datetime(2026, 1, 1, tzinfo=UTC)]
+        ids = [*sorted((uuid.uuid4(), uuid.uuid4()), reverse=True), uuid.uuid4()]
+        for user_id, created_at in zip(ids, times, strict=True):
+            db.add(
+                User(
+                    id=user_id,
+                    email=f"{user_id}@example.com",
+                    full_name="Cursor fixture",
+                    created_at=created_at,
+                )
+            )
+    path = "/api/v1/admin/users"
+    params = {"q": "Cursor fixture", "limit": 2}
+    first = await env["client"].get(path, headers=admin, params=params)
+    assert first.status_code == 200, first.text
+    assert [entry["id"] for entry in first.json()["items"]] == [str(item) for item in ids[:2]]
+    second = await env["client"].get(
+        path,
+        headers=admin,
+        params={
+            **params,
+            "cursor": first.json()["nextCursor"],
+        },
+    )
+    assert second.status_code == 200, second.text
+    assert [entry["id"] for entry in second.json()["items"]] == [str(ids[2])]
+    assert second.json()["nextCursor"] is None
