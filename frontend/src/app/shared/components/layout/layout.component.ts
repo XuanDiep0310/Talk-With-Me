@@ -7,6 +7,7 @@ import { GamificationService } from '../../../core/services/gamification.service
 import { GamificationSummaryResponse, NotificationItem } from '../../../core/models/gamification.models';
 import { AppPage } from '../../../core/models/app.models';
 import { formatDateTimeDDMMYYYY } from '../../../core/utils/date.utils';
+import { resolveAvatarUrl } from '../../../core/utils/avatar.utils';
 
 interface NavItem {
   id: AppPage;
@@ -366,13 +367,7 @@ export class LayoutComponent implements OnInit {
   });
 
   readonly userAvatar = computed(() => {
-    const raw = this.authService.currentUser()?.avatarUrl;
-    if (raw) {
-      if (raw.startsWith('http')) return raw;
-      if (raw.startsWith('/')) return `http://localhost:8000${raw}`;
-      return raw;
-    }
-    return null;
+    return resolveAvatarUrl(this.authService.currentUser()?.avatarUrl);
   });
 
   readonly userInitial = computed(() => {

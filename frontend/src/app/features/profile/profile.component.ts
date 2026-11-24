@@ -6,6 +6,7 @@ import { AuthService, mapApiError } from '../../core/services/auth.service';
 import { UserService } from '../../core/services/user.service';
 import { ToastService } from '../../core/services/toast.service';
 import { GamificationService } from '../../core/services/gamification.service';
+import { resolveAvatarUrl } from '../../core/utils/avatar.utils';
 
 @Component({
   selector: 'app-profile',
@@ -330,13 +331,7 @@ export class ProfileComponent implements OnInit {
   });
 
   readonly avatarUrl = computed(() => {
-    const userAvatar = this.authService.currentUser()?.avatarUrl;
-    if (userAvatar) {
-      if (userAvatar.startsWith('http')) return userAvatar;
-      if (userAvatar.startsWith('/')) return `http://localhost:8000${userAvatar}`;
-      return userAvatar;
-    }
-    return null;
+    return resolveAvatarUrl(this.authService.currentUser()?.avatarUrl);
   });
 
   readonly userInitial = computed(() => {
