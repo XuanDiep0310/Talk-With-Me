@@ -38,6 +38,34 @@ export const adminRoutes: Routes = [
         canDeactivate: [confirmUnsavedChanges],
         loadComponent: () => import('./admin-editor.component').then((m) => m.AdminEditorComponent)
       },
+      {
+        path: 'coach-topics',
+        loadComponent: () => import('./admin-coach-topics.component').then((m) => m.AdminCoachTopicsComponent)
+      },
+      {
+        path: 'gamification',
+        loadComponent: () => import('./admin-gamification.component').then((m) => m.AdminGamificationComponent)
+      },
+      {
+        path: 'sessions',
+        loadComponent: () => import('./admin-sessions.component').then((m) => m.AdminSessionsComponent)
+      },
+      {
+        path: 'sessions/:id',
+        loadComponent: () => import('./admin-session-detail.component').then((m) => m.AdminSessionDetailComponent)
+      },
+      {
+        path: 'users/:id',
+        loadComponent: () => import('./admin-user-detail.component').then((m) => m.AdminUserDetailComponent)
+      },
+      {
+        path: 'analytics',
+        loadComponent: () => import('./admin-analytics.component').then((m) => m.AdminAnalyticsComponent)
+      },
+      {
+        path: 'audit-logs',
+        loadComponent: () => import('./admin-audit-logs.component').then((m) => m.AdminAuditLogsComponent)
+      },
       { path: '**', redirectTo: 'scenarios' }
     ]
   }

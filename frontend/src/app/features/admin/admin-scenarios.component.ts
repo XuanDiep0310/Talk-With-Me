@@ -1,5 +1,5 @@
 import { KeyValuePipe } from '@angular/common';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -30,6 +30,20 @@ export class AdminScenariosComponent {
   protected readonly error = signal('');
   protected readonly notice = signal('');
   protected readonly categoryNames = signal(categories);
+  protected readonly groupedRows = computed(() => {
+    const groups = new Map<string, ScenarioSummary[]>();
+    for (const row of this.rows()) {
+      const list = groups.get(row.category) ?? [];
+      list.push(row);
+      groups.set(row.category, list);
+    }
+    const names = this.categoryNames();
+    return [...groups.entries()].map(([code, items]) => ({
+      code,
+      label: names[code] || code,
+      items,
+    }));
+  });
   protected readonly levels = levels;
   protected readonly statuses = statuses;
   protected readonly tabs = ['PUBLISHED', 'DRAFT', 'ARCHIVED'] as const;
@@ -111,6 +125,16 @@ export class AdminScenariosComponent {
       const status = row.status === 'PUBLISHED' ? 'ARCHIVED' : 'PUBLISHED';
       await firstValueFrom(this.api.setStatus(row.id, { status, revision: row.revision }));
       this.notice.set(status === 'ARCHIVED' ? 'Đã ẩn bài học.' : 'Bài học đã xuất hiện trong thư viện.');
+      this.search();
+    });
+  }
+
+  protected async remove(row: ScenarioSummary): Promise<void> {
+    if (row.status === 'PUBLISHED') return;
+    if (!window.confirm(`Xóa bài học “${row.titleVi || row.titleEn || row.slug}”?`)) return;
+    await this.run(row, async () => {
+      await firstValueFrom(this.api.delete(row.id));
+      this.notice.set('Đã xóa bài học.');
       this.search();
     });
   }

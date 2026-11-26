@@ -21,12 +21,14 @@ from app.models.coach_schemas import (
     TranscriptSegmentResponse,
 )
 from app.models.session import CoachTopic, Session, TranscriptSegment
+from app.repositories.scenario_category import ScenarioCategoryRepository
 from app.repositories.session import CoachTopicRepository, SessionRepository, TranscriptRepository
 from app.repositories.user import UserRepository
 from app.services.session_state_machine import (
     SessionState,
     SessionStateMachine,
 )
+from app.services.speech_features import apply_speech_features
 from app.services.topic_ranking import rank_topics
 
 
@@ -45,7 +47,7 @@ class CoachService:
 
     async def list_topics(self, user_id: uuid.UUID, q: str | None = None) -> CoachTopicsResponse:
         # 1. Ensure seed topics exist
-        await self.topic_repo.seed_defaults_if_empty()
+        await self.topic_repo.ensure_defaults()
 
         # 2. Get user learning profile for personalization
         user = await self.user_repo.get_by_id(user_id)
@@ -76,6 +78,8 @@ class CoachService:
 
         # 3. Retrieve active topics (filtered by search query if present)
         topics = await self.topic_repo.list_topics(q=q, active_only=True)
+        category_rows = await ScenarioCategoryRepository(self.db).list_with_counts()
+        category_names = {cat.code: cat.name_vi for cat, _ in category_rows}
 
         # 4. Score and rank topics for "Recommended for you" group
         ranked = rank_topics(
@@ -89,7 +93,7 @@ class CoachService:
         recommended_schemas: list[CoachTopicSchema] = [
             CoachTopicSchema(
                 id=t.id,
-                category=t.category,
+                category=category_names.get(t.category, t.category),
                 title=t.title,
                 description=t.description,
                 min_level=t.min_level,
@@ -103,16 +107,17 @@ class CoachService:
         # 5. Group topics by category
         groups_dict: dict[str, list[CoachTopicSchema]] = {}
         for t in topics:
+            cat_label = category_names.get(t.category, t.category)
             schema = CoachTopicSchema(
                 id=t.id,
-                category=t.category,
+                category=cat_label,
                 title=t.title,
                 description=t.description,
                 min_level=t.min_level,
                 target_skills=t.target_skills or [],
                 is_active=t.is_active,
             )
-            groups_dict.setdefault(t.category, []).append(schema)
+            groups_dict.setdefault(cat_label, []).append(schema)
 
         group_schemas = [
             CoachTopicGroupSchema(category=cat, topics=topic_list)
@@ -138,20 +143,20 @@ class CoachService:
 
         user_level = user.profile.cefr_level or "A1"
 
+        await self.topic_repo.ensure_defaults()
+
         # 2. Resolve topic
         topic: CoachTopic | None = None
         if data.topic_id:
-            topic = await self.topic_repo.get_by_id(data.topic_id)
-            if not topic:
+            topic = await self.topic_repo.get_locked(data.topic_id)
+            if not topic or not topic.is_active:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Coach topic not found",
                 )
         else:
             # Default to first active topic
-            topics = await self.topic_repo.list_topics(active_only=True)
-            if topics:
-                topic = topics[0]
+            topic = await self.topic_repo.first_active_locked()
 
         now = self.clock.now()
 
@@ -161,8 +166,10 @@ class CoachService:
             type="COACH",
             user_id=user_id,
             topic_id=topic.id if topic else None,
+            topic_snapshot=topic.context() if topic else {},
             level=user_level,
             status=SessionState.CREATED.value,
+            speech_features_version=1,
             started_at=now,
             duration_seconds=0.0,
             spoken_seconds=0.0,
@@ -231,7 +238,6 @@ class CoachService:
                 detail=f"Cannot add transcript segment when session is in status '{session.status}'",
             )
 
-        max_seq = await self.transcript_repo.get_max_seq(session_id)
         segment = TranscriptSegment(
             pk=uuid.uuid4(),
             id=data.id,
@@ -241,18 +247,15 @@ class CoachService:
             text=data.text,
             start_ms=data.start_ms,
             end_ms=data.end_ms,
-            confidence=data.confidence,
             is_final=data.is_final,
-            seq=max_seq + 1,
         )
-        saved = await self.transcript_repo.add_segment(segment)
-
-        # Update spoken seconds if speaker is USER
-        if data.speaker.upper() == "USER" and data.end_ms > data.start_ms:
-            delta_spoken = (data.end_ms - data.start_ms) / 1000.0
-            session.spoken_seconds += delta_spoken
-            await self.session_repo.save(session)
-
+        if segment.speaker == "USER":
+            apply_speech_features(segment, pause_threshold_ms=0)
+        else:
+            segment.speech_source = "AI"
+        saved, _ = await self.transcript_repo.add_active_segment(segment, user_id)
+        if saved is None:
+            raise HTTPException(400, detail="The session is no longer active.")
         return self._to_transcript_response(saved)
 
     async def list_transcripts(
@@ -339,17 +342,8 @@ class CoachService:
     def _to_session_response(
         self, session: Session, initial_message: str | None = None
     ) -> SessionResponse:
-        topic_schema: CoachTopicSchema | None = None
-        if session.topic:
-            topic_schema = CoachTopicSchema(
-                id=session.topic.id,
-                category=session.topic.category,
-                title=session.topic.title,
-                description=session.topic.description,
-                min_level=session.topic.min_level,
-                target_skills=session.topic.target_skills or [],
-                is_active=session.topic.is_active,
-            )
+        context = session.coach_context()
+        topic_schema = CoachTopicSchema.model_validate(context) if context else None
 
         transcript_schemas = [self._to_transcript_response(t) for t in (session.transcripts or [])]
 

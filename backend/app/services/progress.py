@@ -278,7 +278,7 @@ class ProgressService:
             .options(selectinload(Session.feedback), selectinload(Session.topic))
             .where(
                 Session.user_id == user_id,
-                Session.status.in_(["FEEDBACK_READY", "ENDED"]),
+                Session.status.in_(["FEEDBACK_READY", "ENDED", "INSUFFICIENT_DATA", "FAILED"]),
             )
         )
 
@@ -316,8 +316,8 @@ class ProgressService:
         for s in items_to_return:
             # Determine topic display name
             topic_title = "Luyện nói tự do"
-            if s.topic and s.topic.title:
-                topic_title = s.topic.title
+            if s.type == "COACH":
+                topic_title = s.coach_title(topic_title)
             elif s.scenario_id:
                 # Fetch scenario title if available
                 scen = await self._session.get(Scenario, s.scenario_id)

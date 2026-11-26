@@ -1,0 +1,131 @@
+<div class="page-heading">
+  <h1>Hồ sơ học viên</h1>
+  <a class="action" routerLink="/admin/users">Danh sách tài khoản</a>
+</div>
+@if (error()) { <p class="panel" role="alert">{{ error() }}</p> }
+@if (notice()) { <p class="panel" role="status">{{ notice() }}</p> }
+
+@if (user(); as account) {
+  <section class="panel" aria-labelledby="learner-name">
+    <div class="flex items-center gap-3">
+      @if (account.avatarUrl) {
+        <img [src]="account.avatarUrl" alt="" width="48" height="48" referrerpolicy="no-referrer" class="h-12 w-12 rounded-full object-cover">
+      }
+      <div>
+        <h2 id="learner-name">{{ account.fullName }}</h2>
+        <p class="secondary">{{ account.email }}</p>
+      </div>
+    </div>
+    <dl class="form-grid my-4">
+      <div><dt>Trạng thái</dt><dd>{{ account.isActive ? 'Đang hoạt động' : 'Đã khóa' }}</dd></div>
+      <div><dt>Vai trò</dt><dd>{{ account.role === 'ADMIN' ? 'Quản trị' : 'Học viên' }}</dd></div>
+      <div><dt>Đăng ký</dt><dd>{{ account.createdAt | date:'dd/MM/yyyy HH:mm' }}</dd></div>
+      <div><dt>Múi giờ</dt><dd>{{ account.timezone || 'N/A' }}</dd></div>
+      <div><dt>Phương thức đăng nhập</dt><dd>
+        @for (method of account.loginMethods; track method) { {{ logins[method] || method }}{{ $last ? '' : ', ' }} }
+        @empty { N/A }
+      </dd></div>
+    </dl>
+    @if (auth.currentUser()?.id !== account.id) {
+      <div class="actions">
+        <button class="action" type="button" (click)="confirm(actionDialog, 'role')">{{ account.role === 'ADMIN' ? 'Thu hồi quyền' : 'Cấp quyền admin' }}</button>
+        <button class="action" type="button" (click)="confirm(actionDialog, 'active')">{{ account.isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản' }}</button>
+        <button class="action" type="button" (click)="confirm(actionDialog, 'logout')">Thu hồi phiên đăng nhập</button>
+        @if (account.isActive && account.loginMethods.includes('password')) {
+          <button class="action" type="button" (click)="confirm(actionDialog, 'reset')">Gửi email đặt lại mật khẩu</button>
+        }
+      </div>
+    }
+    @if (account.role === 'LEARNER') {
+      <div class="actions mt-3">
+        <button class="action" type="button" (click)="confirm(actionDialog, 'level')">Điều chỉnh CEFR</button>
+        <button class="action" type="button" (click)="confirm(actionDialog, 'xp')">Cộng / trừ XP</button>
+      </div>
+    }
+    <dialog #actionDialog class="panel mx-auto my-auto max-w-sm" aria-labelledby="account-action-title">
+      <h2 id="account-action-title">Xác nhận thao tác</h2>
+      <p class="my-3">
+        @switch (pending()) {
+          @case ('reset') { Gửi liên kết đặt lại mật khẩu đến {{ account.email }}? }
+          @case ('level') { Cập nhật CEFR của {{ account.fullName }}. }
+          @case ('xp') { Số dư hiện tại của {{ account.fullName }} là {{ account.totalXp }} XP. }
+          @case ('logout') { Yêu cầu {{ account.fullName }} đăng nhập lại trên tất cả thiết bị? }
+          @case ('role') { Thay đổi quyền quản trị của {{ account.fullName }}? }
+          @case ('active') { {{ account.isActive ? 'Khóa' : 'Mở khóa' }} tài khoản của {{ account.fullName }}? }
+        }
+      </p>
+      @if (pending() === 'level') {
+        <label>Trình độ mới <select [(ngModel)]="level">
+          @for (choice of levels; track choice) { <option [value]="choice">{{ choice }}</option> }
+        </select></label>
+      }
+      @if (pending() === 'xp') {
+        <label>Số XP điều chỉnh <input type="number" min="-100000" max="100000" [(ngModel)]="amount" placeholder="Nhập số âm để trừ XP"></label>
+      }
+      @if (pending() === 'level' || pending() === 'xp') {
+        <label class="mt-2">Lý do <textarea [(ngModel)]="reason" maxlength="255" rows="3" required></textarea></label>
+      }
+      @if (error()) { <p role="alert" class="my-2">{{ error() }}</p> }
+      <div class="actions mt-3">
+        <button class="action primary" type="button" [disabled]="busy() || !valid(pending())" (click)="act(actionDialog, account)">Xác nhận</button>
+        <button class="action" type="button" [disabled]="busy()" (click)="actionDialog.close(); error.set('')" data-cancel>Hủy</button>
+      </div>
+    </dialog>
+  </section>
+
+  <section class="panel" aria-labelledby="skill-title">
+    <h2 id="skill-title">Năng lực giao tiếp</h2>
+    <dl class="form-grid mt-3">
+      <div><dt>CEFR hiện tại</dt><dd>{{ account.cefrLevel ?? 'Chưa xác định' }}</dd></div>
+      <div><dt>Mục tiêu</dt><dd>{{ account.goalLabels.join(', ') || 'Chưa chọn' }}</dd></div>
+      <div><dt>Kỹ năng cần cải thiện</dt><dd>{{ account.weakPointLabels.join(', ') || 'Chưa chọn' }}</dd></div>
+    </dl>
+    <div class="table-wrap mt-4">
+      <table>
+        <thead><tr><th scope="col">Kỹ năng</th><th scope="col">Trung bình</th><th scope="col">Số mẫu</th><th scope="col">Công thức</th></tr></thead>
+        <tbody>
+          @for (skill of account.skills; track skill.skill + skill.formulaVersion) {
+            <tr><td>{{ skillLabels[skill.skill] || skill.skill }} @if (skill.isReference) { <span class="status">tham khảo</span> }</td><td>{{ skill.average | number:'1.0-1' }}</td><td>{{ skill.sampleCount }}</td><td>{{ skill.formulaVersion }}</td></tr>
+          } @empty { <tr><td colspan="4">Chưa có dữ liệu đã chấm.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="engagement-title">
+    <h2 id="engagement-title">Tiến độ và phần thưởng</h2>
+    <dl class="form-grid mt-3">
+      <div><dt>Tổng XP</dt><dd>{{ account.totalXp }}</dd></div>
+      <div><dt>Streak hiện tại / kỷ lục</dt><dd>{{ account.currentStreak }} / {{ account.bestStreak }} ngày</dd></div>
+      <div><dt>Nhiệm vụ hoàn thành</dt><dd>{{ account.missionsCompleted }} / {{ account.missionsIssued }}
+        @if (account.missionsIssued) { · {{ (account.missionsCompleted / account.missionsIssued) | percent:'1.0-1' }} }
+      </dd></div>
+    </dl>
+    <h3 class="mt-4">Huy hiệu đã đạt</h3>
+    <ul class="form-grid">
+      @for (badge of account.badges; track badge.key) {
+        <li><span aria-hidden="true">{{ badge.iconEmoji }}</span> {{ badge.name }}<span class="secondary">{{ badge.awardedAt | date:'dd/MM/yyyy' }}</span></li>
+      } @empty { <li>Chưa đạt huy hiệu.</li> }
+    </ul>
+  </section>
+
+  <section class="panel" aria-labelledby="placement-title">
+    <div class="section-heading">
+      <h2 id="placement-title">Lịch sử Placement Test</h2>
+      <a class="action" routerLink="/admin/sessions" [queryParams]="{userId: account.id}">Xem lịch sử phiên</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Ngày</th><th scope="col">Trạng thái</th><th scope="col">Kết quả</th></tr></thead>
+        <tbody>
+          @for (record of placements(); track record.id) {
+            <tr><td>{{ (record.completedAt || record.createdAt) | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ placementStatuses[record.status] || record.status }}</td>
+              <td>{{ record.estimatedLevel ?? 'N/A' }} @if (record.isInsufficientData) { <span class="status">Thiếu dữ liệu</span> }</td></tr>
+          } @empty { <tr><td colspan="3">{{ loadingPlacements() ? 'Đang tải…' : 'Chưa có bài đánh giá.' }}</td></tr> }
+        </tbody>
+      </table>
+    </div>
+    @if (next(); as cursor) { <button type="button" class="action mt-3" [disabled]="loadingPlacements()" (click)="loadPlacements(cursor)">Tải thêm đánh giá</button> }
+  </section>
+} @else if (!error()) { <p role="status">Đang tải hồ sơ…</p> }

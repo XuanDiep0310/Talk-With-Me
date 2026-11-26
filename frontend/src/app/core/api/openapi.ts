@@ -909,7 +909,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get today's 4 daily missions */
+        /** Get today's issued daily missions */
         get: operations["get_today_missions_api_v1_missions_today_get"];
         put?: never;
         post?: never;
@@ -928,7 +928,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Claim completed daily mission reward (+50 XP) */
+        /** Claim a completed daily mission's issued XP reward */
         post: operations["claim_mission_api_v1_missions__mission_id__claim_post"];
         delete?: never;
         options?: never;
@@ -1106,7 +1106,8 @@ export interface paths {
         /** Admin Update Scenario */
         put: operations["admin_update_scenario_api_v1_admin_scenarios__id__put"];
         post?: never;
-        delete?: never;
+        /** Admin Delete Scenario */
+        delete: operations["admin_delete_scenario_api_v1_admin_scenarios__id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1206,7 +1207,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get Account */
+        get: operations["get_account_api_v1_admin_users__id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1225,6 +1227,435 @@ export interface paths {
         };
         /** Get Overview */
         get: operations["get_overview_api_v1_admin_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/placements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Placements */
+        get: operations["placements_api_v1_admin_users__id__placements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/force-logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Force Logout */
+        post: operations["force_logout_api_v1_admin_users__id__force_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/level": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Adjust Level */
+        patch: operations["adjust_level_api_v1_admin_users__id__level_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/xp-adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adjust Xp */
+        post: operations["adjust_xp_api_v1_admin_users__id__xp_adjustments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/password-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Password Reset */
+        post: operations["send_password_reset_api_v1_admin_users__id__password_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/coach-topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Topics */
+        get: operations["list_topics_api_v1_admin_coach_topics_get"];
+        put?: never;
+        /** Create Topic */
+        post: operations["create_topic_api_v1_admin_coach_topics_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/coach-topics/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate */
+        post: operations["generate_api_v1_admin_coach_topics_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/coach-topics/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Topic */
+        delete: operations["delete_topic_api_v1_admin_coach_topics__id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Topic */
+        patch: operations["update_topic_api_v1_admin_coach_topics__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/coach-topics/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Topic */
+        post: operations["move_topic_api_v1_admin_coach_topics__id__move_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gamification/xp-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rules */
+        get: operations["rules_api_v1_admin_gamification_xp_rules_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gamification/xp-rules/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Rule */
+        patch: operations["update_rule_api_v1_admin_gamification_xp_rules__key__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/gamification/missions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Missions */
+        get: operations["missions_api_v1_admin_gamification_missions_get"];
+        put?: never;
+        /** Create Mission */
+        post: operations["create_mission_api_v1_admin_gamification_missions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gamification/missions/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Mission */
+        patch: operations["update_mission_api_v1_admin_gamification_missions__key__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/gamification/badges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Badges */
+        get: operations["badges_api_v1_admin_gamification_badges_get"];
+        put?: never;
+        /** Create Badge */
+        post: operations["create_badge_api_v1_admin_gamification_badges_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gamification/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transactions */
+        get: operations["transactions_api_v1_admin_gamification_transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/gamification/badges/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Badge */
+        patch: operations["update_badge_api_v1_admin_gamification_badges__key__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sessions */
+        get: operations["list_sessions_api_v1_admin_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session */
+        get: operations["get_session_api_v1_admin_sessions__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}/transcript": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Transcript */
+        get: operations["get_transcript_api_v1_admin_sessions__id__transcript_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}/qa-labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Labels */
+        patch: operations["update_labels_api_v1_admin_sessions__id__qa_labels_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}/retry-feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Feedback */
+        post: operations["retry_feedback_api_v1_admin_sessions__id__retry_feedback_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}/qa-note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Note */
+        patch: operations["update_note_api_v1_admin_sessions__id__qa_note_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/sessions/{id}/reevaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reevaluate */
+        post: operations["reevaluate_api_v1_admin_sessions__id__reevaluate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/analytics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Analytics */
+        get: operations["analytics_api_v1_admin_analytics_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audit Logs */
+        get: operations["audit_logs_api_v1_admin_audit_logs_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1266,6 +1697,62 @@ export interface components {
              */
             isFinal: boolean;
         };
+        /** AdminAccountDetail */
+        AdminAccountDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Email */
+            email: string;
+            /** Fullname */
+            fullName: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Cefrlevel */
+            cefrLevel: string | null;
+            /** Completedsessions */
+            completedSessions: number;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "LEARNER" | "ADMIN";
+            /** Isactive */
+            isActive: boolean;
+            /** Avatarurl */
+            avatarUrl: string | null;
+            /** Timezone */
+            timezone: string | null;
+            /** Loginmethods */
+            loginMethods: string[];
+            /** Goals */
+            goals: string[];
+            /** Weakpoints */
+            weakPoints: string[];
+            /** Goallabels */
+            goalLabels: string[];
+            /** Weakpointlabels */
+            weakPointLabels: string[];
+            /** Skills */
+            skills: components["schemas"]["AdminSkillAverage"][];
+            /** Totalxp */
+            totalXp: number;
+            /** Currentstreak */
+            currentStreak: number;
+            /** Beststreak */
+            bestStreak: number;
+            /** Badges */
+            badges: components["schemas"]["AdminEarnedBadge"][];
+            /** Missionsissued */
+            missionsIssued: number;
+            /** Missionscompleted */
+            missionsCompleted: number;
+        };
         /** AdminAccountPage */
         AdminAccountPage: {
             /** Items */
@@ -1305,6 +1792,161 @@ export interface components {
         AdminAccountUpdate: {
             /** Role */
             role?: ("LEARNER" | "ADMIN") | null;
+            /** Isactive */
+            isActive?: boolean | null;
+        };
+        /** AdminAnalytics */
+        AdminAnalytics: {
+            /**
+             * Range
+             * @enum {string}
+             */
+            range: "7d" | "30d";
+            /**
+             * Generatedat
+             * Format: date-time
+             */
+            generatedAt: string;
+            /** Timezone */
+            timezone: string;
+            /** Activetoday */
+            activeToday: number;
+            /** Activeinperiod */
+            activeInPeriod: number;
+            /** Days */
+            days: components["schemas"]["AnalyticsDay"][];
+            /** Cefr */
+            cefr: {
+                [key: string]: number;
+            };
+            speakingMinutes: components["schemas"]["AnalyticsSpeakingTime"];
+            sttConfidence: components["schemas"]["AnalyticsMeasurement"];
+            /** Skills */
+            skills: components["schemas"]["AnalyticsSkill"][];
+            /** Feedbackstatuses */
+            feedbackStatuses: {
+                [key: string]: number;
+            };
+            /** Popularcoachtopics */
+            popularCoachTopics: components["schemas"]["AnalyticsCoachTopic"][];
+            /** Popularscenarios */
+            popularScenarios: components["schemas"]["AnalyticsScenario"][];
+            /** Difficultscenarios */
+            difficultScenarios: components["schemas"]["AnalyticsScenario"][];
+        };
+        /** AdminAuditItem */
+        AdminAuditItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Source */
+            source: string;
+            /** Actorid */
+            actorId: string | null;
+            /** Actoremail */
+            actorEmail: string | null;
+            /** Targettype */
+            targetType: string;
+            /** Targetid */
+            targetId: string;
+            /** Action */
+            action: string;
+            /** Before */
+            before: {
+                [key: string]: unknown;
+            } | null;
+            /** After */
+            after: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Occurredat
+             * Format: date-time
+             */
+            occurredAt: string;
+            /** Traceid */
+            traceId: string;
+        };
+        /** AdminAuditPage */
+        AdminAuditPage: {
+            /** Items */
+            items: components["schemas"]["AdminAuditItem"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** AdminBadge */
+        AdminBadge: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Iconemoji */
+            iconEmoji: string;
+            /** Category */
+            category: string;
+            /** Criteriatype */
+            criteriaType: string;
+            /** Targetvalue */
+            targetValue: number;
+            /** Minlevel */
+            minLevel?: string | null;
+            /** Isactive */
+            isActive: boolean;
+        };
+        /** AdminBadgeCreate */
+        AdminBadgeCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Iconemoji */
+            iconEmoji: string;
+            /**
+             * Category
+             * @default GENERAL
+             * @enum {string}
+             */
+            category: "PRACTICE" | "SCENARIO" | "STREAK" | "SKILL" | "LEVEL" | "GENERAL";
+            /**
+             * Criteriatype
+             * @enum {string}
+             */
+            criteriaType: "SESSIONS_COUNT" | "STREAK_DAYS" | "SCENARIOS_COMPLETED" | "FLUENCY_SCORE" | "SPEED_SCORE" | "CEFR_LEVEL";
+            /**
+             * Targetvalue
+             * @default 1
+             */
+            targetValue: number;
+            /** Minlevel */
+            minLevel?: ("A1" | "A2" | "B1" | "B2" | "C1") | null;
+            /**
+             * Isactive
+             * @default false
+             */
+            isActive: boolean;
+            /** Key */
+            key: string;
+        };
+        /** AdminBadgeUpdate */
+        AdminBadgeUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Iconemoji */
+            iconEmoji?: string | null;
+            /** Category */
+            category?: ("PRACTICE" | "SCENARIO" | "STREAK" | "SKILL" | "LEVEL" | "GENERAL") | null;
+            /** Criteriatype */
+            criteriaType?: ("SESSIONS_COUNT" | "STREAK_DAYS" | "SCENARIOS_COMPLETED" | "FLUENCY_SCORE" | "SPEED_SCORE" | "CEFR_LEVEL") | null;
+            /** Targetvalue */
+            targetValue?: number | null;
+            /** Minlevel */
+            minLevel?: ("A1" | "A2" | "B1" | "B2" | "C1") | null;
             /** Isactive */
             isActive?: boolean | null;
         };
@@ -1375,6 +2017,154 @@ export interface components {
             /** Distractorsvi */
             distractorsVi?: string[];
         };
+        /** AdminCoachTopic */
+        AdminCoachTopic: {
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /**
+             * Minlevel
+             * @enum {string}
+             */
+            minLevel: "A1" | "A2" | "B1" | "B2" | "C1";
+            /** Targetskills */
+            targetSkills?: ("Fluency" | "Vocabulary" | "Response Speed" | "Grammar" | "Accuracy" | "Listening" | "Pronunciation")[];
+            /**
+             * Isactive
+             * @default false
+             */
+            isActive: boolean;
+            /**
+             * Sortorder
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
+        /** AdminCoachTopicInput */
+        AdminCoachTopicInput: {
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /**
+             * Minlevel
+             * @enum {string}
+             */
+            minLevel: "A1" | "A2" | "B1" | "B2" | "C1";
+            /** Targetskills */
+            targetSkills?: ("Fluency" | "Vocabulary" | "Response Speed" | "Grammar" | "Accuracy" | "Listening" | "Pronunciation")[];
+            /**
+             * Isactive
+             * @default false
+             */
+            isActive: boolean;
+            /**
+             * Sortorder
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        /** AdminCoachTopicUpdate */
+        AdminCoachTopicUpdate: {
+            /** Category */
+            category?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Minlevel */
+            minLevel?: ("A1" | "A2" | "B1" | "B2" | "C1") | null;
+            /** Targetskills */
+            targetSkills?: ("Fluency" | "Vocabulary" | "Response Speed" | "Grammar" | "Accuracy" | "Listening" | "Pronunciation")[] | null;
+            /** Isactive */
+            isActive?: boolean | null;
+            /** Sortorder */
+            sortOrder?: number | null;
+        };
+        /** AdminEarnedBadge */
+        AdminEarnedBadge: {
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Iconemoji */
+            iconEmoji: string;
+            /**
+             * Awardedat
+             * Format: date-time
+             */
+            awardedAt: string;
+        };
+        /** AdminLevelAdjustment */
+        AdminLevelAdjustment: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "A1" | "A2" | "B1" | "B2" | "C1";
+            /** Reason */
+            reason: string;
+        };
+        /** AdminMission */
+        AdminMission: {
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
+            /** Xpreward */
+            xpReward: number | null;
+            /** Conditiontype */
+            conditionType: string;
+            /** Targetcount */
+            targetCount: number;
+            /** Isactive */
+            isActive: boolean;
+        };
+        /** AdminMissionCreate */
+        AdminMissionCreate: {
+            /** Key */
+            key: string;
+            /** Title */
+            title: string;
+            /** Xpreward */
+            xpReward?: number | null;
+            /**
+             * Conditiontype
+             * @enum {string}
+             */
+            conditionType: "COACH_SESSION" | "SCENARIO_LESSON" | "STREAK";
+            /**
+             * Targetcount
+             * @default 1
+             */
+            targetCount: number;
+            /**
+             * Isactive
+             * @default false
+             */
+            isActive: boolean;
+        };
+        /** AdminMissionUpdate */
+        AdminMissionUpdate: {
+            /** Title */
+            title?: string | null;
+            /** Xpreward */
+            xpReward?: number | null;
+            /** Targetcount */
+            targetCount?: number | null;
+            /** Isactive */
+            isActive?: boolean | null;
+        };
         /** AdminOverview */
         AdminOverview: {
             /** Totalaccounts */
@@ -1391,6 +2181,44 @@ export interface components {
             scenarioCounts: {
                 [key: string]: number;
             };
+        };
+        /** AdminPlacement */
+        AdminPlacement: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /** Estimatedlevel */
+            estimatedLevel: string | null;
+            /** Isinsufficientdata */
+            isInsufficientData: boolean;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Completedat */
+            completedAt: string | null;
+        };
+        /** AdminPlacementPage */
+        AdminPlacementPage: {
+            /** Items */
+            items: components["schemas"]["AdminPlacement"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** AdminQaLabels */
+        AdminQaLabels: {
+            /** Labels */
+            labels: ("STT" | "AI_RESPONSE" | "SCORING" | "UNUSUAL_SCORE")[];
+        };
+        /** AdminQaNote */
+        AdminQaNote: {
+            /** Note */
+            note: string | null;
         };
         /** AdminRequirementDetail */
         AdminRequirementDetail: {
@@ -1438,6 +2266,26 @@ export interface components {
              * @default true
              */
             isMandatory: boolean;
+        };
+        /** AdminRoleplayRequirement */
+        AdminRoleplayRequirement: {
+            /** Requirementid */
+            requirementId: string;
+            /** Description */
+            description: string;
+            /** Ismandatory */
+            isMandatory: boolean;
+            /** Status */
+            status: string;
+        };
+        /** AdminRoleplayResult */
+        AdminRoleplayResult: {
+            /** Status */
+            status: string;
+            /** Passed */
+            passed: boolean | null;
+            /** Requirements */
+            requirements: components["schemas"]["AdminRoleplayRequirement"][];
         };
         /** AdminScenarioDetail */
         AdminScenarioDetail: {
@@ -1675,6 +2523,322 @@ export interface components {
             requirements?: components["schemas"]["AdminRequirementInput"][];
             /** Revision */
             revision: number;
+        };
+        /** AdminScorePreviewRequest */
+        AdminScorePreviewRequest: {
+            /**
+             * Requestid
+             * Format: uuid
+             */
+            requestId: string;
+        };
+        /** AdminSessionDetail */
+        AdminSessionDetail: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Email */
+            email: string;
+            /** Learnername */
+            learnerName: string;
+            /** Title */
+            title: string | null;
+            /** Type */
+            type: string;
+            /** Status */
+            status: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Startedat */
+            startedAt: string | null;
+            /** Endedat */
+            endedAt: string | null;
+            /** Durationseconds */
+            durationSeconds: number;
+            /** Overallscore */
+            overallScore: number | null;
+            /** Feedbackstatus */
+            feedbackStatus: string | null;
+            /** Qalabels */
+            qaLabels: ("STT" | "AI_RESPONSE" | "SCORING" | "UNUSUAL_SCORE")[];
+            /** Spokenseconds */
+            spokenSeconds: number | null;
+            /** Turncount */
+            turnCount: number;
+            /** Endreason */
+            endReason: string | null;
+            feedback: components["schemas"]["SessionFeedbackResponse"] | null;
+            roleplay: components["schemas"]["AdminRoleplayResult"] | null;
+            /** Qanote */
+            qaNote: string | null;
+            qaPreview: components["schemas"]["SessionFeedbackResponse"] | null;
+        };
+        /** AdminSessionPage */
+        AdminSessionPage: {
+            /** Items */
+            items: components["schemas"]["AdminSessionSummary"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** AdminSessionSummary */
+        AdminSessionSummary: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Email */
+            email: string;
+            /** Learnername */
+            learnerName: string;
+            /** Title */
+            title: string | null;
+            /** Type */
+            type: string;
+            /** Status */
+            status: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+            /** Startedat */
+            startedAt: string | null;
+            /** Endedat */
+            endedAt: string | null;
+            /** Durationseconds */
+            durationSeconds: number;
+            /** Overallscore */
+            overallScore: number | null;
+            /** Feedbackstatus */
+            feedbackStatus: string | null;
+            /** Qalabels */
+            qaLabels: ("STT" | "AI_RESPONSE" | "SCORING" | "UNUSUAL_SCORE")[];
+        };
+        /** AdminSkillAverage */
+        AdminSkillAverage: {
+            /** Skill */
+            skill: string;
+            /** Formulaversion */
+            formulaVersion: string;
+            /** Average */
+            average: number;
+            /** Samplecount */
+            sampleCount: number;
+            /** Isreference */
+            isReference: boolean;
+        };
+        /** AdminTopicMove */
+        AdminTopicMove: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "up" | "down";
+        };
+        /** AdminTranscriptItem */
+        AdminTranscriptItem: {
+            /**
+             * Pk
+             * Format: uuid
+             */
+            pk: string;
+            /** Id */
+            id: string;
+            /** Seq */
+            seq: number;
+            /** Speaker */
+            speaker: string;
+            /** Text */
+            text: string;
+            /** Source */
+            source: string;
+            /** Startms */
+            startMs?: number | null;
+            /** Endms */
+            endMs?: number | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Speechms */
+            speechMs?: number | null;
+            /** Longpausecount */
+            longPauseCount?: number | null;
+            /** Longpausems */
+            longPauseMs?: number | null;
+            /** Wordcount */
+            wordCount?: number | null;
+            /** Fillercount */
+            fillerCount?: number | null;
+            /** Responselatencyms */
+            responseLatencyMs?: number | null;
+        };
+        /** AdminTranscriptPage */
+        AdminTranscriptPage: {
+            /** Items */
+            items: components["schemas"]["AdminTranscriptItem"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** AdminXpAdjustment */
+        AdminXpAdjustment: {
+            /**
+             * Requestid
+             * Format: uuid
+             */
+            requestId: string;
+            /** Amount */
+            amount: number;
+            /** Reason */
+            reason: string;
+        };
+        /** AdminXpPage */
+        AdminXpPage: {
+            /** Items */
+            items: components["schemas"]["AdminXpTransaction"][];
+            /** Nextcursor */
+            nextCursor?: string | null;
+        };
+        /** AdminXpRule */
+        AdminXpRule: {
+            /** Key */
+            key: string;
+            /** Xpamount */
+            xpAmount: number;
+            /** Description */
+            description: string | null;
+            /** Isactive */
+            isActive: boolean;
+        };
+        /** AdminXpRuleUpdate */
+        AdminXpRuleUpdate: {
+            /** Xpamount */
+            xpAmount?: number | null;
+            /** Description */
+            description?: string | null;
+            /** Isactive */
+            isActive?: boolean | null;
+        };
+        /** AdminXpTransaction */
+        AdminXpTransaction: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Userid
+             * Format: uuid
+             */
+            userId: string;
+            /** Email */
+            email: string;
+            /** Rulekey */
+            ruleKey: string;
+            /** Amount */
+            amount: number;
+            /** Sourcetype */
+            sourceType: string;
+            /** Sourceid */
+            sourceId: string;
+            /** Idempotencykey */
+            idempotencyKey: string;
+            /** Description */
+            description: string | null;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        };
+        /** AnalyticsCoachTopic */
+        AnalyticsCoachTopic: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Attempts */
+            attempts: number;
+        };
+        /** AnalyticsDay */
+        AnalyticsDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Coachsessions */
+            coachSessions: number;
+            /** Roleplaysessions */
+            roleplaySessions: number;
+            /** Activelearners */
+            activeLearners: number;
+            /** Ispartial */
+            isPartial: boolean;
+        };
+        /** AnalyticsMeasurement */
+        AnalyticsMeasurement: {
+            /** Average */
+            average: number | null;
+            /** Samplecount */
+            sampleCount: number;
+        };
+        /** AnalyticsScenario */
+        AnalyticsScenario: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Attempts */
+            attempts: number;
+            /** Evaluatedattempts */
+            evaluatedAttempts: number;
+            /** Failedattempts */
+            failedAttempts: number;
+            /** Failurerate */
+            failureRate: number | null;
+        };
+        /** AnalyticsSkill */
+        AnalyticsSkill: {
+            /** Average */
+            average: number | null;
+            /** Samplecount */
+            sampleCount: number;
+            /** Skill */
+            skill: string;
+            /** Formulaversion */
+            formulaVersion: string;
+            /** Isreference */
+            isReference: boolean;
+        };
+        /** AnalyticsSpeakingTime */
+        AnalyticsSpeakingTime: {
+            /** Average */
+            average: number | null;
+            /** Samplecount */
+            sampleCount: number;
+            /** Legacysamplecount */
+            legacySampleCount: number;
         };
         /** AnswerResponse */
         AnswerResponse: {
@@ -1926,6 +3090,22 @@ export interface components {
             xpAwarded: number;
             /** Newtotalxp */
             newTotalXp: number;
+        };
+        /** CoachTopicDraft */
+        CoachTopicDraft: {
+            /** Category */
+            category: string;
+            /** Title */
+            title: string;
+            /** Description */
+            description: string;
+            /**
+             * Minlevel
+             * @enum {string}
+             */
+            minLevel: "A1" | "A2" | "B1" | "B2" | "C1";
+            /** Targetskills */
+            targetSkills?: ("Fluency" | "Vocabulary" | "Response Speed" | "Grammar" | "Accuracy" | "Listening" | "Pronunciation")[];
         };
         /** CoachTopicGroupSchema */
         CoachTopicGroupSchema: {
@@ -2205,6 +3385,11 @@ export interface components {
              */
             isReadyForPromotion: boolean;
             advancement?: components["schemas"]["LevelAdvancementInfo"] | null;
+        };
+        /** GenerateCoachTopic */
+        GenerateCoachTopic: {
+            /** Idea */
+            idea: string;
         };
         /** GenerateDistractorsRequest */
         GenerateDistractorsRequest: {
@@ -3023,6 +4208,11 @@ export interface components {
             /** Transcripts */
             transcripts?: components["schemas"]["TranscriptSegmentResponse"][];
         };
+        /**
+         * SessionState
+         * @enum {string}
+         */
+        SessionState: "CREATED" | "ACTIVE" | "RECONNECTING" | "ENDING" | "ENDED" | "FEEDBACK_READY" | "INSUFFICIENT_DATA" | "FAILED";
         /** SessionSuggestionsResponse */
         SessionSuggestionsResponse: {
             /**
@@ -5421,6 +6611,71 @@ export interface operations {
             };
         };
     };
+    admin_delete_scenario_api_v1_admin_scenarios__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Scenario not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Scenario conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request or scenario content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
     admin_duplicate_scenario_api_v1_admin_scenarios__id__duplicate_post: {
         parameters: {
             query?: never;
@@ -5848,6 +7103,55 @@ export interface operations {
             };
         };
     };
+    get_account_api_v1_admin_users__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccountDetail"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
     update_account_api_v1_admin_users__id__patch: {
         parameters: {
             query?: never;
@@ -5933,6 +7237,1551 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminOverview"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    placements_api_v1_admin_users__id__placements_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPlacementPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    force_logout_api_v1_admin_users__id__force_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    adjust_level_api_v1_admin_users__id__level_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminLevelAdjustment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Learning profile is unavailable */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    adjust_xp_api_v1_admin_users__id__xp_adjustments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminXpAdjustment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description XP adjustment conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    send_password_reset_api_v1_admin_users__id__password_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Password reset is unavailable */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    list_topics_api_v1_admin_coach_topics_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                category?: string | null;
+                minLevel?: ("A1" | "A2" | "B1" | "B2" | "C1") | null;
+                isActive?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCoachTopic"][];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    create_topic_api_v1_admin_coach_topics_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCoachTopicInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCoachTopic"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    generate_api_v1_admin_coach_topics_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateCoachTopic"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachTopicDraft"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    delete_topic_api_v1_admin_coach_topics__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Topic is linked to a session */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    update_topic_api_v1_admin_coach_topics__id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCoachTopicUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCoachTopic"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    move_topic_api_v1_admin_coach_topics__id__move_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminTopicMove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    rules_api_v1_admin_gamification_xp_rules_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminXpRule"][];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    update_rule_api_v1_admin_gamification_xp_rules__key__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminXpRuleUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminXpRule"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    missions_api_v1_admin_gamification_missions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMission"][];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    create_mission_api_v1_admin_gamification_missions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminMissionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMission"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Mission key already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    update_mission_api_v1_admin_gamification_missions__key__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminMissionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMission"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    badges_api_v1_admin_gamification_badges_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBadge"][];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    create_badge_api_v1_admin_gamification_badges_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminBadgeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBadge"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Badge key already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    transactions_api_v1_admin_gamification_transactions_get: {
+        parameters: {
+            query?: {
+                learner?: string | null;
+                ruleKey?: string | null;
+                idempotencyKey?: string | null;
+                fromDate?: string | null;
+                toDate?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminXpPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    update_badge_api_v1_admin_gamification_badges__key__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminBadgeUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminBadge"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v1_admin_sessions_get: {
+        parameters: {
+            query?: {
+                type?: ("COACH" | "ROLEPLAY") | null;
+                status?: components["schemas"]["SessionState"] | null;
+                userId?: string | null;
+                fromDate?: string | null;
+                toDate?: string | null;
+                minScore?: number | null;
+                maxScore?: number | null;
+                q?: string | null;
+                label?: ("STT" | "AI_RESPONSE" | "SCORING" | "UNUSUAL_SCORE") | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSessionPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    get_session_api_v1_admin_sessions__id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSessionDetail"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    get_transcript_api_v1_admin_sessions__id__transcript_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminTranscriptPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    update_labels_api_v1_admin_sessions__id__qa_labels_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminQaLabels"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminQaLabels"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    retry_feedback_api_v1_admin_sessions__id__retry_feedback_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionFeedbackResponse"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    update_note_api_v1_admin_sessions__id__qa_note_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminQaNote"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminQaNote"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    reevaluate_api_v1_admin_sessions__id__reevaluate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminScorePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionFeedbackResponse"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Session has not ended */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    analytics_api_v1_admin_analytics_overview_get: {
+        parameters: {
+            query?: {
+                range?: "7d" | "30d";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAnalytics"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    audit_logs_api_v1_admin_audit_logs_get: {
+        parameters: {
+            query?: {
+                fromDate?: string | null;
+                toDate?: string | null;
+                action?: string | null;
+                targetType?: string | null;
+                traceId?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAuditPage"];
                 };
             };
             /** @description Authentication required */

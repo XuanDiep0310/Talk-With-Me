@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Sequence
 
 from fastapi import HTTPException
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,9 +26,11 @@ from app.models.scenario import (
     ScenarioRequirement,
     ScenarioStatus,
 )
+from app.models.session import Session
 from app.repositories.admin_scenario import AdminScenarioRepository
 from app.repositories.scenario_category import ScenarioCategoryRepository
 from app.seeds.scenario_loader import seed_scenarios_if_empty
+from app.services.admin_audit import AdminAudit
 
 
 def publish_errors(content: Scenario | AdminScenarioInput) -> dict[str, str]:
@@ -183,6 +186,30 @@ class AdminScenarioService:
         scenario.status = body.status
         scenario.revision += 1
         return await self._commit(scenario, action)
+
+    async def delete(self, scenario_id: uuid.UUID) -> None:
+        scenario = await self._get(scenario_id, lock=True)
+        if scenario.status == "PUBLISHED":
+            raise _conflict("SCENARIO_PUBLISHED", "Published scenarios cannot be deleted.")
+        has_sessions = await self.db.scalar(
+            select(select(Session.id).where(Session.scenario_id == scenario_id).exists())
+        )
+        if has_sessions:
+            raise _conflict(
+                "SCENARIO_IN_USE",
+                "This scenario has practice sessions and can only be archived.",
+            )
+        AdminAudit(self.db, self.actor_id, self.trace_id).record(
+            "SCENARIO_DELETED",
+            "SCENARIO",
+            scenario_id,
+            before={"slug": scenario.slug, "titleVi": scenario.title_vi, "status": scenario.status},
+        )
+        await self.db.execute(
+            delete(ScenarioAdminAudit).where(ScenarioAdminAudit.scenario_id == scenario_id)
+        )
+        await self.db.delete(scenario)
+        await self.db.commit()
 
     @staticmethod
     def _check_revision(scenario: Scenario, revision: int) -> None:

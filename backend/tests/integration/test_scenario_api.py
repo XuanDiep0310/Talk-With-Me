@@ -385,6 +385,10 @@ async def test_admin_responses_match_the_exported_openapi(scenario_test_env: dic
         "/api/v1/admin/users",
         "/api/v1/admin/overview",
         "/api/v1/admin/scenario-categories",
+        "/api/v1/admin/coach-topics",
+        "/api/v1/admin/gamification/xp-rules",
+        "/api/v1/admin/gamification/transactions",
+        "/api/v1/admin/sessions",
     ):
         response = await client.get(path, headers=admin)
         assert response.status_code == 200, response.text
@@ -894,3 +898,821 @@ async def test_other_user_roleplay_access_returns_404(scenario_test_env: dict) -
 
     resp_end = await client.post(f"/api/v1/roleplays/{sess_id}/end", headers=other_headers)
     assert resp_end.status_code == 404
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["sqlite", "postgresql"], indirect=True)
+async def test_admin_coach_topic_publication_and_session_snapshot(
+    scenario_test_env: dict, scenario_db: async_sessionmaker[AsyncSession]
+) -> None:
+    from app.api.deps import get_llm_provider as provider_dependency
+    from app.models.admin_audit import AdminAuditEvent
+
+    env = scenario_test_env
+    client = env["client"]
+    learner = {"Authorization": f"Bearer {env['token']}"}
+    admin_path = "/api/v1/admin/coach-topics"
+    assert (await client.get(admin_path)).status_code == 401
+    assert (await client.get(admin_path, headers=learner)).status_code == 403
+    admin = await grant_scenario_admin(env)
+    app.dependency_overrides[provider_dependency] = FakeLlmProvider
+    draft = await client.post(
+        admin_path + "/generate", headers=admin, json={"idea": "Weekend plans"}
+    )
+    assert draft.status_code == 200
+    created = await client.post(admin_path, headers=admin, json=draft.json())
+    assert created.status_code == 201
+    topic = created.json()
+    assert topic["isActive"] is False
+    session_path = "/api/v1/coach/sessions"
+    data = {"topicId": topic["id"]}
+    assert (await client.post(session_path, headers=admin, json=data)).status_code == 404
+    patch_path = f"{admin_path}/{topic['id']}"
+    assert (
+        await client.patch(patch_path, headers=admin, json={"isActive": True})
+    ).status_code == 200
+    started = await client.post(session_path, headers=admin, json=data)
+    assert started.status_code == 201, started.text
+    assert (
+        await client.patch(
+            patch_path, headers=admin, json={"title": "Updated topic", "isActive": False}
+        )
+    ).status_code == 200
+    assert (await client.post(session_path, headers=admin, json=data)).status_code == 404
+    history = await client.get(f"{session_path}/{started.json()['id']}", headers=admin)
+    assert history.json()["topic"]["title"] == topic["title"]
+    page = await client.get(admin_path, headers=admin, params={"q": "Updated", "isActive": False})
+    assert [item["id"] for item in page.json()] == [topic["id"]]
+    async with scenario_db() as db:
+        events = (
+            await db.scalars(
+                select(AdminAuditEvent).where(AdminAuditEvent.target_id == topic["id"])
+            )
+        ).all()
+        assert len(events) == 3
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_admin_gamification_preserves_issued_terms_and_claims_once(
+    scenario_test_env: dict, scenario_db: async_sessionmaker[AsyncSession]
+) -> None:
+    from app.models.gamification import UserDailyMission
+    from app.repositories.gamification import GamificationRepository
+    from app.seeds.gamification_seeds import seed_gamification
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    base = "/api/v1/admin/gamification"
+    async with scenario_db() as db:
+        await seed_gamification(db)
+    assert (await client.get(base + "/xp-rules", headers=learner)).status_code == 403
+    today = "/api/v1/missions/today"
+    issued = (await client.get(today, headers=learner)).json()
+    coach = next(row for row in issued["missions"] if row["missionKey"] == "coach_session")
+    assert coach["xpReward"] == 50 and coach["target"] == 1
+    assert (
+        await client.patch(base + "/xp-rules/DAILY_MISSION", headers=admin, json={"xpAmount": 75})
+    ).status_code == 200
+    assert (
+        await client.patch(
+            base + "/missions/coach_session", headers=admin, json={"targetCount": 2, "xpReward": 80}
+        )
+    ).status_code == 200
+    async with scenario_db() as db:
+        await seed_gamification(db)
+        row = await db.get(UserDailyMission, uuid.UUID(coach["id"]))
+        assert row is not None
+        row.status = "COMPLETED"
+        await db.commit()
+    new = (await client.get(today, headers=admin)).json()["missions"]
+    assert next(row for row in new if row["missionKey"] == "coach_session")["xpReward"] == 80
+    assert next(row for row in new if row["missionKey"] == "new_scenario")["xpReward"] == 75
+    assert (
+        await client.patch(
+            base + "/xp-rules/DAILY_MISSION", headers=admin, json={"isActive": False}
+        )
+    ).status_code == 200
+    assert len((await client.get(today, headers=learner)).json()["missions"]) == 3
+    claim_path = f"/api/v1/missions/{coach['id']}/claim"
+    results = await asyncio.gather(*(client.post(claim_path, headers=learner) for _ in range(2)))
+    assert sorted(response.status_code for response in results) == [200, 409]
+    assert (
+        next(response for response in results if response.status_code == 200).json()["xpAwarded"]
+        == 50
+    )
+    ledger = await client.get(
+        base + "/transactions",
+        headers=admin,
+        params={"idempotencyKey": f"DAILY_MISSION:{coach['id']}"},
+    )
+    assert ledger.status_code == 200, ledger.text
+    assert [item["amount"] for item in ledger.json()["items"]] == [50]
+    async with scenario_db() as db:
+        repo = GamificationRepository(db)
+        profile = await repo.get_or_create_profile(env["other_user_id"])
+        assert profile.total_xp == await repo.get_xp_sum(env["other_user_id"]) == 50
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_session_qa_scopes_pagination_and_serializes_retry(
+    scenario_test_env: dict,
+    scenario_db: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unittest.mock import AsyncMock
+
+    from app.core.providers.stt_provider import SttResult, WordTiming
+    from app.models.admin_audit import AdminAuditEvent
+    from app.models.scoring import SessionFeedback
+    from app.models.session import Session, TranscriptSegment
+    from app.repositories.session import TranscriptRepository
+    from app.services.scoring import tasks
+    from app.services.speech_features import apply_speech_features
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    session_id, segment_id = uuid.uuid4(), str(uuid.uuid4())
+    async with scenario_db.begin() as db:
+        db.add(
+            Session(
+                id=session_id,
+                user_id=env["other_user_id"],
+                level="B1",
+                type="COACH",
+                status="ACTIVE",
+                speech_features_version=1,
+            )
+        )
+
+    async def store():
+        async with scenario_db() as db:
+            row = TranscriptSegment(
+                id=segment_id,
+                session_id=session_id,
+                user_id=env["other_user_id"],
+                speaker="USER",
+                text="Um, hello.",
+                start_ms=0,
+                end_ms=0,
+                is_final=True,
+            )
+            apply_speech_features(
+                row,
+                pause_threshold_ms=1500,
+                capture_offset_ms=500,
+                playback_end_ms=100,
+                stt=SttResult(
+                    "Um, hello.",
+                    0.8,
+                    1.2,
+                    [WordTiming("Um", 0, 600, 0.8), WordTiming("hello", 2200, 2800, 0.8)],
+                    word_times_measured=True,
+                    measured_confidence=0.8,
+                ),
+            )
+            _, inserted = await TranscriptRepository(db).add_active_segment(
+                row, env["other_user_id"]
+            )
+            return inserted
+
+    assert sorted(await asyncio.gather(store(), store())) == [False, True]
+    async with scenario_db.begin() as db:
+        session = await db.get(Session, session_id)
+        assert session is not None and session.spoken_seconds == 1.2
+        session.status = "FAILED"
+        session.ended_at = datetime.now(UTC)
+        db.add(SessionFeedback(session_id=session_id, status="FAILED", retryable=True))
+        db.add(
+            TranscriptSegment(
+                id=str(uuid.uuid4()),
+                session_id=session_id,
+                speaker="USER",
+                seq=2,
+                text="Legacy utterance",
+                confidence=0.95,
+                start_ms=0,
+                end_ms=2000,
+                is_final=True,
+            )
+        )
+
+    path = f"/api/v1/admin/sessions/{session_id}"
+    assert (await client.get(path, headers=learner)).status_code == 403
+    first = await client.get(path + "/transcript", headers=admin, params={"limit": 1})
+    assert first.status_code == 200, first.text
+    assert first.headers["cache-control"] == "no-store"
+    item = first.json()["items"][0]
+    assert item["confidence"] == 0.8 and item["speechMs"] == 1200
+    assert item["longPauseCount"] == 1 and item["longPauseMs"] == 1600
+    second = (
+        await client.get(
+            path + "/transcript",
+            headers=admin,
+            params={"cursor": first.json()["nextCursor"], "limit": 1},
+        )
+    ).json()
+    assert second["items"][0]["confidence"] is None
+    assert second["items"][0]["speechMs"] is None
+    assert (
+        await client.patch(path + "/qa-labels", headers=admin, json={"labels": ["UNUSUAL_SCORE"]})
+    ).status_code == 200
+    assert (
+        await client.get("/api/v1/admin/sessions", headers=admin, params={"label": "STT"})
+    ).json()["items"] == []
+    found = (
+        await client.get(
+            "/api/v1/admin/sessions",
+            headers=admin,
+            params={
+                "label": "UNUSUAL_SCORE",
+                "q": "other learner",
+                "userId": str(env["other_user_id"]),
+            },
+        )
+    ).json()
+    assert [row["id"] for row in found["items"]] == [str(session_id)]
+
+    enqueue = AsyncMock(side_effect=ConnectionError("queue offline"))
+    monkeypatch.setattr(tasks, "enqueue_feedback_job", enqueue)
+    failed_request = await client.post(path + "/retry-feedback", headers=admin)
+    assert failed_request.status_code == 503
+    failed_detail = (await client.get(path, headers=admin)).json()
+    assert failed_detail["status"] == "FAILED" and failed_detail["feedback"]["retryable"]
+    enqueue.side_effect = None
+    enqueue.reset_mock()
+    retries = await asyncio.gather(
+        *(client.post(path + "/retry-feedback", headers=admin) for _ in range(2))
+    )
+    assert [response.status_code for response in retries] == [202, 202]
+    enqueue.assert_awaited_once_with(session_id, strict=True)
+    async with scenario_db() as db:
+        audit = (
+            await db.scalars(
+                select(AdminAuditEvent).where(AdminAuditEvent.action == "SESSION_TRANSCRIPT_VIEWED")
+            )
+        ).all()
+        assert len(audit) == 2
+        assert all(event.before is None and event.after is None for event in audit)
+
+
+@pytest.mark.integration
+async def test_admin_force_logout_revokes_access_refresh_and_ticket(
+    scenario_test_env: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from unittest.mock import AsyncMock
+
+    from fastapi import WebSocket
+
+    from app.api.v1.endpoints import ws_session
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    secret = {"email": "other@talkwithme.vn", "password": "Pass1234"}
+    login = await client.post("/api/v1/auth/login", json=secret)
+    assert login.status_code == 200, login.text
+    body = login.json()
+    learner = {"Authorization": f"Bearer {body['accessToken']}"}
+    session = await client.post("/api/v1/coach/sessions", json={}, headers=learner)
+    assert session.status_code == 201
+    ticket = (await client.post("/api/v1/ws-tickets", headers=learner)).json()["ticket"]
+    user_route = f"/api/v1/admin/users/{env['other_user_id']}"
+    async with env["db_factory"].begin() as db:
+        preferences = await db.get(UserProfile, env["other_user_id"])
+        assert preferences is not None
+        preferences.goals = '["job_interview"]'
+        preferences.weak_points = '["pronunciation"]'
+    profile = await client.get(user_route, headers=admin)
+    assert profile.status_code == 200, profile.text
+    assert profile.json()["loginMethods"] == ["password"]
+    assert profile.json()["goalLabels"] == ["Phỏng vấn xin việc"]
+    assert profile.json()["weakPointLabels"] == ["Phát âm"]
+    assert (await client.post(user_route + "/force-logout", headers=admin)).status_code == 204
+    assert (await client.get("/api/v1/me", headers=learner)).status_code == 401
+    assert (
+        await client.post("/api/v1/auth/refresh", json={"refreshToken": body["refreshToken"]})
+    ).status_code == 401
+    from app.api.deps import get_redis
+
+    redis = app.dependency_overrides[get_redis]()
+    monkeypatch.setattr(ws_session, "get_redis_client", lambda: redis)
+    monkeypatch.setattr(ws_session, "async_session_factory", env["db_factory"])
+    ws = AsyncMock(spec=WebSocket)
+    await ws_session.session_websocket_endpoint(ws, uuid.UUID(session.json()["id"]), ticket, 0)
+    ws.close.assert_awaited_once_with(code=4004)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_admin_analytics_uses_local_days_and_fresh_measured_data(
+    scenario_test_env: dict,
+    scenario_db: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace
+
+    from app.models.onboarding import PlacementTest
+    from app.models.scenario import RoleplayEvaluation
+    from app.models.scoring import SessionFeedback, SessionSkillScore
+    from app.models.session import CoachTopic, Session, TranscriptSegment
+
+    now = datetime(2026, 11, 24, 18, 0, tzinfo=UTC)
+    monkeypatch.setattr(
+        "app.services.admin_reporting.get_clock", lambda: SimpleNamespace(now=lambda: now)
+    )
+    env = scenario_test_env
+    learner_id = env["other_user_id"]
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    path = "/api/v1/admin/analytics/overview"
+    assert (await client.get(path)).status_code == 401
+    assert (
+        await client.get(path, headers={"Authorization": f"Bearer {env['other_token']}"})
+    ).status_code == 403
+    response = await client.get(path, headers=admin)
+    assert response.status_code == 200, response.text
+    before = response.json()
+    assert before["speakingMinutes"] == {"average": None, "sampleCount": 0, "legacySampleCount": 0}
+    assert before["activeToday"] == before["activeInPeriod"] == 0
+    assert len(before["days"]) == 7
+    assert before["days"][-1]["day"] == "2026-11-25"
+    assert before["days"][-1]["isPartial"]
+
+    today, yesterday, pending = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    async with scenario_db.begin() as db:
+        scenario_id = await db.scalar(select(Scenario.id).limit(1))
+        assert scenario_id is not None
+        boundary = datetime(2026, 11, 24, 17, 0, tzinfo=UTC)
+        active_id, placement_id, older_id, created_id = (uuid.uuid4() for _ in range(4))
+        topic_id = uuid.uuid4()
+        db.add(
+            CoachTopic(
+                id=topic_id, title="Travel plans", category="Travel", description="Plan a trip"
+            )
+        )
+        for user_id in (active_id, placement_id, older_id, created_id):
+            db.add(User(id=user_id, email=f"{user_id}@example.com", full_name="Analytics fixture"))
+        await db.flush()
+        db.add_all(
+            [
+                Session(
+                    user_id=active_id,
+                    type="COACH",
+                    level="A1",
+                    status="ACTIVE",
+                    started_at=boundary - timedelta(seconds=1),
+                ),
+                Session(
+                    user_id=created_id,
+                    type="COACH",
+                    level="A1",
+                    status="CREATED",
+                    started_at=boundary,
+                ),
+                PlacementTest(
+                    user_id=older_id, status="COMPLETED", completed_at=boundary - timedelta(days=12)
+                ),
+                PlacementTest(user_id=placement_id, status="COMPLETED", completed_at=boundary),
+                Session(
+                    id=today,
+                    user_id=learner_id,
+                    type="COACH",
+                    level="A2",
+                    status="FEEDBACK_READY",
+                    ended_at=boundary,
+                    speech_features_version=1,
+                    topic_id=topic_id,
+                ),
+                Session(
+                    id=yesterday,
+                    user_id=learner_id,
+                    type="ROLEPLAY",
+                    level="A1",
+                    scenario_id=scenario_id,
+                    status="FEEDBACK_READY",
+                    ended_at=boundary - timedelta(seconds=1),
+                    spoken_seconds=120,
+                ),
+                Session(
+                    id=pending,
+                    user_id=learner_id,
+                    type="ROLEPLAY",
+                    level="A1",
+                    scenario_id=scenario_id,
+                    status="ENDED",
+                    ended_at=boundary,
+                ),
+            ]
+        )
+        await db.flush()
+        db.add_all(
+            [
+                SessionFeedback(session_id=today, status="FEEDBACK_READY", formula_version="1.1.0"),
+                RoleplayEvaluation(
+                    session_id=yesterday,
+                    user_id=learner_id,
+                    scenario_id=scenario_id,
+                    status="COMPLETED",
+                    passed=False,
+                ),
+                TranscriptSegment(
+                    session_id=today,
+                    id=str(uuid.uuid4()),
+                    speaker="USER",
+                    text="measured",
+                    speech_source="STT",
+                    speech_ms=60000,
+                    confidence=0.8,
+                ),
+                TranscriptSegment(
+                    session_id=yesterday,
+                    id=str(uuid.uuid4()),
+                    speaker="USER",
+                    text="legacy",
+                    confidence=0.95,
+                ),
+            ]
+        )
+        await db.flush()
+        db.add_all(
+            [
+                SessionSkillScore(
+                    session_id=today, skill_name="pronunciation", score=80, is_reference=True
+                ),
+                SessionSkillScore(session_id=today, skill_name="listening", score=None),
+            ]
+        )
+    week = await client.get(path, headers=admin)
+    assert week.json()["activeInPeriod"] == 3
+    response = await client.get(path, headers=admin, params={"range": "30d"})
+    assert response.status_code == 200, response.text
+    report = response.json()
+    assert len(report["days"]) == 30
+    assert report["activeToday"] == report["days"][-1]["activeLearners"] == 3
+    assert report["activeInPeriod"] == 4
+    assert report["days"][-2]["roleplaySessions"] == 1
+    assert report["days"][-1]["coachSessions"] == report["days"][-1]["roleplaySessions"] == 1
+    assert report["speakingMinutes"] == {"average": 1.5, "sampleCount": 2, "legacySampleCount": 1}
+    assert report["sttConfidence"] == {"average": 0.8, "sampleCount": 1}
+    assert report["feedbackStatuses"]["NOT_REQUESTED"] == 2
+    assert report["skills"] == [
+        {
+            "skill": "pronunciation",
+            "formulaVersion": "1.1.0",
+            "isReference": True,
+            "average": 80.0,
+            "sampleCount": 1,
+        }
+    ]
+    assert report["popularCoachTopics"] == [
+        {"id": str(topic_id), "title": "Travel plans", "attempts": 1}
+    ]
+    hardest = report["difficultScenarios"][0]
+    assert (hardest["attempts"], hardest["evaluatedAttempts"], hardest["failureRate"]) == (2, 1, 1)
+    schema = openapi.from_path(Path(__file__).resolve().parents[3] / "openapi/openapi.json")
+    schema[path]["GET"].Case().validate_response(
+        response,
+        checks=[status_code_conformance, content_type_conformance, response_schema_conformance],
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_admin_audit_merges_sources_and_keeps_cursor_stable(
+    scenario_test_env: dict, scenario_db: async_sessionmaker[AsyncSession]
+) -> None:
+    from app.models.admin_audit import AdminAuditEvent
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    at = datetime(2026, 11, 24, 17, tzinfo=UTC)
+    async with scenario_db.begin() as db:
+        scenario_id = await db.scalar(select(Scenario.id).limit(1))
+        db.add_all(
+            [
+                AdminAuditEvent(
+                    actor_id=env["user_id"],
+                    target_type="SESSION",
+                    target_id=str(uuid.uuid4()),
+                    action="SESSION_TRANSCRIPT_VIEWED",
+                    occurred_at=at,
+                    trace_id="unified",
+                ),
+                ScenarioAdminAudit(
+                    actor_id=env["user_id"],
+                    scenario_id=scenario_id,
+                    action="PUBLISH",
+                    occurred_at=at,
+                    trace_id="unified",
+                ),
+                AccountAdminAudit(
+                    actor_id=env["user_id"],
+                    target_id=env["other_user_id"],
+                    previous_role="LEARNER",
+                    new_role="LEARNER",
+                    previous_active=True,
+                    new_active=False,
+                    occurred_at=at,
+                    trace_id="unified",
+                ),
+            ]
+        )
+    path = "/api/v1/admin/audit-logs"
+    cursor = None
+    rows = []
+    for _ in range(3):
+        filters = {"limit": 1, "traceId": "unified"}
+        if cursor:
+            filters["cursor"] = cursor
+        response = await client.get(path, headers=admin, params=filters)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        rows.extend(body["items"])
+        cursor = body["nextCursor"]
+    assert cursor is None
+    assert {event["source"] for event in rows} == {"ACCOUNT", "ADMIN", "SCENARIO"}
+    assert (
+        next(event for event in rows if event["source"] == "ACCOUNT")["after"]["isActive"] is False
+    )
+    assert next(event for event in rows if event["source"] == "SCENARIO")["before"] is None
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["sqlite", "postgresql"], indirect=True)
+async def test_admin_accounts_page_uses_newest_date_and_stable_ties(
+    scenario_test_env: dict,
+) -> None:
+    env = scenario_test_env
+    admin = await grant_scenario_admin(env)
+    async with env["db_factory"].begin() as db:
+        times = [datetime(2026, 1, 2, tzinfo=UTC)] * 2 + [datetime(2026, 1, 1, tzinfo=UTC)]
+        ids = [*sorted((uuid.uuid4(), uuid.uuid4()), reverse=True), uuid.uuid4()]
+        for user_id, created_at in zip(ids, times, strict=True):
+            db.add(
+                User(
+                    id=user_id,
+                    email=f"{user_id}@example.com",
+                    full_name="Cursor fixture",
+                    created_at=created_at,
+                )
+            )
+    path = "/api/v1/admin/users"
+    params = {"q": "Cursor fixture", "limit": 2}
+    first = await env["client"].get(path, headers=admin, params=params)
+    assert first.status_code == 200, first.text
+    assert [entry["id"] for entry in first.json()["items"]] == [str(item) for item in ids[:2]]
+    second = await env["client"].get(
+        path,
+        headers=admin,
+        params={
+            **params,
+            "cursor": first.json()["nextCursor"],
+        },
+    )
+    assert second.status_code == 200, second.text
+    assert [entry["id"] for entry in second.json()["items"]] == [str(ids[2])]
+    assert second.json()["nextCursor"] is None
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_admin_creates_missions_and_awards_badges_from_editable_criteria(
+    scenario_test_env: dict,
+    scenario_db: async_sessionmaker[AsyncSession],
+) -> None:
+    from app.repositories.gamification import GamificationRepository
+    from app.seeds.gamification_seeds import seed_gamification
+    from app.services.gamification import GamificationService
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    base = "/api/v1/admin/gamification"
+    async with scenario_db() as db:
+        await seed_gamification(db)
+    mission = {
+        "key": "event_coach",
+        "title": "Event Coach",
+        "conditionType": "COACH_SESSION",
+        "targetCount": 2,
+        "xpReward": 70,
+        "isActive": True,
+    }
+    assert (await client.post(base + "/missions", headers=learner, json=mission)).status_code == 403
+    created = await client.post(base + "/missions", headers=admin, json=mission)
+    assert created.status_code == 201, created.text
+    assert (await client.post(base + "/missions", headers=admin, json=mission)).status_code == 409
+    issued = (await client.get("/api/v1/missions/today", headers=learner)).json()["missions"]
+    assert next(row for row in issued if row["missionKey"] == "event_coach")["xpReward"] == 70
+    data = {
+        "key": "event_level",
+        "name": "Event badge",
+        "description": "Reach A2",
+        "iconEmoji": "★",
+        "criteriaType": "CEFR_LEVEL",
+        "minLevel": "A2",
+    }
+    response = await client.post(base + "/badges", headers=admin, json=data)
+    assert response.status_code == 201, response.text
+    assert response.json()["isActive"] is False
+
+    async def earned() -> set[str]:
+        async with scenario_db.begin() as db:
+            repo = GamificationRepository(db)
+            service = GamificationService(db)
+            await service.evaluate_badges(env["other_user_id"])
+            return {badge.badge_key for badge in await repo.get_user_badges(env["other_user_id"])}
+
+    assert "event_level" not in await earned()
+    response = await client.patch(
+        base + "/badges/event_level", headers=admin, json={"isActive": True}
+    )
+    assert response.status_code == 200, response.text
+    assert "event_level" in await earned()
+    response = await client.patch(
+        base + "/badges/event_level", headers=admin, json={"isActive": False}
+    )
+    assert response.status_code == 200
+    assert "event_level" in await earned()
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario_db", ["postgresql"], indirect=True)
+async def test_admin_adjusts_level_and_xp_with_ledger_idempotency(
+    scenario_test_env: dict,
+    scenario_db: async_sessionmaker[AsyncSession],
+) -> None:
+    from unittest.mock import AsyncMock
+
+    from app.api.deps import get_email_sender
+    from app.models.onboarding import LevelHistory
+    from app.repositories.gamification import GamificationRepository
+
+    env = scenario_test_env
+    client = env["client"]
+    target = env["other_user_id"]
+    admin = await grant_scenario_admin(env)
+    path = f"/api/v1/admin/users/{target}"
+    level = {"level": "B2", "reason": "Placement reassessment"}
+    assert (await client.patch(path + "/level", headers=admin, json=level)).status_code == 204
+    assert (await client.patch(path + "/level", headers=admin, json=level)).status_code == 204
+    grant = {"requestId": str(uuid.uuid4()), "amount": 40, "reason": "Correct streak award"}
+    requests = await asyncio.gather(
+        *(client.post(path + "/xp-adjustments", headers=admin, json=grant) for _ in range(2))
+    )
+    assert [response.status_code for response in requests] == [204, 204]
+    assert (
+        await client.post(path + "/xp-adjustments", headers=admin, json={**grant, "amount": 50})
+    ).status_code == 409
+    correction = {"requestId": str(uuid.uuid4()), "amount": -10, "reason": "Correct excess award"}
+    assert (
+        await client.post(path + "/xp-adjustments", headers=admin, json=correction)
+    ).status_code == 204
+    assert (
+        await client.post(
+            path + "/xp-adjustments",
+            headers=admin,
+            json={**correction, "requestId": str(uuid.uuid4()), "amount": -40},
+        )
+    ).status_code == 409
+    mailer = AsyncMock()
+    app.dependency_overrides[get_email_sender] = lambda: mailer
+    assert (await client.post(path + "/password-reset", headers=admin)).status_code == 204
+    mailer.send_password_reset.assert_awaited_once()
+    async with scenario_db() as db:
+        result = (
+            await db.scalars(select(LevelHistory).where(LevelHistory.user_id == target))
+        ).one()
+        assert (result.from_level, result.level, result.source) == ("A2", "B2", "ADMIN_ADJUSTMENT")
+        repo = GamificationRepository(db)
+        profile = await repo.get_or_create_profile(target)
+        assert profile.total_xp == await repo.get_xp_sum(target) == 30
+        rows = await repo.list_xp_transactions(target)
+        assert len(rows) == 2 and all(row.source_type == "ADMIN_ADJUSTMENT" for row in rows)
+
+
+@pytest.mark.integration
+async def test_admin_topic_actions_keep_seed_and_session_history_safe(
+    scenario_test_env: dict,
+) -> None:
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    base = "/api/v1/admin/coach-topics"
+    before = (await client.get(base, headers=admin)).json()
+    first, second = before[:2]
+    assert (
+        await client.post(
+            base + "/" + second["id"] + "/move", headers=admin, json={"direction": "up"}
+        )
+    ).status_code == 204
+    reordered = (await client.get(base, headers=admin)).json()
+    assert [row["id"] for row in reordered[:2]] == [second["id"], first["id"]]
+    assert (await client.delete(base + "/" + second["id"], headers=admin)).status_code == 204
+    assert second["id"] not in {row["id"] for row in (await client.get(base, headers=admin)).json()}
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    sessions = "/api/v1/coach/sessions"
+    assert (
+        await client.post(sessions, headers=learner, json={"topicId": second["id"]})
+    ).status_code == 404
+    assert (
+        await client.post(sessions, headers=learner, json={"topicId": first["id"]})
+    ).status_code == 201
+    assert (await client.delete(base + "/" + first["id"], headers=admin)).status_code == 409
+
+
+@pytest.mark.integration
+async def test_admin_qa_note_and_reevaluation_preserve_published_scores(
+    scenario_test_env: dict,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.models.admin_audit import AdminAuditEvent
+    from app.models.scoring import SessionFeedback
+    from app.models.session import Session, TranscriptSegment
+
+    monkeypatch.setattr("app.services.scoring.service.get_llm_provider", FakeLlmProvider)
+
+    env = scenario_test_env
+    client = env["client"]
+    admin = await grant_scenario_admin(env)
+    learner = {"Authorization": f"Bearer {env['other_token']}"}
+    session_id = uuid.uuid4()
+    async with env["db_factory"].begin() as db:
+        db.add(
+            Session(
+                id=session_id,
+                user_id=env["other_user_id"],
+                type="COACH",
+                status="ACTIVE",
+                level="A2",
+            )
+        )
+    path = f"/api/v1/admin/sessions/{session_id}"
+    body = {"requestId": str(uuid.uuid4())}
+    assert (await client.post(path + "/reevaluate", headers=admin, json=body)).status_code == 409
+    async with env["db_factory"].begin() as db:
+        session = await db.get(Session, session_id)
+        session.status = "FEEDBACK_READY"
+        session.ended_at = datetime.now(UTC)
+        db.add(SessionFeedback(session_id=session_id, status="FEEDBACK_READY", overall_score=82))
+    assert (
+        await client.patch(path + "/qa-note", headers=learner, json={"note": "private"})
+    ).status_code == 403
+    assert (
+        await client.patch(path + "/qa-note", headers=admin, json={"note": "private"})
+    ).status_code == 200
+    preview = await client.post(path + "/reevaluate", headers=admin, json=body)
+    assert preview.status_code == 200, preview.text
+    assert preview.json()["status"] == "INSUFFICIENT_DATA"
+    assert (
+        await client.post(path + "/reevaluate", headers=admin, json=body)
+    ).json() == preview.json()
+    detail = (await client.get(path, headers=admin)).json()
+    assert detail["qaNote"] == "private" and detail["qaPreview"]["overallScore"] is None
+    async with env["db_factory"].begin() as db:
+        db.add(
+            TranscriptSegment(
+                id=str(uuid.uuid4()),
+                session_id=session_id,
+                speaker="USER",
+                seq=1,
+                text="I like to practice speaking English with classmates after our lessons today.",
+                speech_source="STT",
+                speech_ms=7200,
+                speech_span_ms=8000,
+                long_pause_count=0,
+                word_count=13,
+                confidence=0.9,
+                response_latency_ms=600,
+            )
+        )
+    recalculated = await client.post(
+        path + "/reevaluate", headers=admin, json={"requestId": str(uuid.uuid4())}
+    )
+    assert recalculated.status_code == 200, recalculated.text
+    assert recalculated.json()["status"] == "FEEDBACK_READY"
+    assert recalculated.json()["formulaVersion"] == "1.1.0"
+    feedback = (
+        await client.get(f"/api/v1/coach/sessions/{session_id}/feedback", headers=learner)
+    ).json()
+    assert feedback["overallScore"] == 82 and "qaNote" not in feedback
+    async with env["db_factory"]() as db:
+        events = (
+            await db.scalars(
+                select(AdminAuditEvent).where(AdminAuditEvent.target_id == str(session_id))
+            )
+        ).all()
+        assert sorted(event.action for event in events) == [
+            "SESSION_QA_NOTE_UPDATED",
+            "SESSION_QA_REEVALUATED",
+            "SESSION_QA_REEVALUATED",
+        ]
+        assert all("private" not in str(event.after) for event in events)

@@ -77,6 +77,40 @@ import { AppStateService } from '../../core/services/app-state.service';
         }
       </div>
 
+      <!-- Category Filter Pills -->
+      @if (!isLoading() && groups().length > 1) {
+        <div class="flex flex-wrap gap-2" role="group" aria-label="Lọc theo nhóm chủ đề">
+          <button
+            type="button"
+            class="px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer"
+            [class.bg-blue-600]="selectedCategory() === ''"
+            [class.text-white]="selectedCategory() === ''"
+            [class.border-blue-600]="selectedCategory() === ''"
+            [class.bg-white]="selectedCategory() !== ''"
+            [class.text-slate-600]="selectedCategory() !== ''"
+            [class.border-slate-200]="selectedCategory() !== ''"
+            (click)="selectedCategory.set('')"
+          >
+            Tất cả nhóm
+          </button>
+          @for (group of groups(); track group.category) {
+            <button
+              type="button"
+              class="px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer"
+              [class.bg-blue-600]="selectedCategory() === group.category"
+              [class.text-white]="selectedCategory() === group.category"
+              [class.border-blue-600]="selectedCategory() === group.category"
+              [class.bg-white]="selectedCategory() !== group.category"
+              [class.text-slate-600]="selectedCategory() !== group.category"
+              [class.border-slate-200]="selectedCategory() !== group.category"
+              (click)="selectedCategory.set(group.category)"
+            >
+              {{ group.category }} ({{ group.topics.length }})
+            </button>
+          }
+        </div>
+      }
+
       <!-- Selected Topic Active Card (Màn 14) -->
       @if (selected(); as sel) {
         <section
@@ -316,6 +350,7 @@ export class AiCoachComponent implements OnInit {
   private readonly toastService = inject(ToastService);
 
   readonly search = signal('');
+  readonly selectedCategory = signal('');
   readonly selected = signal<CoachTopic | null>(null);
   readonly isLoading = signal(true);
   readonly isStarting = signal(false);
@@ -325,9 +360,11 @@ export class AiCoachComponent implements OnInit {
 
   readonly displayGroups = computed(() => {
     const q = this.search().trim().toLowerCase();
-    if (!q) return this.groups();
+    const cat = this.selectedCategory();
+    const list = cat ? this.groups().filter((g) => g.category === cat) : this.groups();
+    if (!q) return list;
 
-    return this.groups()
+    return list
       .map((g) => ({
         ...g,
         topics: g.topics.filter(

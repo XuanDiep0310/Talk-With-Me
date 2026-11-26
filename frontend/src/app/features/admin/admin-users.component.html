@@ -40,7 +40,7 @@
           @for (account of rows(); track account.id) {
             <tr role="row">
               <th scope="row" role="rowheader" class="catalog-title">
-                <span class="font-semibold text-slate-900">{{ account.fullName }}</span>
+                <a class="text-link font-semibold" [routerLink]="['/admin/users', account.id]">{{ account.fullName }}</a>
                 <span class="secondary text-slate-500">{{ account.email }}</span>
               </th>
               <td role="cell">

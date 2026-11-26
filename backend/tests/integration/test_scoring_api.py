@@ -536,8 +536,22 @@ async def test_llm_failure_sets_failed_and_manual_retry_succeeds(test_env: dict)
         assert fb["status"] == "FAILED"
         assert fb["retryable"] is True
 
-        # Step 3: Call retry endpoint -> returns 202 PENDING
-        with patch("app.services.scoring.tasks.async_session_factory", db_factory):
+        from app.services.scoring import tasks
+
+        finished = asyncio.Event()
+        run_worker = tasks.generate_feedback_task
+
+        async def run_and_signal(queued_id: uuid.UUID) -> None:
+            try:
+                await run_worker(queued_id)
+            finally:
+                finished.set()
+
+        with (
+            patch.object(tasks, "async_session_factory", db_factory),
+            patch.object(tasks, "generate_feedback_task", run_and_signal),
+            patch("app.services.scoring.service.event_bus.publish", new_callable=AsyncMock),
+        ):
             res_retry = await client.post(
                 f"/api/v1/coach/sessions/{session_id}/feedback/retry",
                 headers={"Authorization": f"Bearer {token}"},
@@ -545,27 +559,12 @@ async def test_llm_failure_sets_failed_and_manual_retry_succeeds(test_env: dict)
             assert res_retry.status_code == 202
             assert res_retry.json()["status"] == "PENDING"
 
-            # Step 4: Background retry task completes -> FEEDBACK_READY
-            fb_ready = False
-            res_fb2 = None
-            for _ in range(30):
-                await asyncio.sleep(0.05)
-                res_check = await client.get(
-                    f"/api/v1/coach/sessions/{session_id}/feedback",
-                    headers={"Authorization": f"Bearer {token}"},
-                )
-                if (
-                    res_check.status_code == 200
-                    and res_check.json().get("status") == "FEEDBACK_READY"
-                ):
-                    fb_ready = True
-                    res_fb2 = res_check
-                    break
-
-            assert fb_ready, (
-                f"Feedback retry did not complete in time: {res_check.status_code} {res_check.text}"
+            await asyncio.wait_for(finished.wait(), timeout=5)
+            res_fb2 = await client.get(
+                f"/api/v1/coach/sessions/{session_id}/feedback",
+                headers={"Authorization": f"Bearer {token}"},
             )
-            assert res_fb2 is not None
+            assert res_fb2.status_code == 200
             fb2 = res_fb2.json()
             assert fb2["status"] == "FEEDBACK_READY"
             assert fb2["overallScore"] is not None

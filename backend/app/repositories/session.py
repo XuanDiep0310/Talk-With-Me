@@ -6,9 +6,12 @@ import uuid
 from collections.abc import Sequence
 
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.auth import User
 from app.models.session import CoachTopic, Session, TranscriptSegment
 from app.seeds.coach_topics import COACH_TOPICS_SEED
 
@@ -20,7 +23,7 @@ class CoachTopicRepository:
     async def list_topics(
         self, q: str | None = None, active_only: bool = True
     ) -> Sequence[CoachTopic]:
-        stmt = select(CoachTopic)
+        stmt = select(CoachTopic).where(CoachTopic.deleted_at.is_(None))
         if active_only:
             stmt = stmt.where(CoachTopic.is_active == True)  # noqa: E712
         if q and q.strip():
@@ -30,29 +33,104 @@ class CoachTopicRepository:
                 | func.lower(CoachTopic.description).like(query_str)
                 | func.lower(CoachTopic.category).like(query_str)
             )
-        stmt = stmt.order_by(CoachTopic.sort_order.asc(), CoachTopic.created_at.asc())
+        stmt = stmt.order_by(
+            CoachTopic.sort_order.asc(), CoachTopic.created_at.asc(), CoachTopic.id.asc()
+        )
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
     async def get_by_id(self, topic_id: uuid.UUID) -> CoachTopic | None:
         return await self.db.get(CoachTopic, topic_id)
 
-    async def seed_defaults_if_empty(self) -> None:
-        stmt = select(func.count(CoachTopic.id))
-        count = (await self.db.execute(stmt)).scalar() or 0
-        if count == 0:
-            for item in COACH_TOPICS_SEED:
-                topic = CoachTopic(
-                    id=uuid.UUID(item["id"]),
-                    category=item["category"],
-                    title=item["title"],
-                    description=item["description"],
-                    min_level=item["min_level"],
-                    target_skills=item["target_skills"],
-                    is_active=item["is_active"],
-                    sort_order=item["sort_order"],
-                )
-                self.db.add(topic)
+    async def get_locked(self, topic_id: uuid.UUID) -> CoachTopic | None:
+        return (
+            await self.db.scalars(
+                select(CoachTopic)
+                .where(CoachTopic.id == topic_id, CoachTopic.deleted_at.is_(None))
+                .with_for_update()
+                .execution_options(populate_existing=True)
+            )
+        ).one_or_none()
+
+    async def list_admin(
+        self, q: str | None, category: str | None, min_level: str | None, active: bool | None
+    ) -> Sequence[CoachTopic]:
+        stmt = select(CoachTopic).where(CoachTopic.deleted_at.is_(None))
+        if q:
+            stmt = stmt.where(func.lower(CoachTopic.title).contains(q.lower(), autoescape=True))
+        if category:
+            stmt = stmt.where(CoachTopic.category == category)
+        if min_level:
+            stmt = stmt.where(CoachTopic.min_level == min_level)
+        if active is not None:
+            stmt = stmt.where(CoachTopic.is_active == active)
+        return (
+            await self.db.scalars(
+                stmt.order_by(CoachTopic.sort_order, CoachTopic.created_at, CoachTopic.id)
+            )
+        ).all()
+
+    async def first_active_locked(self) -> CoachTopic | None:
+        stmt = (
+            select(CoachTopic)
+            .where(CoachTopic.deleted_at.is_(None), CoachTopic.is_active.is_(True))
+            .order_by(CoachTopic.sort_order, CoachTopic.created_at, CoachTopic.id)
+            .limit(1)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return (await self.db.scalars(stmt)).one_or_none()
+
+    async def locked_catalog(self) -> list[CoachTopic]:
+        stmt = (
+            select(CoachTopic)
+            .where(CoachTopic.deleted_at.is_(None))
+            .order_by(CoachTopic.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        return sorted(
+            await self.db.scalars(stmt), key=lambda row: (row.sort_order, row.created_at, row.id)
+        )
+
+    async def has_sessions(self, topic_id: uuid.UUID) -> bool:
+        return bool(
+            await self.db.scalar(
+                select(select(Session.id).where(Session.topic_id == topic_id).exists())
+            )
+        )
+
+    async def ensure_defaults(self) -> None:
+        seed_ids = [uuid.UUID(item["id"]) for item in COACH_TOPICS_SEED]
+        existing = set(
+            await self.db.scalars(select(CoachTopic.id).where(CoachTopic.id.in_(seed_ids)))
+        )
+        missing = [
+            {**item, "id": uuid.UUID(item["id"])}
+            for item in COACH_TOPICS_SEED
+            if uuid.UUID(item["id"]) not in existing
+        ]
+        if missing:
+            insert = pg_insert if self.db.get_bind().dialect.name == "postgresql" else sqlite_insert
+            await self.db.execute(
+                insert(CoachTopic).values(missing).on_conflict_do_nothing(index_elements=["id"])
+            )
+            await self.db.commit()
+        legacy_map = {
+            "Personal & Social": "SOCIAL",
+            "Career & Work": "WORKPLACE",
+            "Travel & Lifestyle": "TRAVEL_SHOPPING",
+            "Daily Communication": "DAILY_LIFE",
+            "Modern Living": "DAILY_LIFE",
+        }
+        rows = (
+            await self.db.scalars(
+                select(CoachTopic).where(CoachTopic.category.in_(list(legacy_map)))
+            )
+        ).all()
+        if rows:
+            for row in rows:
+                row.category = legacy_map[row.category]
             await self.db.commit()
 
 
@@ -83,6 +161,12 @@ class SessionRepository:
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def lock(self, session_id: uuid.UUID, user_id: uuid.UUID | None = None) -> Session | None:
+        stmt = select(Session).where(Session.id == session_id).with_for_update()
+        if user_id is not None:
+            stmt = stmt.where(Session.user_id == user_id)
+        return (await self.db.scalars(stmt.execution_options(populate_existing=True))).one_or_none()
 
     async def save(self, session: Session) -> Session:
         await self.db.commit()
@@ -125,6 +209,39 @@ class TranscriptRepository:
         await self.db.commit()
         await self.db.refresh(segment)
         return segment
+
+    async def add_active_segment(
+        self, segment: TranscriptSegment, user_id: uuid.UUID, *, auth_version: int | None = None
+    ) -> tuple[TranscriptSegment | None, bool]:
+        """Serialize sequence allocation and the accumulated speaking duration for a session."""
+        stmt = select(Session).where(Session.id == segment.session_id, Session.user_id == user_id)
+        if auth_version is not None:
+            stmt = stmt.where(
+                select(User.id)
+                .where(
+                    User.id == user_id, User.auth_version == auth_version, User.is_active.is_(True)
+                )
+                .exists()
+            )
+        session = (
+            await self.db.scalars(stmt.with_for_update().execution_options(populate_existing=True))
+        ).one_or_none()
+        if session is None:
+            return None, False
+        existing = await self.get_by_session_and_segment_id(session.id, segment.id)
+        if existing is not None:
+            await self.db.commit()
+            return existing, False
+        if session.status != "ACTIVE":
+            return None, False
+
+        segment.seq = 1 + await self.get_max_seq(session.id)
+        self.db.add(segment)
+        if segment.speech_ms is not None and segment.speaker == "USER":
+            session.spoken_seconds += segment.speech_ms / 1000
+        await self.db.commit()
+        await self.db.refresh(segment)
+        return segment, True
 
     async def list_by_session(
         self, session_id: uuid.UUID, after_seq: int = 0

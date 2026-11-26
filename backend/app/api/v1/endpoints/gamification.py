@@ -41,7 +41,7 @@ async def get_gamification_summary(
     "/missions/today",
     response_model=DailyMissionsTodayResponse,
     status_code=status.HTTP_200_OK,
-    summary="Get today's 4 daily missions",
+    summary="Get today's issued daily missions",
 )
 async def get_today_missions(
     current_user: User = Depends(get_current_user),
@@ -54,7 +54,7 @@ async def get_today_missions(
     "/missions/{mission_id}/claim",
     response_model=ClaimMissionResponse,
     status_code=status.HTTP_200_OK,
-    summary="Claim completed daily mission reward (+50 XP)",
+    summary="Claim a completed daily mission's issued XP reward",
 )
 @router.post(
     "/gamification/missions/{mission_id}/claim",

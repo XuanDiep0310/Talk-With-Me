@@ -11,6 +11,7 @@ from app.core.config import _BACKEND_DIR, get_settings
 from app.core.database import engine
 from app.core.errors import register_exception_handlers, register_trace_middleware
 from app.core.redis import redis_pool
+from app.core.ws_privacy import PracticeSocketQueryPrivacy
 from app.services.gamification import register_gamification_event_listeners
 
 settings = get_settings()
@@ -57,6 +58,10 @@ if origins:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+app.add_middleware(
+    PracticeSocketQueryPrivacy, practice_prefix=f"{settings.API_V1_PREFIX}/ws/sessions/"
+)
 
 # Static file serving for uploads (avatars, etc.)
 upload_path = Path(settings.UPLOAD_DIR)

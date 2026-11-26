@@ -55,6 +55,7 @@ from app.seeds.scenario_loader import seed_scenarios_if_empty
 from app.services.chunk_matcher import ChunkMatcher
 from app.services.scoring.service import ScoringService
 from app.services.session_state_machine import SessionState, SessionStateMachine
+from app.services.speech_features import apply_speech_features
 
 logger = logging.getLogger(__name__)
 
@@ -325,6 +326,7 @@ class ScenarioService:
             scenario_id=scenario.id,
             level=user_level,
             status=SessionState.CREATED.value,
+            speech_features_version=1,
             started_at=now,
             duration_seconds=0.0,
             spoken_seconds=0.0,
@@ -434,9 +436,6 @@ class ScenarioService:
                 seq=existing.seq,
             )
 
-        max_seq = await self.transcript_repo.get_max_seq(session_id)
-        seq = max_seq + 1
-
         segment = TranscriptSegment(
             pk=uuid.uuid4(),
             id=data.id,
@@ -446,27 +445,27 @@ class ScenarioService:
             text=data.text,
             start_ms=data.start_ms,
             end_ms=data.end_ms,
-            confidence=data.confidence,
             is_final=data.is_final,
-            seq=seq,
         )
-        await self.transcript_repo.add_segment(segment)
-
-        if data.speaker == "USER":
-            session.spoken_seconds += (data.end_ms - data.start_ms) / 1000.0
-            await self.session_repo.save(session)
+        if segment.speaker == "USER":
+            apply_speech_features(segment, pause_threshold_ms=0)
+        else:
+            segment.speech_source = "AI"
+        saved, _ = await self.transcript_repo.add_active_segment(segment, user_id)
+        if saved is None:
+            raise HTTPException(400, detail="The session is no longer active.")
 
         return TranscriptSegmentResponse(
-            id=segment.id,
-            session_id=segment.session_id,
-            speaker=segment.speaker,
-            user_id=segment.user_id,
-            text=segment.text,
-            start_ms=segment.start_ms,
-            end_ms=segment.end_ms,
-            confidence=segment.confidence,
-            is_final=segment.is_final,
-            seq=segment.seq,
+            id=saved.id,
+            session_id=saved.session_id,
+            speaker=saved.speaker,
+            user_id=saved.user_id,
+            text=saved.text,
+            start_ms=saved.start_ms,
+            end_ms=saved.end_ms,
+            confidence=saved.confidence,
+            is_final=saved.is_final,
+            seq=saved.seq,
         )
 
     async def end_roleplay_session(

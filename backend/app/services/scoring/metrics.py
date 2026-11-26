@@ -321,14 +321,18 @@ def is_session_data_sufficient(
 def extract_session_turn_metrics(
     segments: list[Any],
     pause_threshold_ms: int = 1500,
+    *,
+    measured_speech: bool = False,
 ) -> dict[str, Any]:
     """
     Extract turn-based conversational timing and lexical metrics from transcript segments.
     """
-    # Filter and sort segments chronologically
-    sorted_segs = sorted(
-        segments, key=lambda s: s.start_ms if hasattr(s, "start_ms") else s.get("start_ms", 0)
-    )
+    if measured_speech:
+        sorted_segs = sorted((s for s in segments if s.is_final), key=lambda s: s.seq)
+    else:
+        sorted_segs = sorted(
+            segments, key=lambda s: s.start_ms if hasattr(s, "start_ms") else s.get("start_ms", 0)
+        )
 
     user_segments = []
     user_turns: list[list[Any]] = []
@@ -421,10 +425,34 @@ def extract_session_turn_metrics(
         if (s.confidence if hasattr(s, "confidence") else s.get("confidence")) is not None
     ]
 
+    if measured_speech:
+        measured = [s for s in user_segments if s.speech_ms is not None]
+        spoken_seconds = sum(s.speech_ms for s in measured) / 1000
+        turn_span_seconds = sum(s.speech_span_ms or 0 for s in measured) / 1000
+        long_pause_count = sum(s.long_pause_count or 0 for s in measured)
+        latencies = [
+            s.response_latency_ms / 1000 for s in measured if s.response_latency_ms is not None
+        ]
+        avg_latency = sum(latencies) / len(latencies) if latencies else None
+        confidences = [
+            s.confidence
+            for s in user_segments
+            if s.speech_source in {"STT", "STT_NO_WORD_TIMES"} and s.confidence is not None
+        ]
+        speech_segments = [
+            s for s in user_segments if s.speech_source in {"STT", "STT_NO_WORD_TIMES"}
+        ]
+        spoken_word_count = sum(s.word_count or 0 for s in speech_segments)
+        speech_filler_count = sum(s.filler_count or 0 for s in speech_segments)
+    else:
+        spoken_word_count = total_words
+        speech_filler_count = filler_count
+
     return {
         "total_words": total_words,
         "tokens": tokens,
-        "filler_count": filler_count,
+        "filler_count": speech_filler_count,
+        "spoken_word_count": spoken_word_count,
         "found_fillers": found_fillers,
         "user_turns": len(user_turns),
         "spoken_seconds": round(spoken_seconds, 2),

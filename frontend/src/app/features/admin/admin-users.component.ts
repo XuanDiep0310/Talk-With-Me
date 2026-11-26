@@ -1,3 +1,4 @@
+import { RouterLink } from '@angular/router';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { scenarioError } from './admin-scenario.service';
 
 @Component({
   selector: 'app-admin-users',
-  imports: [FormsModule],
+  imports: [RouterLink, FormsModule],
   templateUrl: './admin-users.component.html',
   styleUrl: './admin.scss'
 })

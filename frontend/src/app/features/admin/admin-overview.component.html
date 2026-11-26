@@ -1,0 +1,246 @@
+<div class="page-heading">
+  <div>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Tổng quan quản trị</h1>
+    <p class="mt-1 text-sm text-slate-500">Theo dõi hoạt động học viên, nội dung bài học và vận hành hệ thống</p>
+  </div>
+  <div class="actions">
+    <button type="button" class="action" [disabled]="loading()" (click)="load()">
+      {{ loading() ? 'Đang tải…' : 'Làm mới' }}
+    </button>
+    <a class="action" routerLink="/admin/analytics">Phân tích chi tiết</a>
+    <a class="action primary flex items-center gap-2" routerLink="/admin/scenarios/new">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+      <span>Tạo bài học</span>
+    </a>
+  </div>
+</div>
+
+@if (overview(); as data) {
+  <!-- KPI Cards -->
+  <div class="form-grid mb-5">
+    <a class="panel metric group relative overflow-hidden" routerLink="/admin/users">
+      <div class="mb-2 flex items-center justify-between">
+        <h2>Tài khoản</h2>
+        <div class="rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        </div>
+      </div>
+      <strong>{{ data.totalAccounts }}</strong>
+      <span class="secondary mt-2 flex items-center gap-1.5 text-slate-600">
+        <span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>
+        {{ data.activeAccounts }} hoạt động · +{{ data.newAccounts }} mới (7 ngày)
+      </span>
+    </a>
+
+    <a class="panel metric group relative overflow-hidden" routerLink="/admin/analytics">
+      <div class="mb-2 flex items-center justify-between">
+        <h2>Học viên hôm nay</h2>
+        <div class="rounded-lg bg-cyan-50 p-2 text-cyan-600 transition-colors group-hover:bg-cyan-600 group-hover:text-white">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        </div>
+      </div>
+      <strong class="text-cyan-700">{{ analytics()?.activeToday ?? '—' }}</strong>
+      <span class="secondary mt-2 text-slate-600">
+        {{ analytics()?.activeInPeriod ?? '—' }} học viên hoạt động trong 7 ngày
+      </span>
+    </a>
+
+    <a class="panel metric group relative overflow-hidden" routerLink="/admin/sessions">
+      <div class="mb-2 flex items-center justify-between">
+        <h2>Buổi luyện đã kết thúc</h2>
+        <div class="rounded-lg bg-emerald-50 p-2 text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+      </div>
+      <strong class="text-emerald-700">{{ data.completedSessions }}</strong>
+      <span class="secondary mt-2 text-slate-600">
+        {{ data.recentSessions }} buổi trong 7 ngày
+        @if (analytics()?.speakingMinutes?.average; as avgMin) {
+          · TB {{ avgMin | number:'1.0-1' }} phút nói
+        }
+      </span>
+    </a>
+
+    <a class="panel metric group relative overflow-hidden" routerLink="/admin/scenarios">
+      <div class="mb-2 flex items-center justify-between">
+        <h2>Bài học tình huống</h2>
+        <div class="rounded-lg bg-indigo-50 p-2 text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+        </div>
+      </div>
+      <strong class="text-indigo-700">{{ total(data) }}</strong>
+      <span class="secondary mt-2 text-slate-600">
+        {{ data.scenarioCounts['PUBLISHED'] }} đang hiển thị · {{ data.scenarioCounts['DRAFT'] }} bản nháp
+      </span>
+    </a>
+  </div>
+
+  <!-- Action-needed alerts -->
+  @if (failedFeedbackCount() > 0 || data.scenarioCounts['DRAFT'] > 0) {
+    <section class="panel flex flex-wrap items-center justify-between gap-3 bg-amber-50/60 border-amber-200" aria-label="Cần chú ý">
+      <div class="flex flex-wrap items-center gap-3 text-sm text-amber-900">
+        <span class="font-semibold">Cần chú ý:</span>
+        @if (failedFeedbackCount() > 0) {
+          <a class="status bg-rose-100 text-rose-800 border-rose-200 hover:underline" routerLink="/admin/sessions" [queryParams]="{ status: 'FAILED' }">
+            {{ failedFeedbackCount() }} phiên chấm điểm lỗi (7 ngày)
+          </a>
+        }
+        @if (data.scenarioCounts['DRAFT'] > 0) {
+          <a class="status" data-status="DRAFT" routerLink="/admin/scenarios" [queryParams]="{ status: 'DRAFT' }">
+            {{ data.scenarioCounts['DRAFT'] }} bài học đang ở bản nháp
+          </a>
+        }
+      </div>
+      <a class="text-link text-xs font-semibold" routerLink="/admin/sessions">Kiểm tra phiên học →</a>
+    </section>
+  }
+
+  <!-- Main 2-column Grid: 7-day Trend + Scenario Status / Shortcuts -->
+  <div class="grid gap-5 lg:grid-cols-12">
+    <section class="panel lg:col-span-7 mb-0" aria-labelledby="trend-title">
+      <div class="section-heading mb-3">
+        <div>
+          <h2 id="trend-title" class="text-base font-bold text-slate-900">Xu hướng luyện tập 7 ngày</h2>
+          <p class="secondary">Phiên AI Coach và Roleplay hoàn tất theo ngày</p>
+        </div>
+        <a class="text-link text-xs font-semibold" routerLink="/admin/analytics">Xem đầy đủ →</a>
+      </div>
+
+      @if (analytics(); as report) {
+        <div class="actions mb-3 text-xs">
+          <span class="flex items-center gap-1.5"><span class="size-2.5 rounded bg-blue-600" aria-hidden="true"></span>AI Coach</span>
+          <span class="flex items-center gap-1.5"><span class="size-2.5 rounded bg-teal-600" aria-hidden="true"></span>Roleplay</span>
+        </div>
+        <svg class="block w-full" viewBox="0 0 560 155" aria-label="Biểu đồ phiên luyện tập 7 ngày">
+          @for (tick of [0, 0.5, 1]; track tick) {
+            @let y = 128 - tick * 108;
+            <line x1="34" x2="552" [attr.y1]="y" [attr.y2]="y" class="stroke-slate-200"/>
+            <text x="28" [attr.y]="y + 4" text-anchor="end" class="fill-slate-500 text-[10px]">{{ roundTick(tick * maxDaily()) }}</text>
+          }
+          @for (day of report.days; track day.day; let i = $index) {
+            @let colWidth = 518 / (report.days.length || 1);
+            @let x = 34 + i * colWidth;
+            @let barW = colWidth - 18;
+            @let coachH = barHeight(day.coachSessions);
+            @let roleplayH = barHeight(day.roleplaySessions);
+            <g>
+              <title>{{ day.day }} · AI Coach {{ day.coachSessions }} · Roleplay {{ day.roleplaySessions }} · {{ day.activeLearners }} học viên</title>
+              <rect class="fill-blue-600" rx="3" [attr.x]="x + 9" [attr.width]="barW" [attr.y]="128 - coachH" [attr.height]="coachH"/>
+              <rect class="fill-teal-600" rx="3" [attr.x]="x + 9" [attr.width]="barW" [attr.y]="128 - coachH - roleplayH" [attr.height]="roleplayH"/>
+              <text [attr.x]="x + colWidth / 2" y="146" text-anchor="middle" class="fill-slate-600 text-[11px]">{{ day.day | date:'dd/MM':'+0700' }}</text>
+            </g>
+          }
+        </svg>
+      } @else {
+        <p class="secondary py-8 text-center">Chưa tải được biểu đồ 7 ngày.</p>
+      }
+    </section>
+
+    <div class="grid gap-5 lg:col-span-5">
+      <section class="panel mb-0" aria-labelledby="overview-lessons">
+        <div class="section-heading mb-3">
+          <div class="flex items-center gap-2">
+            <h2 id="overview-lessons" class="text-base font-bold text-slate-900">Trạng thái bài học</h2>
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{{ total(data) }}</span>
+          </div>
+          <a class="text-link text-xs font-semibold" routerLink="/admin/scenarios">Mở thư viện →</a>
+        </div>
+        <div class="grid gap-3">
+          @for (status of states; track status) {
+            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <div class="mb-1.5 flex items-center justify-between">
+                <span class="status" [attr.data-status]="status">{{ labels[status] }}</span>
+                <span class="text-sm font-bold text-slate-800">{{ data.scenarioCounts[status] }}
+                  <span class="text-xs font-normal text-slate-500">({{ ((data.scenarioCounts[status] / (total(data) || 1)) * 100).toFixed(0) }}%)</span>
+                </span>
+              </div>
+              <progress [attr.aria-label]="labels[status]" [value]="data.scenarioCounts[status]" [max]="total(data) || 1"></progress>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="panel mb-0" aria-labelledby="shortcuts-title">
+        <h2 id="shortcuts-title" class="mb-3 text-base font-bold text-slate-900">Truy cập nhanh</h2>
+        <div class="grid grid-cols-2 gap-2">
+          <a class="action justify-start text-xs" routerLink="/admin/coach-topics">Chủ đề AI Coach</a>
+          <a class="action justify-start text-xs" routerLink="/admin/gamification">Gamification & XP</a>
+          <a class="action justify-start text-xs" routerLink="/admin/categories">Nhóm chủ đề</a>
+          <a class="action justify-start text-xs" routerLink="/admin/audit-logs">Nhật ký kiểm toán</a>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Bottom 2-column Grid: Popular Content + Recent Audit Logs -->
+  <div class="mt-5 grid gap-5 lg:grid-cols-2">
+    <section class="panel mb-0" aria-labelledby="popular-content-title">
+      <div class="section-heading mb-3">
+        <h2 id="popular-content-title" class="text-base font-bold text-slate-900">Nội dung luyện nhiều (7 ngày)</h2>
+        <a class="text-link text-xs font-semibold" routerLink="/admin/analytics">Chi tiết →</a>
+      </div>
+      @if (analytics(); as report) {
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Tình huống</h3>
+            <ul class="space-y-1.5 text-sm">
+              @for (item of report.popularScenarios.slice(0, 4); track item.id) {
+                <li class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                  <span class="truncate text-slate-800">{{ item.title }}</span>
+                  <span class="shrink-0 font-semibold text-blue-700">{{ item.attempts }}</span>
+                </li>
+              } @empty { <li class="secondary">Chưa có lượt luyện.</li> }
+            </ul>
+          </div>
+          <div>
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Chủ đề AI Coach</h3>
+            <ul class="space-y-1.5 text-sm">
+              @for (topic of report.popularCoachTopics.slice(0, 4); track topic.id) {
+                <li class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                  <span class="truncate text-slate-800">{{ topic.title }}</span>
+                  <span class="shrink-0 font-semibold text-teal-700">{{ topic.attempts }}</span>
+                </li>
+              } @empty { <li class="secondary">Chưa có lượt luyện.</li> }
+            </ul>
+          </div>
+        </div>
+      } @else {
+        <p class="secondary">Không có dữ liệu nội dung.</p>
+      }
+    </section>
+
+    <section class="panel mb-0" aria-labelledby="recent-audit-title">
+      <div class="section-heading mb-3">
+        <h2 id="recent-audit-title" class="text-base font-bold text-slate-900">Hoạt động quản trị gần đây</h2>
+        <a class="text-link text-xs font-semibold" routerLink="/admin/audit-logs">Xem tất cả →</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Thao tác</th><th scope="col">Người thực hiện</th><th scope="col">Thời gian</th></tr></thead>
+          <tbody>
+            @for (entry of auditLogs(); track entry.id) {
+              <tr>
+                <td>
+                  <span class="font-medium text-slate-800">{{ entry.action }}</span>
+                  <span class="secondary">{{ entry.targetType }}</span>
+                </td>
+                <td class="text-slate-600">{{ entry.actorEmail || 'Hệ thống' }}</td>
+                <td class="whitespace-nowrap text-slate-500">{{ entry.occurredAt | date:'dd/MM HH:mm' }}</td>
+              </tr>
+            } @empty { <tr><td colspan="3" class="secondary">Chưa có nhật ký kiểm toán.</td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+} @else if (error()) {
+  <div class="feedback error" role="alert">
+    <svg class="h-5 w-5 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    <p>{{ error() }}</p>
+  </div>
+} @else {
+  <div class="p-8 text-center text-slate-500" role="status">
+    <svg class="mx-auto mb-2 h-8 w-8 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+    <p>Đang tải số liệu…</p>
+  </div>
+}
