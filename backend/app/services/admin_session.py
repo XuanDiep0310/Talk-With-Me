@@ -92,7 +92,7 @@ class AdminSessionService:
 
     async def list(self, filters: AdminSessionFilters) -> AdminSessionPage:
         rows = await self.repo.list(filters)
-        items = [summarize(*row) for row in rows[: filters.limit]]
+        items = [summarize(*row.tuple()) for row in rows[: filters.limit]]
         last = items[-1] if len(rows) > filters.limit else None
         return AdminSessionPage(
             items=items, next_cursor=encode_cursor(last.created_at, last.id) if last else None
@@ -102,8 +102,8 @@ class AdminSessionService:
         row = await self.repo.summary(session_id)
         if row is None:
             raise not_found()
-        summary = summarize(*row)
-        feedback = row[-1]
+        session, email, learner_name, title, feedback = row.tuple()
+        summary = summarize(session, email, learner_name, title, feedback)
         turns, spoken_seconds = await self.repo.detail_counts(session_id)
         evaluation = await self.repo.roleplay(session_id) if summary.type == "ROLEPLAY" else None
         roleplay = None
@@ -129,13 +129,13 @@ class AdminSessionService:
             **summary.model_dump(),
             turn_count=turns,
             spoken_seconds=spoken_seconds,
-            end_reason=row[0].end_reason,
+            end_reason=session.end_reason,
             feedback=score,
             roleplay=roleplay,
-            qa_note=row[0].qa_note,
+            qa_note=session.qa_note,
             qa_preview=(
-                SessionFeedbackResponse.model_validate(row[0].qa_preview["feedback"])
-                if row[0].qa_preview
+                SessionFeedbackResponse.model_validate(session.qa_preview["feedback"])
+                if session.qa_preview
                 else None
             ),
         )
