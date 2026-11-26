@@ -116,6 +116,22 @@ class CoachTopicRepository:
                 insert(CoachTopic).values(missing).on_conflict_do_nothing(index_elements=["id"])
             )
             await self.db.commit()
+        legacy_map = {
+            "Personal & Social": "SOCIAL",
+            "Career & Work": "WORKPLACE",
+            "Travel & Lifestyle": "TRAVEL_SHOPPING",
+            "Daily Communication": "DAILY_LIFE",
+            "Modern Living": "DAILY_LIFE",
+        }
+        rows = (
+            await self.db.scalars(
+                select(CoachTopic).where(CoachTopic.category.in_(list(legacy_map)))
+            )
+        ).all()
+        if rows:
+            for row in rows:
+                row.category = legacy_map[row.category]
+            await self.db.commit()
 
 
 class SessionRepository:

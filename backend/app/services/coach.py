@@ -21,6 +21,7 @@ from app.models.coach_schemas import (
     TranscriptSegmentResponse,
 )
 from app.models.session import CoachTopic, Session, TranscriptSegment
+from app.repositories.scenario_category import ScenarioCategoryRepository
 from app.repositories.session import CoachTopicRepository, SessionRepository, TranscriptRepository
 from app.repositories.user import UserRepository
 from app.services.session_state_machine import (
@@ -77,6 +78,8 @@ class CoachService:
 
         # 3. Retrieve active topics (filtered by search query if present)
         topics = await self.topic_repo.list_topics(q=q, active_only=True)
+        category_rows = await ScenarioCategoryRepository(self.db).list_with_counts()
+        category_names = {cat.code: cat.name_vi for cat, _ in category_rows}
 
         # 4. Score and rank topics for "Recommended for you" group
         ranked = rank_topics(
@@ -90,7 +93,7 @@ class CoachService:
         recommended_schemas: list[CoachTopicSchema] = [
             CoachTopicSchema(
                 id=t.id,
-                category=t.category,
+                category=category_names.get(t.category, t.category),
                 title=t.title,
                 description=t.description,
                 min_level=t.min_level,
@@ -104,16 +107,17 @@ class CoachService:
         # 5. Group topics by category
         groups_dict: dict[str, list[CoachTopicSchema]] = {}
         for t in topics:
+            cat_label = category_names.get(t.category, t.category)
             schema = CoachTopicSchema(
                 id=t.id,
-                category=t.category,
+                category=cat_label,
                 title=t.title,
                 description=t.description,
                 min_level=t.min_level,
                 target_skills=t.target_skills or [],
                 is_active=t.is_active,
             )
-            groups_dict.setdefault(t.category, []).append(schema)
+            groups_dict.setdefault(cat_label, []).append(schema)
 
         group_schemas = [
             CoachTopicGroupSchema(category=cat, topics=topic_list)

@@ -56,9 +56,12 @@ async def create_topic(body: AdminCoachTopicInput, topics: Topics) -> AdminCoach
 
 @router.post("/generate", dependencies=[Depends(require_admin)])
 async def generate(
-    body: GenerateCoachTopic, provider: LlmProvider = Depends(get_llm_provider)
+    body: GenerateCoachTopic,
+    topics: Topics,
+    provider: LlmProvider = Depends(get_llm_provider),
 ) -> CoachTopicDraft:
-    return await generate_coach_topic(provider, body)
+    cats = [cat.code for cat, _ in await topics.categories.list_with_counts()]
+    return await generate_coach_topic(provider, body, cats or None)
 
 
 @router.patch("/{id}")
