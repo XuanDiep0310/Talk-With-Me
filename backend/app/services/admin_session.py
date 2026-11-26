@@ -92,7 +92,7 @@ class AdminSessionService:
 
     async def list(self, filters: AdminSessionFilters) -> AdminSessionPage:
         rows = await self.repo.list(filters)
-        items = [summarize(*row.tuple()) for row in rows[: filters.limit]]
+        items = [summarize(*row) for row in rows[: filters.limit]]
         last = items[-1] if len(rows) > filters.limit else None
         return AdminSessionPage(
             items=items, next_cursor=encode_cursor(last.created_at, last.id) if last else None
@@ -102,7 +102,7 @@ class AdminSessionService:
         row = await self.repo.summary(session_id)
         if row is None:
             raise not_found()
-        session, email, learner_name, title, feedback = row.tuple()
+        session, email, learner_name, title, feedback = row
         summary = summarize(session, email, learner_name, title, feedback)
         turns, spoken_seconds = await self.repo.detail_counts(session_id)
         evaluation = await self.repo.roleplay(session_id) if summary.type == "ROLEPLAY" else None

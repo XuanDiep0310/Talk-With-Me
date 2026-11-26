@@ -1,7 +1,8 @@
 import uuid
 from collections.abc import Sequence
+from typing import cast
 
-from sqlalchemy import Row, Select, func, literal, or_, select, tuple_, type_coerce
+from sqlalchemy import Select, func, literal, or_, select, tuple_, type_coerce
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +32,7 @@ class AdminSessionRepository:
             .outerjoin(SessionFeedback, SessionFeedback.session_id == Session.id)
         )
 
-    async def list(self, filters: AdminSessionFilters) -> Sequence[Row[SessionRow]]:
+    async def list(self, filters: AdminSessionFilters) -> list[SessionRow]:
         query = self.summary_query()
         if filters.type:
             query = query.where(Session.type == filters.type)
@@ -71,18 +72,20 @@ class AdminSessionRepository:
             query = query.where(
                 tuple_(Session.created_at, Session.id) < tuple_(literal(at), literal(item_id))
             )
-        return (
+        rows = (
             await self.db.execute(
                 query.order_by(Session.created_at.desc(), Session.id.desc()).limit(
                     filters.limit + 1
                 )
             )
         ).all()
+        return [cast(SessionRow, tuple(row)) for row in rows]
 
-    async def summary(self, session_id: uuid.UUID) -> Row[SessionRow] | None:
-        return (
+    async def summary(self, session_id: uuid.UUID) -> SessionRow | None:
+        row = (
             await self.db.execute(self.summary_query().where(Session.id == session_id))
         ).one_or_none()
+        return cast(SessionRow, tuple(row)) if row is not None else None
 
     async def detail_counts(self, session_id: uuid.UUID) -> tuple[int, float | None]:
         seg = TranscriptSegment
