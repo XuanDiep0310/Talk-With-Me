@@ -123,3 +123,8 @@ async def admin_set_scenario_status(
     id: uuid.UUID, body: AdminScenarioStatusUpdate, editor: Editor
 ) -> AdminScenarioDetail:
     return await editor.change_status(id, body)
+
+
+@router.delete("/{id}", status_code=204, responses={**NOT_FOUND, **CONFLICT})
+async def admin_delete_scenario(id: uuid.UUID, editor: Editor) -> None:
+    await editor.delete(id)

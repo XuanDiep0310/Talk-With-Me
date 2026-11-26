@@ -13,7 +13,18 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -41,13 +52,29 @@ class CoachTopic(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     sessions: Mapped[list[Session]] = relationship(back_populates="topic")
+
+    def context(self) -> dict[str, object]:
+        return {
+            "id": str(self.id),
+            "category": self.category,
+            "title": self.title,
+            "description": self.description,
+            "min_level": self.min_level,
+            "target_skills": self.target_skills or [],
+            "is_active": self.is_active,
+        }
 
 
 class Session(Base, TimestampMixin):
     """Shared practice session (COACH, ROLEPLAY) across the application."""
 
     __tablename__ = "sessions"
+    __table_args__ = (
+        Index("ix_sessions_ended_at", "ended_at", postgresql_where=text("ended_at IS NOT NULL")),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     # COACH | ROLEPLAY
@@ -64,6 +91,9 @@ class Session(Base, TimestampMixin):
         nullable=True,
         index=True,
     )
+    topic_snapshot: Mapped[dict[str, object] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql")
+    )
     scenario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
     # CEFR Level at the time of session creation (A1, A2, B1, B2, C1)
@@ -76,6 +106,14 @@ class Session(Base, TimestampMixin):
     duration_seconds: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     spoken_seconds: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     # USER_REQUESTED, TIMEOUT, DISCONNECTED, ERROR
+    speech_features_version: Mapped[int | None] = mapped_column(Integer)
+    qa_note: Mapped[str | None] = mapped_column(Text)
+    qa_preview: Mapped[dict[str, object] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql")
+    )
+    qa_labels: Mapped[list[str]] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), default=list, server_default="[]", nullable=False
+    )
     end_reason: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     topic: Mapped[CoachTopic | None] = relationship(back_populates="sessions")
@@ -90,6 +128,21 @@ class Session(Base, TimestampMixin):
         uselist=False,
         cascade="all, delete-orphan",
     )
+
+    def coach_context(self) -> dict[str, object] | None:
+        if self.topic_snapshot is not None:
+            return self.topic_snapshot or None
+        if self.topic is not None:
+            return self.topic.context()
+        return None
+
+    def coach_title(self, default: str) -> str:
+        context = self.coach_context()
+        return str(context["title"]) if context else default
+
+    def coach_min_level(self) -> str:
+        context = self.coach_context()
+        return str(context["min_level"]) if context else "A1"
 
 
 class TranscriptSegment(Base, TimestampMixin):
@@ -120,6 +173,14 @@ class TranscriptSegment(Base, TimestampMixin):
     start_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     end_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    speech_source: Mapped[str | None] = mapped_column(String(25))
+    speech_ms: Mapped[int | None] = mapped_column(Integer)
+    speech_span_ms: Mapped[int | None] = mapped_column(Integer)
+    long_pause_count: Mapped[int | None] = mapped_column(Integer)
+    long_pause_ms: Mapped[int | None] = mapped_column(Integer)
+    word_count: Mapped[int | None] = mapped_column(Integer)
+    filler_count: Mapped[int | None] = mapped_column(Integer)
+    response_latency_ms: Mapped[int | None] = mapped_column(Integer)
     is_final: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     seq: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 

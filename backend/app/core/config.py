@@ -170,6 +170,7 @@ class Settings(BaseSettings):
 
     # Scoring Engine & Post-Session Feedback (Sprint 4)
     SCORING_FORMULA_VERSION: str = "1.0.0"
+    SCORING_MEASURED_FORMULA_VERSION: str = "1.1.0"
     SCORING_MIN_USER_WORDS: int = 5
     SCORING_MIN_USER_TURNS: int = 1
     SCORING_MIN_SPOKEN_SECONDS: float = 5.0

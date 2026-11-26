@@ -22,7 +22,10 @@ async def generate_feedback_task(session_id: uuid.UUID) -> None:
             service = ScoringService(db)
             await service.generate_feedback(session_id)
         except Exception as exc:
-            logger.error("Error executing generate_feedback_task for %s: %s", session_id, exc)
+            logger.error(
+                "Error executing generate_feedback_task for %s: %s", session_id, type(exc).__name__
+            )
+            await service.mark_job_failed(session_id)
 
 
 async def arq_generate_feedback(ctx: dict[str, Any], session_id_str: str) -> None:  # noqa: ARG001
@@ -31,7 +34,7 @@ async def arq_generate_feedback(ctx: dict[str, Any], session_id_str: str) -> Non
     await generate_feedback_task(session_id)
 
 
-async def enqueue_feedback_job(session_id: uuid.UUID) -> None:
+async def enqueue_feedback_job(session_id: uuid.UUID, *, strict: bool = False) -> None:
     """
     Enqueue generate_feedback job.
     Uses ARQ Redis queue if configured, otherwise executes asynchronously via asyncio task.
@@ -50,11 +53,15 @@ async def enqueue_feedback_job(session_id: uuid.UUID) -> None:
                 database=settings.REDIS_DB,
             )
             pool = await create_pool(redis_settings)
-            await pool.enqueue_job("arq_generate_feedback", str(session_id))
-            await pool.close()
+            try:
+                await pool.enqueue_job("arq_generate_feedback", str(session_id))
+            finally:
+                await pool.aclose()
             logger.info("Enqueued generate_feedback job in ARQ for session %s", session_id)
             return
         except Exception as exc:
+            if strict:
+                raise
             logger.warning(
                 "Could not enqueue into ARQ Redis queue (%s), falling back to in-process task",
                 exc,

@@ -4,6 +4,8 @@ Seed data for Gamification: XP rules, daily missions, and badge definitions.
 
 from typing import Any
 
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.gamification import BadgeDefinition, MissionDefinition, XpRule
@@ -39,7 +41,7 @@ MISSION_DEFINITIONS: list[dict[str, Any]] = [
     {
         "key": "coach_session",
         "title": "Hoàn thành 1 buổi AI Coach",
-        "xp_reward": 50,
+        "xp_reward": None,
         "condition_type": "COACH_SESSION",
         "target_count": 1,
         "params": {},
@@ -48,7 +50,7 @@ MISSION_DEFINITIONS: list[dict[str, Any]] = [
     {
         "key": "new_scenario",
         "title": "Luyện 1 tình huống mới",
-        "xp_reward": 50,
+        "xp_reward": None,
         "condition_type": "SCENARIO_LESSON",
         "target_count": 1,
         "params": {},
@@ -57,7 +59,7 @@ MISSION_DEFINITIONS: list[dict[str, Any]] = [
     {
         "key": "maintain_streak",
         "title": "Duy trì streak",
-        "xp_reward": 50,
+        "xp_reward": None,
         "condition_type": "STREAK",
         "target_count": 1,
         "params": {},
@@ -263,41 +265,13 @@ BADGE_DEFINITIONS: list[dict[str, Any]] = [
 
 async def seed_gamification(session: AsyncSession) -> None:
     """Seed XP rules, mission definitions, and badges idempotently."""
-    for rule_data in XP_RULES:
-        existing = await session.get(XpRule, rule_data["key"])
-        if not existing:
-            session.add(XpRule(**rule_data))
-        else:
-            existing.xp_amount = int(rule_data["xp_amount"])
-            existing.is_active = bool(rule_data["is_active"])
-            existing.description = (
-                str(rule_data["description"]) if rule_data.get("description") else None
-            )
-
-    for mission_data in MISSION_DEFINITIONS:
-        existing_m = await session.get(MissionDefinition, mission_data["key"])
-        if not existing_m:
-            session.add(MissionDefinition(**mission_data))
-        else:
-            existing_m.title = str(mission_data["title"])
-            existing_m.xp_reward = int(mission_data["xp_reward"])
-            existing_m.condition_type = str(mission_data["condition_type"])
-            existing_m.target_count = int(mission_data["target_count"])
-            existing_m.params = dict(mission_data["params"])
-            existing_m.is_active = bool(mission_data["is_active"])
-
-    for badge_data in BADGE_DEFINITIONS:
-        existing_b = await session.get(BadgeDefinition, badge_data["key"])
-        if not existing_b:
-            session.add(BadgeDefinition(**badge_data))
-        else:
-            existing_b.name = str(badge_data["name"])
-            existing_b.description = str(badge_data["description"])
-            existing_b.icon_emoji = str(badge_data["icon_emoji"])
-            existing_b.category = str(badge_data["category"])
-            existing_b.criteria_type = str(badge_data["criteria_type"])
-            existing_b.target_value = int(badge_data["target_value"])
-            existing_b.params = dict(badge_data["params"])
-            existing_b.sort_order = int(badge_data["sort_order"])
-
-    await session.flush()
+    insert = sqlite_insert if session.get_bind().dialect.name == "sqlite" else pg_insert
+    for model, items in (
+        (XpRule, XP_RULES),
+        (MissionDefinition, MISSION_DEFINITIONS),
+        (BadgeDefinition, BADGE_DEFINITIONS),
+    ):
+        await session.execute(
+            insert(model).values(items).on_conflict_do_nothing(index_elements=["key"])
+        )
+    await session.commit()

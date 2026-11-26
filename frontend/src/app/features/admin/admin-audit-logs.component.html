@@ -1,0 +1,38 @@
+<h1 class="mb-5">Nhật ký kiểm toán</h1>
+<form class="panel filter-form" (ngSubmit)="load()">
+  <label>Mã vết <input type="search" name="trace" maxlength="255" [(ngModel)]="filters.traceId"></label>
+  <label>Hành động <input name="action" maxlength="50" [(ngModel)]="filters.action" placeholder="COACH_TOPIC_UPDATED"></label>
+  <label>Loại đối tượng <select name="target" [(ngModel)]="filters.targetType">
+    <option value="">Tất cả</option>
+    @for (target of targetKeys; track target) { <option [value]="target">{{ targets[target] }}</option> }
+  </select></label>
+  <label>Từ (giờ thiết bị) <input type="datetime-local" name="from" [(ngModel)]="filters.fromDate"></label>
+  <label>Đến trước (giờ thiết bị) <input type="datetime-local" name="to" [(ngModel)]="filters.toDate"></label>
+  <button class="action primary" [disabled]="loading()">Lọc nhật ký</button>
+</form>
+@if (error()) { <p class="panel" role="alert">{{ error() }}</p> }
+<div class="panel results table-wrap" tabindex="0" role="region" aria-label="Sự kiện quản trị" [attr.aria-busy]="loading()">
+  <table>
+    <thead><tr><th scope="col">Thời gian</th><th scope="col">Người thực hiện</th><th scope="col">Hành động</th><th scope="col">Đối tượng</th><th scope="col">Chi tiết</th></tr></thead>
+    <tbody>
+      @for (event of items(); track event.source + event.id) {
+        <tr>
+          <td>{{ event.occurredAt | date:'dd/MM/yyyy HH:mm:ss' }}<span class="secondary">{{ event.occurredAt | date:'HH:mm:ss':'UTC' }} UTC</span></td>
+          <td>{{ event.actorEmail || 'N/A' }}</td>
+          <td>{{ event.action }}<span class="secondary">{{ event.traceId }}</span></td>
+          <td>{{ targets[event.targetType] || event.targetType }}<span class="secondary">{{ event.targetId }}</span></td>
+          <td>@if (event.before || event.after) {
+            <details>
+              <summary class="text-link cursor-pointer">Xem thay đổi</summary>
+              @if (event.before) { <p class="font-semibold mt-2">Trước</p><pre class="whitespace-pre-wrap break-all text-xs">{{ event.before | json }}</pre> }
+              @if (event.after) { <p class="font-semibold mt-2">Sau</p><pre class="whitespace-pre-wrap break-all text-xs">{{ event.after | json }}</pre> }
+            </details>
+          } @else { <span class="secondary">Chỉ có thông tin sự kiện</span> }</td>
+        </tr>
+      } @empty { <tr><td colspan="5">{{ loading() ? 'Đang tải nhật ký…' : 'Không tìm thấy sự kiện.' }}</td></tr> }
+    </tbody>
+  </table>
+</div>
+@if (next(); as cursor) {
+  <button type="button" class="action" [disabled]="loading()" (click)="load(cursor)">Tải thêm sự kiện</button>
+}

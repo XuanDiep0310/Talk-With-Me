@@ -15,8 +15,8 @@ import { AdminScenarioService, CategoryDetail, lessonSlug, scenarioError } from 
     </a>
     <div class="page-heading">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Nhóm chủ đề</h1>
-        <p class="text-sm text-slate-500 mt-1">Phân loại các bài học tình huống theo nhóm ngữ cảnh giao tiếp</p>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Nhóm chủ đề dùng chung</h1>
+        <p class="text-sm text-slate-500 mt-1">Phân loại thống nhất cho cả Bài học tình huống (Roleplay) và Chủ đề AI Coach</p>
       </div>
     </div>
     @if (error()) {
@@ -47,7 +47,7 @@ import { AdminScenarioService, CategoryDetail, lessonSlug, scenarioError } from 
         @for (row of rows(); track row.code) {
           <form class="group-item filter-form shadow-sm" (ngSubmit)="rename(row)">
             <div>
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-700 mb-1">{{ row.lessonCount }} bài học</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-50 text-blue-700 mb-1">{{ row.lessonCount }} nội dung</span>
               <span class="secondary font-mono text-xs">{{ row.code }}</span>
             </div>
             <label>Tên nhóm<input name="name" maxlength="120" [(ngModel)]="row.nameVi" /></label>
