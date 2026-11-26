@@ -13,9 +13,7 @@ depends_on = None
 
 def upgrade() -> None:
     op.add_column("sessions", sa.Column("speech_features_version", sa.Integer()))
-    op.add_column(
-        "sessions", sa.Column("qa_labels", JSONB(), nullable=False, server_default="[]")
-    )
+    op.add_column("sessions", sa.Column("qa_labels", JSONB(), nullable=False, server_default="[]"))
     for name, kind in (
         ("speech_source", sa.String(25)),
         ("speech_ms", sa.Integer()),
@@ -31,8 +29,14 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     for name in (
-        "response_latency_ms", "filler_count", "word_count", "long_pause_ms", "long_pause_count",
-        "speech_span_ms", "speech_ms", "speech_source",
+        "response_latency_ms",
+        "filler_count",
+        "word_count",
+        "long_pause_ms",
+        "long_pause_count",
+        "speech_span_ms",
+        "speech_ms",
+        "speech_source",
     ):
         op.drop_column("transcript_segments", name)
     op.drop_column("sessions", "qa_labels")

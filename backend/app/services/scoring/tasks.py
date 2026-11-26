@@ -22,7 +22,9 @@ async def generate_feedback_task(session_id: uuid.UUID) -> None:
             service = ScoringService(db)
             await service.generate_feedback(session_id)
         except Exception as exc:
-            logger.error("Error executing generate_feedback_task for %s: %s", session_id, type(exc).__name__)
+            logger.error(
+                "Error executing generate_feedback_task for %s: %s", session_id, type(exc).__name__
+            )
             await service.mark_job_failed(session_id)
 
 

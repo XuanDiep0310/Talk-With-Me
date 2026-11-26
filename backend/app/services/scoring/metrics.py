@@ -435,10 +435,13 @@ def extract_session_turn_metrics(
         ]
         avg_latency = sum(latencies) / len(latencies) if latencies else None
         confidences = [
-            s.confidence for s in user_segments
+            s.confidence
+            for s in user_segments
             if s.speech_source in {"STT", "STT_NO_WORD_TIMES"} and s.confidence is not None
         ]
-        speech_segments = [s for s in user_segments if s.speech_source in {"STT", "STT_NO_WORD_TIMES"}]
+        speech_segments = [
+            s for s in user_segments if s.speech_source in {"STT", "STT_NO_WORD_TIMES"}
+        ]
         spoken_word_count = sum(s.word_count or 0 for s in speech_segments)
         speech_filler_count = sum(s.filler_count or 0 for s in speech_segments)
     else:
