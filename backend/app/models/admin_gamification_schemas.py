@@ -9,6 +9,7 @@ from app.models.scenario_schemas import BaseScenarioSchema
 
 Key = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{0,49}$")]
 MissionCondition = Literal["COACH_SESSION", "SCENARIO_LESSON", "STREAK"]
+BadgeCategory = Literal["PRACTICE", "SCENARIO", "STREAK", "SKILL", "LEVEL", "GENERAL"]
 BadgeCondition = Literal[
     "SESSIONS_COUNT",
     "STREAK_DAYS",
@@ -88,6 +89,7 @@ class AdminBadgeInput(BaseScenarioSchema):
     icon_emoji: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10)
     ]
+    category: BadgeCategory = "GENERAL"
     criteria_type: BadgeCondition
     target_value: Target = 1
     min_level: CefrLevel | None = None
@@ -110,6 +112,7 @@ class AdminBadgeUpdate(BaseScenarioSchema):
     name: str | None = None
     description: str | None = None
     icon_emoji: str | None = None
+    category: BadgeCategory | None = None
     criteria_type: BadgeCondition | None = None
     target_value: Target | None = None
     min_level: CefrLevel | None = None
@@ -125,6 +128,7 @@ class AdminBadge(BaseScenarioSchema):
     name: str
     description: str
     icon_emoji: str
+    category: str
     criteria_type: str
     target_value: int
     min_level: str | None = None

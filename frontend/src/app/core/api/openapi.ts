@@ -1106,7 +1106,8 @@ export interface paths {
         /** Admin Update Scenario */
         put: operations["admin_update_scenario_api_v1_admin_scenarios__id__put"];
         post?: never;
-        delete?: never;
+        /** Admin Delete Scenario */
+        delete: operations["admin_delete_scenario_api_v1_admin_scenarios__id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1885,6 +1886,8 @@ export interface components {
             description: string;
             /** Iconemoji */
             iconEmoji: string;
+            /** Category */
+            category: string;
             /** Criteriatype */
             criteriaType: string;
             /** Targetvalue */
@@ -1902,6 +1905,12 @@ export interface components {
             description: string;
             /** Iconemoji */
             iconEmoji: string;
+            /**
+             * Category
+             * @default GENERAL
+             * @enum {string}
+             */
+            category: "PRACTICE" | "SCENARIO" | "STREAK" | "SKILL" | "LEVEL" | "GENERAL";
             /**
              * Criteriatype
              * @enum {string}
@@ -1930,6 +1939,8 @@ export interface components {
             description?: string | null;
             /** Iconemoji */
             iconEmoji?: string | null;
+            /** Category */
+            category?: ("PRACTICE" | "SCENARIO" | "STREAK" | "SKILL" | "LEVEL" | "GENERAL") | null;
             /** Criteriatype */
             criteriaType?: ("SESSIONS_COUNT" | "STREAK_DAYS" | "SCENARIOS_COMPLETED" | "FLUENCY_SCORE" | "SPEED_SCORE" | "CEFR_LEVEL") | null;
             /** Targetvalue */
@@ -6552,6 +6563,71 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AdminScenarioDetail"];
                 };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Administrator access required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Scenario not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Scenario conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+            /** @description Invalid request or scenario content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminScenarioError"];
+                };
+            };
+        };
+    };
+    admin_delete_scenario_api_v1_admin_scenarios__id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Authentication required */
             401: {

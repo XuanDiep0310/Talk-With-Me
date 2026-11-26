@@ -117,6 +117,7 @@ class AdminGamificationService:
             name=row.name,
             description=row.description,
             icon_emoji=row.icon_emoji,
+            category=row.category,
             criteria_type=row.criteria_type,
             target_value=row.target_value,
             min_level=row.params.get("min_level") if row.params else None,
@@ -124,7 +125,7 @@ class AdminGamificationService:
         )
 
     async def create_badge(self, body: AdminBadgeCreate) -> AdminBadge:
-        row = BadgeDefinition(key=body.key, category="GENERAL", sort_order=0)
+        row = BadgeDefinition(key=body.key, category=body.category, sort_order=0)
         self.db.add(row)
         return await self.write_badge(row, body, None)
 

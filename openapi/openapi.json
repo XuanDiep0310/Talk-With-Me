@@ -3145,6 +3145,85 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "Admin Scenarios"
+        ],
+        "summary": "Admin Delete Scenario",
+        "operationId": "admin_delete_scenario_api_v1_admin_scenarios__id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Administrator access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid request or scenario content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scenario not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Scenario conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminScenarioError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/admin/scenarios/{id}/duplicate": {
@@ -7120,6 +7199,10 @@
             "type": "string",
             "title": "Iconemoji"
           },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
           "criteriaType": {
             "type": "string",
             "title": "Criteriatype"
@@ -7150,6 +7233,7 @@
           "name",
           "description",
           "iconEmoji",
+          "category",
           "criteriaType",
           "targetValue",
           "isActive"
@@ -7175,6 +7259,19 @@
             "maxLength": 10,
             "minLength": 1,
             "title": "Iconemoji"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "PRACTICE",
+              "SCENARIO",
+              "STREAK",
+              "SKILL",
+              "LEVEL",
+              "GENERAL"
+            ],
+            "title": "Category",
+            "default": "GENERAL"
           },
           "criteriaType": {
             "type": "string",
@@ -7268,6 +7365,25 @@
               }
             ],
             "title": "Iconemoji"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PRACTICE",
+                  "SCENARIO",
+                  "STREAK",
+                  "SKILL",
+                  "LEVEL",
+                  "GENERAL"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
           },
           "criteriaType": {
             "anyOf": [
