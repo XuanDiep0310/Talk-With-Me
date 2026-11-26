@@ -218,7 +218,7 @@ import {
             </div>
 
             <!-- Filter chips -->
-            <div class="flex gap-2 mt-4 pt-3 border-t border-slate-100 text-xs font-semibold">
+            <div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-slate-100 text-xs font-semibold">
               <button
                 type="button"
                 class="px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all"
@@ -253,102 +253,139 @@ import {
                 <span>Chưa mở ({{ badges().length - earnedBadgesCount() }})</span>
               </button>
             </div>
-          </div>
-
-          <!-- Trophy Cards Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            @for (b of filteredBadges(); track b.id || b.key) {
-              <div
-                class="card card-interactive p-5 relative transition-all duration-200 cursor-pointer border flex flex-col justify-between"
-                tabindex="0"
-                role="button"
-                [attr.aria-label]="b.name"
-                [style.borderColor]="b.earned ? '#CBD5E1' : '#E2E8F0'"
-                [style.background]="b.earned ? '#FFFFFF' : '#F8FAFC'"
-                (click)="selectedBadge.set(b)"
-                (keydown.enter)="selectedBadge.set(b)"
+            <!-- Category chips -->
+            <div class="flex flex-wrap gap-1.5 mt-2.5 text-xs font-medium">
+              <button
+                type="button"
+                class="px-2.5 py-1 rounded-full border cursor-pointer transition-all"
+                [style.borderColor]="categoryFilter() === 'all' ? '#286FB4' : '#E2E8F0'"
+                [style.background]="categoryFilter() === 'all' ? '#EFF6FF' : '#FFFFFF'"
+                [style.color]="categoryFilter() === 'all' ? '#1D4ED8' : '#64748B'"
+                (click)="categoryFilter.set('all')"
               >
-                <div>
-                  <!-- Rarity & Earned Stamp -->
-                  <div class="flex items-center justify-between mb-3">
-                    <span
-                      class="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider"
-                      [style.background]="getRarityMeta(b.key).badgeBg"
-                      [style.color]="getRarityMeta(b.key).badgeColor"
-                    >
-                      {{ getRarityMeta(b.key).tierName }}
-                    </span>
-
-                    @if (b.earned) {
-                      <span class="text-[11px] font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                        <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>Đã đạt</span>
-                      </span>
-                    } @else {
-                      <span class="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                        <span>Chưa đạt</span>
-                      </span>
-                    }
-                  </div>
-
-                  <!-- Medal Emblem + Info -->
-                  <div class="flex items-start gap-3.5 mb-3">
-                    <div
-                      class="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
-                      [style.background]="b.earned ? getRarityMeta(b.key).emblemBg : '#E2E8F0'"
-                    >
-                      <svg class="w-6 h-6" [class.text-slate-400]="!b.earned" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                      </svg>
-                    </div>
-
-                    <div class="flex-1 min-w-0">
-                      <h3 class="font-bold text-sm text-slate-800 truncate">
-                        {{ b.name }}
-                      </h3>
-                      <p class="text-xs text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">
-                        {{ b.description }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Footer Status & XP Reward Bounty -->
-                <div class="pt-3 border-t border-slate-100 mt-2">
-                  @if (b.earned) {
-                    <div class="flex items-center justify-between text-xs">
-                      <span class="text-slate-400 text-[11px]">{{ formatDate(b.awardedAt) }}</span>
-                      <span class="font-bold text-amber-600 inline-flex items-center gap-1">
-                        <span>+{{ getRarityMeta(b.key).rewardXp }} XP</span>
-                        <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                        </svg>
-                      </span>
-                    </div>
-                  } @else {
-                    <div>
-                      <div class="flex justify-between text-[11px] mb-1">
-                        <span class="text-slate-500">Tiến độ</span>
-                        <span class="font-semibold text-slate-700">{{ b.progress }}/{{ b.target || b.targetValue || b.total || 1 }}</span>
-                      </div>
-                      <div class="progress-bar h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1.5">
-                        <div class="progress-bar-fill h-1.5 bg-[#286FB4] rounded-full" [style.width.%]="getBadgeProgressPct(b)"></div>
-                      </div>
-                      <div class="flex justify-between items-center text-[11px]">
-                        <span class="text-slate-400">Thưởng mở khóa:</span>
-                        <span class="font-bold text-amber-600">+{{ getRarityMeta(b.key).rewardXp }} XP</span>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            }
+                Tất cả danh mục
+              </button>
+              @for (cat of badgeCategories; track cat.value) {
+                <button
+                  type="button"
+                  class="px-2.5 py-1 rounded-full border cursor-pointer transition-all"
+                  [style.borderColor]="categoryFilter() === cat.value ? '#286FB4' : '#E2E8F0'"
+                  [style.background]="categoryFilter() === cat.value ? '#EFF6FF' : '#FFFFFF'"
+                  [style.color]="categoryFilter() === cat.value ? '#1D4ED8' : '#64748B'"
+                  (click)="categoryFilter.set(cat.value)"
+                >
+                  {{ cat.label }}
+                </button>
+              }
+            </div>
           </div>
+
+          <!-- Trophy Cards Grouped by Category -->
+          @for (group of groupedBadges(); track group.code) {
+            <section class="space-y-3" [attr.aria-label]="'Danh mục ' + group.label">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">{{ group.label }}</h3>
+                <span class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">{{ group.items.length }} huy hiệu</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                @for (b of group.items; track b.id || b.key) {
+                  <div
+                    class="card card-interactive p-5 relative transition-all duration-200 cursor-pointer border flex flex-col justify-between"
+                    tabindex="0"
+                    role="button"
+                    [attr.aria-label]="b.name"
+                    [style.borderColor]="b.earned ? '#CBD5E1' : '#E2E8F0'"
+                    [style.background]="b.earned ? '#FFFFFF' : '#F8FAFC'"
+                    (click)="selectedBadge.set(b)"
+                    (keydown.enter)="selectedBadge.set(b)"
+                  >
+                    <div>
+                      <!-- Rarity & Earned Stamp -->
+                      <div class="flex items-center justify-between mb-3 gap-2">
+                        <span
+                          class="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider"
+                          [style.background]="getRarityMeta(b.key).badgeBg"
+                          [style.color]="getRarityMeta(b.key).badgeColor"
+                        >
+                          {{ getRarityMeta(b.key).tierName }}
+                        </span>
+
+                        @if (b.earned) {
+                          <span class="text-[11px] font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                            <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Đã đạt</span>
+                          </span>
+                        } @else {
+                          <span class="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <span>Chưa đạt</span>
+                          </span>
+                        }
+                      </div>
+
+                      <!-- Medal Emblem + Info -->
+                      <div class="flex items-start gap-3.5 mb-3">
+                        <div
+                          class="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
+                          [style.background]="b.earned ? getRarityMeta(b.key).emblemBg : '#E2E8F0'"
+                        >
+                          <svg class="w-6 h-6" [class.text-slate-400]="!b.earned" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                          </svg>
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                          <h3 class="font-bold text-sm text-slate-800 truncate">
+                            {{ b.name }}
+                          </h3>
+                          <p class="text-xs text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">
+                            {{ b.description }}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Footer Status & XP Reward Bounty -->
+                    <div class="pt-3 border-t border-slate-100 mt-2">
+                      @if (b.earned) {
+                        <div class="flex items-center justify-between text-xs">
+                          <span class="text-slate-400 text-[11px]">{{ formatDate(b.awardedAt) }}</span>
+                          <span class="font-bold text-amber-600 inline-flex items-center gap-1">
+                            <span>+{{ getRarityMeta(b.key).rewardXp }} XP</span>
+                            <svg class="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                          </span>
+                        </div>
+                      } @else {
+                        <div>
+                          <div class="flex justify-between text-[11px] mb-1">
+                            <span class="text-slate-500">Tiến độ</span>
+                            <span class="font-semibold text-slate-700">{{ b.progress }}/{{ b.target || b.targetValue || b.total || 1 }}</span>
+                          </div>
+                          <div class="progress-bar h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1.5">
+                            <div class="progress-bar-fill h-1.5 bg-[#286FB4] rounded-full" [style.width.%]="getBadgeProgressPct(b)"></div>
+                          </div>
+                          <div class="flex justify-between items-center text-[11px]">
+                            <span class="text-slate-400">Thưởng mở khóa:</span>
+                            <span class="font-bold text-amber-600">+{{ getRarityMeta(b.key).rewardXp }} XP</span>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </section>
+          } @empty {
+            <div class="card p-8 text-center text-sm text-slate-500 bg-white border border-slate-200">
+              Không có huy hiệu phù hợp với bộ lọc hiện tại.
+            </div>
+          }
         </div>
       }
 
@@ -629,7 +666,16 @@ export class AchievementsComponent implements OnInit {
 
   readonly tab = signal<"badges" | "missions" | "xp">("badges");
   readonly badgeFilter = signal<'all' | 'unlocked' | 'locked'>('all');
+  readonly categoryFilter = signal<string>('all');
   readonly selectedBadge = signal<BadgeItem | null>(null);
+  readonly badgeCategories = [
+    { value: 'PRACTICE', label: 'Luyện tập' },
+    { value: 'SCENARIO', label: 'Tình huống' },
+    { value: 'STREAK', label: 'Chuỗi ngày' },
+    { value: 'SKILL', label: 'Kỹ năng' },
+    { value: 'LEVEL', label: 'Trình độ' },
+    { value: 'GENERAL', label: 'Chung' },
+  ] as const;
 
   readonly badges = signal<BadgeItem[]>([]);
   readonly missions = signal<DailyMissionItem[]>([]);
@@ -664,11 +710,32 @@ export class AchievementsComponent implements OnInit {
 
   readonly filteredBadges = computed(() => {
     const f = this.badgeFilter();
-    const list = this.badges();
+    const cat = this.categoryFilter();
+    let list = this.badges();
+    if (cat !== 'all') list = list.filter(b => (b.category || 'GENERAL') === cat);
     if (f === 'unlocked') return list.filter(b => b.earned);
     if (f === 'locked') return list.filter(b => !b.earned);
     return list;
   });
+
+  readonly groupedBadges = computed(() => {
+    const groups = new Map<string, BadgeItem[]>();
+    for (const b of this.filteredBadges()) {
+      const code = b.category || 'GENERAL';
+      const list = groups.get(code) ?? [];
+      list.push(b);
+      groups.set(code, list);
+    }
+    return [...groups.entries()].map(([code, items]) => ({
+      code,
+      label: this.getCategoryLabel(code),
+      items,
+    }));
+  });
+
+  getCategoryLabel(category?: string): string {
+    return this.badgeCategories.find((c) => c.value === category)?.label ?? 'Chung';
+  }
 
   readonly currentLevel = computed(() => {
     return this.gamificationSummary()?.currentLevel ?? this.authService.currentUser()?.cefrLevel ?? this.appState.appUser().level ?? 'A1';
