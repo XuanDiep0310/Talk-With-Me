@@ -28,6 +28,7 @@ class AdminCoachService:
         self.audit = audit
 
     async def _require_category(self, category: str) -> None:
+        await self.categories.ensure_defaults()
         if await self.categories.get(category) is None:
             raise HTTPException(
                 422, detail={"code": "CATEGORY_NOT_FOUND", "message": "Category not found."}

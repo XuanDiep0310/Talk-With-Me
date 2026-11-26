@@ -129,7 +129,7 @@ class FakeLlmProvider:
     async def generate_editor_json(self, instruction: str, data: dict[str, object]) -> object:  # noqa: ARG002
         if data.get("task") == "coach_topic":
             return {
-                "category": "Daily Communication",
+                "category": "DAILY_LIFE",
                 "title": "Making Weekend Plans",
                 "description": "Invite a friend to a weekend activity and agree on a time and place.",
                 "minLevel": "A2",

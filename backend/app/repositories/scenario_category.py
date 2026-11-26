@@ -2,13 +2,23 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scenario import Scenario
-from app.models.scenario_category import ScenarioCategory
+from app.models.scenario_category import STARTER_CATEGORIES, ScenarioCategory
 from app.models.session import CoachTopic
 
 
 class ScenarioCategoryRepository:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+
+    async def ensure_defaults(self) -> None:
+        if await self.db.scalar(select(ScenarioCategory.id).limit(1)) is None:
+            self.db.add_all(
+                [
+                    ScenarioCategory(code=code, name_vi=name)
+                    for code, name in STARTER_CATEGORIES.items()
+                ]
+            )
+            await self.db.flush()
 
     async def list_with_counts(self) -> list[tuple[ScenarioCategory, int]]:
         scenario_counts = (
