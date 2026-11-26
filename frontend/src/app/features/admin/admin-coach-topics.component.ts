@@ -1,24 +1,45 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import type { components } from '../../core/api/openapi';
 import { AdminConsoleService } from './admin-console.service';
+import { AdminScenarioService, CategoryDetail } from './admin-scenario.service';
 
 type Topic = components['schemas']['AdminCoachTopic'];
 type TopicInput = components['schemas']['AdminCoachTopicInput'];
 
 @Component({
   selector: 'app-admin-coach-topics',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   styleUrl: './admin.scss',
   templateUrl: './admin-coach-topics.component.html',
 })
 export class AdminCoachTopicsComponent {
   private readonly api = inject(AdminConsoleService);
+  private readonly scenarioApi = inject(AdminScenarioService);
   private readonly fb = inject(FormBuilder).nonNullable;
   protected readonly levels = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
   protected readonly skills = ['Fluency', 'Vocabulary', 'Response Speed', 'Grammar', 'Accuracy', 'Listening', 'Pronunciation'] as const;
   protected readonly rows = signal<Topic[]>([]);
-  protected readonly categories = signal<string[]>([]);
+  protected readonly sharedCategories = signal<CategoryDetail[]>([]);
+  protected readonly categoryNames = computed(() =>
+    Object.fromEntries(this.sharedCategories().map((c) => [c.code, c.nameVi]))
+  );
+  protected readonly groupedRows = computed(() => {
+    const groups = new Map<string, Topic[]>();
+    for (const topic of this.rows()) {
+      const list = groups.get(topic.category) ?? [];
+      list.push(topic);
+      groups.set(topic.category, list);
+    }
+    const names = this.categoryNames();
+    return [...groups.entries()].map(([code, topics]) => ({
+      code,
+      label: names[code] || code,
+      topics,
+    }));
+  });
   protected readonly editing = signal(false);
   protected readonly busy = signal(false);
   protected readonly loading = signal(false);
@@ -28,7 +49,7 @@ export class AdminCoachTopicsComponent {
   protected readonly filters = this.fb.group({ q: '', category: '', minLevel: '', isActive: '' });
   protected readonly idea = this.fb.control('', [Validators.required, Validators.maxLength(4000)]);
   protected readonly form = this.fb.group({
-    category: ['', [Validators.required, Validators.maxLength(100)]],
+    category: ['DAILY_LIFE', [Validators.required, Validators.maxLength(100)]],
     title: ['', [Validators.required, Validators.maxLength(255)]],
     description: ['', [Validators.required, Validators.maxLength(4000)]],
     minLevel: this.fb.control<TopicInput['minLevel']>('A1'),
@@ -37,7 +58,12 @@ export class AdminCoachTopicsComponent {
     isActive: false,
   });
 
-  constructor() { this.load(); }
+  constructor() {
+    this.scenarioApi.listCategories().pipe(catchError(() => of([]))).subscribe((items) => {
+      this.sharedCategories.set(items);
+    });
+    this.load();
+  }
 
   protected load(): void {
     this.loading.set(true);
@@ -46,24 +72,23 @@ export class AdminCoachTopicsComponent {
     this.api.listCoachTopics(filters).subscribe({
       next: (items) => {
         this.rows.set(items);
-        if (!filters.category && !filters.q && !filters.minLevel && !filters.isActive) {
-          this.categories.set([...new Set(items.map((item) => item.category))].sort());
-        }
         this.loading.set(false);
       },
       error: () => { this.loading.set(false); this.error.set('Không thể tải danh mục chủ đề.'); },
     });
   }
 
-  protected open(topic?: Topic): void {
+  protected open(topic?: Topic, defaultCategory?: string): void {
     this.editingId = topic?.id;
     this.error.set('');
     this.notice.set('');
     this.idea.reset();
+    const nextOrder = Math.max(0, ...this.rows().map((row) => row.sortOrder + 1));
+    const fallbackCategory = this.sharedCategories()[0]?.code ?? 'DAILY_LIFE';
     this.form.reset(topic ? {
       ...topic,
       targetSkills: this.skills.filter((skill) => topic.targetSkills?.includes(skill)),
-    } : undefined);
+    } : { sortOrder: nextOrder, category: defaultCategory ?? fallbackCategory });
     this.editing.set(true);
   }
 
@@ -79,7 +104,10 @@ export class AdminCoachTopicsComponent {
     this.error.set('');
     this.api.draftCoachTopic(this.idea.value.trim()).subscribe({
       next: (draft) => {
-        this.form.patchValue(draft);
+        const validCategory = this.sharedCategories().some((c) => c.code === draft.category)
+          ? draft.category
+          : this.form.controls.category.value;
+        this.form.patchValue({ ...draft, category: validCategory });
         this.notice.set('Đã điền bản nháp. Kiểm tra nội dung trước khi lưu.');
         this.busy.set(false);
       },
@@ -98,6 +126,15 @@ export class AdminCoachTopicsComponent {
 
   protected canMove(): boolean {
     return Object.values(this.filters.getRawValue()).every((value) => !value);
+  }
+
+  protected isFirst(topic: Topic): boolean {
+    return this.rows()[0]?.id === topic.id;
+  }
+
+  protected isLast(topic: Topic): boolean {
+    const all = this.rows();
+    return all[all.length - 1]?.id === topic.id;
   }
 
   protected move(topic: Topic, direction: 'up' | 'down'): void {

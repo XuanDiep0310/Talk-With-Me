@@ -126,6 +126,7 @@ export class AdminSessionDetailComponent {
   }
 
   protected reevaluate(): void {
+    if (this.previewing()) return;
     this.previewing.set(true);
     this.error.set('');
     this.previewRequestId ??= crypto.randomUUID();

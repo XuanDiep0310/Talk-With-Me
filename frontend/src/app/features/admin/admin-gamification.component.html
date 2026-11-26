@@ -66,9 +66,12 @@
     @if (badgeDraft; as draft) {
       <form class="panel" #badgeForm="ngForm" (ngSubmit)="saveBadge(draft)">
         <div class="form-grid">
-          <label>Mã huy hiệu <input name="key" [(ngModel)]="draft.key" pattern="[a-z][a-z0-9_]{0,49}" [readonly]="editingBadge" required></label>
+          <label>Mã huy hiệu <input name="key" [(ngModel)]="draft.key" pattern="[a-z][a-z0-9_]{0,49}" [readonly]="editingBadge()" required></label>
           <label>Tên huy hiệu <input name="name" [(ngModel)]="draft.name" maxlength="100" required></label>
           <label>Emoji <input name="emoji" [(ngModel)]="draft.iconEmoji" maxlength="10" required></label>
+          <label>Danh mục <select name="category" [(ngModel)]="draft.category">
+            @for (cat of badgeCategories; track cat.value) { <option [value]="cat.value">{{ cat.label }}</option> }
+          </select></label>
           <label>Mô tả <textarea name="description" [(ngModel)]="draft.description" maxlength="1000" required></textarea></label>
           <label>Điều kiện <select name="criteria" [(ngModel)]="draft.criteriaType">
             @for (kind of badgeTypes; track kind.value) { <option [value]="kind.value">{{ kind.label }}</option> }
@@ -90,18 +93,41 @@
         </div>
       </form>
     }
-    <div class="panel results table-wrap">
-      <table>
-        <thead><tr><th scope="col">Huy hiệu</th><th scope="col">Mô tả</th><th scope="col">Điều kiện</th><th scope="col">Thao tác</th></tr></thead>
-        <tbody>
-          @for (badge of badges(); track badge.key) {
-            <tr><td><span aria-hidden="true">{{ badge.iconEmoji }}</span> {{ badge.name }}</td><td>{{ badge.description }}</td><td>{{ badge.criteriaType }} · {{ badge.minLevel || badge.targetValue }}</td>
-              <td><span class="secondary">{{ badge.isActive ? 'Đang mở khóa' : 'Đã tắt' }}</span>
-                <button class="action" type="button" [disabled]="busy()" (click)="openBadge(badge)">Sửa huy hiệu</button></td></tr>
-          } @empty { <tr><td colspan="4">Chưa có huy hiệu.</td></tr> }
-        </tbody>
-      </table>
+    <div class="actions mb-3" role="group" aria-label="Lọc theo danh mục huy hiệu">
+      <button type="button" class="action pill" [attr.aria-pressed]="badgeCategoryFilter() === ''" (click)="badgeCategoryFilter.set('')">
+        Tất cả ({{ badges().length }})
+      </button>
+      @for (cat of badgeCategories; track cat.value) {
+        <button type="button" class="action pill" [attr.aria-pressed]="badgeCategoryFilter() === cat.value" (click)="badgeCategoryFilter.set(cat.value)">
+          {{ cat.label }}
+        </button>
+      }
     </div>
+    @for (group of groupedBadges(); track group.code) {
+      <section class="panel" [attr.aria-label]="'Danh mục ' + group.label">
+        <div class="section-heading mb-3 border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-bold text-slate-900">{{ group.label }}</h3>
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{{ group.items.length }} huy hiệu</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Huy hiệu</th><th scope="col">Mô tả</th><th scope="col">Điều kiện</th><th scope="col">Thao tác</th></tr></thead>
+            <tbody>
+              @for (badge of group.items; track badge.key) {
+                <tr><td><span aria-hidden="true">{{ badge.iconEmoji }}</span> {{ badge.name }}</td>
+                  <td>{{ badge.description }}</td><td>{{ badge.criteriaType }} · {{ badge.minLevel || badge.targetValue }}</td>
+                  <td><span class="secondary">{{ badge.isActive ? 'Đang mở khóa' : 'Đã tắt' }}</span>
+                    <button class="action pill" type="button" [disabled]="busy()" (click)="openBadge(badge)">Sửa</button></td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    } @empty {
+      <div class="panel p-6 text-center text-slate-500">Chưa có huy hiệu trong danh mục này.</div>
+    }
   }
   @case ('transactions') {
     <form class="panel filter-form" (ngSubmit)="loadTransactions()">
@@ -119,11 +145,11 @@
     </form>
     <div class="panel results table-wrap">
       <table>
-        <thead><tr><th scope="col">Thời điểm</th><th scope="col">Học viên</th><th scope="col">Quy tắc</th><th scope="col">XP</th><th scope="col">Mã giao dịch</th></tr></thead>
+        <thead><tr><th scope="col">Thời điểm</th><th scope="col">Học viên</th><th scope="col">Quy tắc</th><th scope="col">XP</th><th scope="col">Nguồn</th><th scope="col">Mã giao dịch</th></tr></thead>
         <tbody>
           @for (entry of transactions(); track entry.id) {
-            <tr><td>{{ entry.createdAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ entry.email }}</td><td>{{ entry.ruleKey }}</td><td>{{ entry.amount }}</td><td>{{ entry.idempotencyKey }}<span class="secondary">{{ entry.description }}</span></td></tr>
-          } @empty { <tr><td colspan="5">{{ busy() ? 'Đang tải giao dịch…' : 'Không tìm thấy giao dịch.' }}</td></tr> }
+            <tr><td>{{ entry.createdAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ entry.email }}</td><td>{{ entry.ruleKey }}</td><td>{{ entry.amount }}</td><td>{{ entry.sourceType }}<span class="secondary">{{ entry.sourceId }}</span></td><td>{{ entry.idempotencyKey }}<span class="secondary">{{ entry.description }}</span></td></tr>
+          } @empty { <tr><td colspan="6">{{ busy() ? 'Đang tải giao dịch…' : 'Không tìm thấy giao dịch.' }}</td></tr> }
         </tbody>
       </table>
     </div>

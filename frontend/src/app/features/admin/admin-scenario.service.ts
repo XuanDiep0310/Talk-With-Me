@@ -15,8 +15,8 @@ export type CategoryDetail = Schemas['CategoryDetail'];
 export const categories: Record<ScenarioSummary['category'], string> = {
   DAILY_LIFE: 'Đời sống hằng ngày',
   SOCIAL: 'Giao tiếp xã hội',
-  TRAVEL_SHOPPING: 'Du lịch và mua sắm',
-  WORKPLACE: 'Công việc'
+  TRAVEL_SHOPPING: 'Du lịch & Mua sắm',
+  WORKPLACE: 'Nơi làm việc'
 };
 
 export const statuses: Record<ScenarioStatus, string> = {
@@ -93,6 +93,10 @@ export class AdminScenarioService {
 
   setStatus(id: string, body: ScenarioStatusUpdate) {
     return this.http.patch<ScenarioDetail>(`${this.url}/${id}/status`, body);
+  }
+
+  delete(id: string) {
+    return this.http.delete<void>(`${this.url}/${id}`);
   }
 }
 

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import type { components } from '../../core/api/openapi';
@@ -39,10 +39,38 @@ export class AdminGamificationComponent {
     { value: 'SPEED_SCORE', label: 'Điểm phản hồi trung bình' },
     { value: 'CEFR_LEVEL', label: 'Trình độ CEFR' },
   ];
+  protected readonly badgeCategories: { value: NonNullable<Badge['category']>; label: string }[] = [
+    { value: 'PRACTICE', label: 'Luyện tập (AI Coach)' },
+    { value: 'SCENARIO', label: 'Tình huống (Roleplay)' },
+    { value: 'STREAK', label: 'Chuỗi ngày (Streak)' },
+    { value: 'SKILL', label: 'Kỹ năng' },
+    { value: 'LEVEL', label: 'Trình độ CEFR' },
+    { value: 'GENERAL', label: 'Chung' },
+  ];
+  protected readonly badgeCategoryFilter = signal<string>('');
+  protected readonly filteredBadges = computed(() => {
+    const cat = this.badgeCategoryFilter();
+    const list = this.badges();
+    return cat ? list.filter((b) => b.category === cat) : list;
+  });
+  protected readonly groupedBadges = computed(() => {
+    const groups = new Map<string, Schemas['AdminBadge'][]>();
+    for (const b of this.filteredBadges()) {
+      const key = b.category || 'GENERAL';
+      const list = groups.get(key) ?? [];
+      list.push(b);
+      groups.set(key, list);
+    }
+    return [...groups.entries()].map(([code, items]) => ({
+      code,
+      label: this.badgeCategoryLabel(code),
+      items,
+    }));
+  });
   protected readonly levels = ['A1', 'A2', 'B1', 'B2', 'C1'] as const;
   protected missionDraft: Mission | null = null;
   protected badgeDraft: Badge | null = null;
-  protected editingBadge = false;
+  protected readonly editingBadge = signal(false);
   protected filters = { learner: '', ruleKey: '', idempotencyKey: '', fromDate: '', toDate: '' };
 
   constructor() {
@@ -112,13 +140,19 @@ export class AdminGamificationComponent {
   }
 
   protected openBadge(item?: Schemas['AdminBadge']): void {
-    this.editingBadge = !!item;
+    this.editingBadge.set(!!item);
     this.badgeDraft = {
       key: item?.key ?? '', name: item?.name ?? '', description: item?.description ?? '',
-      iconEmoji: item?.iconEmoji ?? '', criteriaType: this.badgeTypes.find((kind) => kind.value === item?.criteriaType)?.value ?? 'SESSIONS_COUNT',
+      iconEmoji: item?.iconEmoji ?? '',
+      category: this.badgeCategories.find((c) => c.value === item?.category)?.value ?? 'GENERAL',
+      criteriaType: this.badgeTypes.find((kind) => kind.value === item?.criteriaType)?.value ?? 'SESSIONS_COUNT',
       targetValue: item?.targetValue ?? 1, minLevel: this.levels.find((level) => level === item?.minLevel) ?? null,
       isActive: item?.isActive ?? false,
     };
+  }
+
+  protected badgeCategoryLabel(category: string): string {
+    return this.badgeCategories.find((c) => c.value === category)?.label ?? category;
   }
 
   protected saveBadge(draft: Badge): void {
@@ -129,10 +163,10 @@ export class AdminGamificationComponent {
       ...fields, minLevel: fields.criteriaType === 'CEFR_LEVEL' ? fields.minLevel : null,
       targetValue: fields.criteriaType === 'CEFR_LEVEL' ? 1 : fields.targetValue,
     };
-    const operation = this.editingBadge ? this.api.updateBadge(key, payload) : this.api.createBadge({ key, ...payload });
+    const operation = this.editingBadge() ? this.api.updateBadge(key, payload) : this.api.createBadge({ key, ...payload });
     operation.subscribe({
       next: (item) => {
-        this.badges.update((rows) => this.editingBadge ? rows.map((row) => row.key === item.key ? item : row) : [...rows, item]);
+        this.badges.update((rows) => this.editingBadge() ? rows.map((row) => row.key === item.key ? item : row) : [...rows, item]);
         this.badgeDraft = null;
         this.busy.set(false);
         this.status.set('Đã lưu huy hiệu.');
