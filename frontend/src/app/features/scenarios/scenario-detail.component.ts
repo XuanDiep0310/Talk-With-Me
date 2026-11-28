@@ -10,16 +10,14 @@ import {
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
-import { SpeechRecognitionService } from '../../core/services/speech-recognition.service';
+import { AudioCaptureService } from '../../core/services/audio-capture.service';
 import {
   ScenarioService,
   ScenarioDetail,
   ScenarioChunk,
-  evaluatePronunciation,
-  getIpaPhonetic,
-  WordPronunciationScore,
+  PronunciationAssessResponse,
+  WordPronunciationDetail,
 } from '../../core/services/scenario.service';
 
 export type DrillPhase =
@@ -272,17 +270,36 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                       </div>
 
                       <!-- Chunk Card -->
-                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2">
+                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2.5">
                         <div class="text-2xl font-extrabold text-slate-900 leading-snug">
-                          @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
-                            <div class="flex flex-wrap gap-1.5 justify-center">
-                              @for (w of evaluatedWordTokens(); track $index) {
-                                <span
-                                  class="transition-colors"
-                                  [class.text-emerald-600]="w.status === 'correct'"
-                                  [class.text-amber-500]="w.status === 'imperfect'"
-                                  [class.text-rose-500]="w.status === 'missing'"
-                                >{{ w.word }}</span>
+                          @if (assessedResult(); as res) {
+                            <div class="flex flex-wrap gap-x-2 gap-y-1 justify-center">
+                              @for (w of res.words; track $index) {
+                                <button
+                                  type="button"
+                                  class="inline-flex items-baseline rounded-lg px-1 transition cursor-pointer border-0 bg-transparent hover:bg-slate-100"
+                                  [class.ring-2]="selectedWord() === w"
+                                  [class.ring-sky-300]="selectedWord() === w"
+                                  [title]="'Điểm âm tiết: ' + w.accuracyScore + '/100 (Nhấn để xem âm vị)'"
+                                  (click)="selectAssessedWord(w)"
+                                >
+                                  @if (w.syllables.length > 0) {
+                                    @for (syl of w.syllables; track $index) {
+                                      <span
+                                        class="transition-colors"
+                                        [class.text-emerald-600]="syl.status === 'good'"
+                                        [class.text-amber-500]="syl.status === 'fair'"
+                                        [class.text-rose-500]="syl.status === 'poor'"
+                                      >{{ syl.text }}</span>
+                                    }
+                                  } @else {
+                                    <span
+                                      [class.text-emerald-600]="w.status === 'good'"
+                                      [class.text-amber-500]="w.status === 'fair'"
+                                      [class.text-rose-500]="w.status === 'poor'"
+                                    >{{ w.word }}</span>
+                                  }
+                                </button>
                               }
                             </div>
                           } @else {
@@ -290,36 +307,83 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           }
                         </div>
 
-                        <div class="text-xs text-slate-400 font-mono tracking-wide">
-                          {{ ipaTranscript() }}
-                        </div>
+                        @if (ipaTranscript()) {
+                          <div class="ipa-phonetic text-sm font-medium text-slate-600">
+                            {{ ipaTranscript() }}
+                          </div>
+                        }
 
-                        <div class="text-sm text-slate-500 font-medium pt-1">
+                        <div class="text-sm text-slate-500 font-medium">
                           {{ chunk.meaningVi }}
                         </div>
 
-                        <!-- Listen Sample Button -->
-                        <div class="pt-1">
+                        <!-- Minimal Phoneme Breakdown on Word Tap -->
+                        @if (selectedWord(); as sw) {
+                          <div class="mt-2 pt-2.5 border-t border-slate-100 text-left space-y-1.5">
+                            <div class="flex items-center justify-between text-xs">
+                              <span class="font-semibold text-slate-700">"{{ sw.word }}" <span class="ipa-phonetic text-slate-500 font-normal">/{{ sw.ipa }}/</span></span>
+                              <span class="font-bold text-[#286FB4]">{{ sw.accuracyScore }}/100</span>
+                            </div>
+                            @if (sw.phonemes.length > 0) {
+                              <div class="flex flex-wrap gap-1.5">
+                                @for (p of sw.phonemes; track $index) {
+                                  <span
+                                    class="ipa-phonetic text-xs px-2 py-0.5 rounded-md border font-medium"
+                                    [class.bg-emerald-50]="p.accuracyScore >= 80"
+                                    [class.border-emerald-200]="p.accuracyScore >= 80"
+                                    [class.text-emerald-700]="p.accuracyScore >= 80"
+                                    [class.bg-amber-50]="p.accuracyScore >= 60 && p.accuracyScore < 80"
+                                    [class.border-amber-200]="p.accuracyScore >= 60 && p.accuracyScore < 80"
+                                    [class.text-amber-700]="p.accuracyScore >= 60 && p.accuracyScore < 80"
+                                    [class.bg-rose-50]="p.accuracyScore < 60"
+                                    [class.border-rose-200]="p.accuracyScore < 60"
+                                    [class.text-rose-700]="p.accuracyScore < 60"
+                                  >
+                                    /{{ p.ipa }}/ {{ p.accuracyScore }}@if (p.heardAs) { (→/{{ p.heardAs }}/) }
+                                  </span>
+                                }
+                              </div>
+                            }
+                          </div>
+                        }
+
+                        <!-- Listen Normal & Slow Pill Controls -->
+                        <div class="pt-1 flex items-center justify-center gap-2">
                           <button
                             type="button"
-                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
-                            (click)="playAudio(chunk.text, chunk.audioUrl)"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+                            title="Nghe tốc độ chuẩn"
+                            (click)="playAudio(chunk.text, chunk.audioUrl, false)"
                           >
-                            <svg class="w-4 h-4 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg class="w-3.5 h-3.5 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                             </svg>
                             Nghe mẫu
                           </button>
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+                            title="Nghe chậm 0.65x"
+                            (click)="playAudio(chunk.text, chunk.audioUrl, true)"
+                          >
+                            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <circle cx="12" cy="12" r="9" />
+                              <polyline points="12 7 12 12 15 14" />
+                            </svg>
+                            Chậm 0.7x
+                          </button>
                         </div>
                       </div>
 
-                      <!-- Recognized Speech Transcript Display -->
-                      @if (recognizedSpeech()) {
-                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
-                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
-                          <div class="text-sm font-semibold text-slate-800">
-                            "{{ recognizedSpeech() }}"
-                          </div>
+                      <!-- Minimal Status (Assessing / Error only; no tips clutter) -->
+                      @if (isAssessing()) {
+                        <div class="text-xs font-medium text-[#286FB4] flex items-center justify-center gap-2 py-1">
+                          <span class="w-3.5 h-3.5 border-2 border-[#286FB4] border-t-transparent rounded-full animate-spin"></span>
+                          Đang chấm phát âm...
+                        </div>
+                      } @else if (assessError()) {
+                        <div class="bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2 text-xs font-medium text-rose-700">
+                          {{ assessError() }}
                         </div>
                       }
 
@@ -328,6 +392,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         <button
                           type="button"
                           class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
+                          [disabled]="isAssessing()"
                           [class]="isListening() ? 'bg-rose-500 text-white scale-110 shadow-rose-300 ring-4 ring-rose-200 animate-pulse' : 'bg-[#286FB4] text-white hover:bg-[#1d5a94] shadow-[#286FB4]/30 active:scale-95'"
                           (click)="toggleMicrophone()"
                         >
@@ -342,7 +407,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           }
                         </button>
                         <span class="text-xs text-slate-400 font-medium">
-                          {{ isListening() ? 'Đang lắng nghe bạn nói...' : 'Nhấn vào micro để nói' }}
+                          {{ isListening() ? 'Đang ghi âm... Nhấn lại để chấm điểm' : 'Nhấn vào micro để nói' }}
                         </span>
 
                         <!-- User Audio Playback Button -->
@@ -433,17 +498,35 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         </div>
                       </div>
 
-                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2">
+                      <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-2.5">
                         <div class="text-xl md:text-2xl font-extrabold text-slate-900 leading-snug">
-                          @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
-                            <div class="flex flex-wrap gap-1.5 justify-center">
-                              @for (w of evaluatedWordTokens(); track $index) {
-                                <span
-                                  class="transition-colors"
-                                  [class.text-emerald-600]="w.status === 'correct'"
-                                  [class.text-amber-500]="w.status === 'imperfect'"
-                                  [class.text-rose-500]="w.status === 'missing'"
-                                >{{ w.word }}</span>
+                          @if (assessedResult(); as res) {
+                            <div class="flex flex-wrap gap-x-2 gap-y-1 justify-center">
+                              @for (w of res.words; track $index) {
+                                <button
+                                  type="button"
+                                  class="inline-flex items-baseline rounded-lg px-1 transition cursor-pointer border-0 bg-transparent hover:bg-slate-100"
+                                  [class.ring-2]="selectedWord() === w"
+                                  [class.ring-sky-300]="selectedWord() === w"
+                                  (click)="selectAssessedWord(w)"
+                                >
+                                  @if (w.syllables.length > 0) {
+                                    @for (syl of w.syllables; track $index) {
+                                      <span
+                                        class="transition-colors"
+                                        [class.text-emerald-600]="syl.status === 'good'"
+                                        [class.text-amber-500]="syl.status === 'fair'"
+                                        [class.text-rose-500]="syl.status === 'poor'"
+                                      >{{ syl.text }}</span>
+                                    }
+                                  } @else {
+                                    <span
+                                      [class.text-emerald-600]="w.status === 'good'"
+                                      [class.text-amber-500]="w.status === 'fair'"
+                                      [class.text-rose-500]="w.status === 'poor'"
+                                    >{{ w.word }}</span>
+                                  }
+                                </button>
                               }
                             </div>
                           } @else {
@@ -451,30 +534,49 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           }
                         </div>
 
-                        <div class="text-sm text-slate-500 font-medium pt-1">
+                        @if (exampleIpaTranscript()) {
+                          <div class="ipa-phonetic text-sm font-medium text-slate-600">
+                            {{ exampleIpaTranscript() }}
+                          </div>
+                        }
+
+                        <div class="text-sm text-slate-500 font-medium">
                           {{ chunk.meaningVi }}
                         </div>
 
-                        <div class="pt-1">
+                        <div class="pt-1 flex items-center justify-center gap-2">
                           <button
                             type="button"
-                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
-                            (click)="playAudio(chunk.exampleSentence, chunk.audioUrl)"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+                            (click)="playAudio(chunk.exampleSentence, chunk.audioUrl, false)"
                           >
-                            <svg class="w-4 h-4 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg class="w-3.5 h-3.5 text-[#286FB4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                             </svg>
                             Nghe mẫu
                           </button>
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer"
+                            (click)="playAudio(chunk.exampleSentence, chunk.audioUrl, true)"
+                          >
+                            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <circle cx="12" cy="12" r="9" />
+                              <polyline points="12 7 12 12 15 14" />
+                            </svg>
+                            Chậm 0.7x
+                          </button>
                         </div>
                       </div>
 
-                      @if (recognizedSpeech()) {
-                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
-                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
-                          <div class="text-sm font-semibold text-slate-800">
-                            "{{ recognizedSpeech() }}"
-                          </div>
+                      @if (isAssessing()) {
+                        <div class="text-xs font-medium text-[#286FB4] flex items-center justify-center gap-2 py-1">
+                          <span class="w-3.5 h-3.5 border-2 border-[#286FB4] border-t-transparent rounded-full animate-spin"></span>
+                          Đang chấm phát âm...
+                        </div>
+                      } @else if (assessError()) {
+                        <div class="bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2 text-xs font-medium text-rose-700">
+                          {{ assessError() }}
                         </div>
                       }
 
@@ -482,6 +584,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         <button
                           type="button"
                           class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
+                          [disabled]="isAssessing()"
                           [class]="isListening() ? 'bg-rose-500 text-white scale-110 ring-4 ring-rose-200 animate-pulse' : 'bg-[#286FB4] text-white hover:bg-[#1d5a94] shadow-[#286FB4]/30 active:scale-95'"
                           (click)="toggleMicrophone()"
                         >
@@ -496,7 +599,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           }
                         </button>
                         <span class="text-xs text-slate-400 font-medium">
-                          {{ isListening() ? 'Đang lắng nghe bạn nói...' : 'Nhấn vào micro để nói' }}
+                          {{ isListening() ? 'Đang ghi âm... Nhấn lại để chấm điểm' : 'Nhấn vào micro để nói' }}
                         </span>
 
                         @if (userAudioUrl()) {
@@ -553,15 +656,31 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
 
                       <div class="bg-white rounded-3xl p-5 border border-slate-200/90 shadow-xs space-y-3">
                         <div class="text-lg md:text-xl font-extrabold text-slate-900 tracking-wide leading-relaxed">
-                          @if (evaluatedWordTokens().length > 0 && pronunciationScore() !== null) {
-                            <div class="flex flex-wrap gap-1.5 justify-center">
-                              @for (w of evaluatedWordTokens(); track $index) {
-                                <span
-                                  class="transition-colors"
-                                  [class.text-emerald-600]="w.status === 'correct'"
-                                  [class.text-amber-500]="w.status === 'imperfect'"
-                                  [class.text-rose-500]="w.status === 'missing'"
-                                >{{ w.word }}</span>
+                          @if (assessedResult(); as res) {
+                            <div class="flex flex-wrap gap-x-2 gap-y-1 justify-center">
+                              @for (w of res.words; track $index) {
+                                <button
+                                  type="button"
+                                  class="inline-flex items-baseline rounded-lg px-1 transition cursor-pointer border-0 bg-transparent hover:bg-slate-100"
+                                  (click)="selectAssessedWord(w)"
+                                >
+                                  @if (w.syllables.length > 0) {
+                                    @for (syl of w.syllables; track $index) {
+                                      <span
+                                        class="transition-colors"
+                                        [class.text-emerald-600]="syl.status === 'good'"
+                                        [class.text-amber-500]="syl.status === 'fair'"
+                                        [class.text-rose-500]="syl.status === 'poor'"
+                                      >{{ syl.text }}</span>
+                                    }
+                                  } @else {
+                                    <span
+                                      [class.text-emerald-600]="w.status === 'good'"
+                                      [class.text-amber-500]="w.status === 'fair'"
+                                      [class.text-rose-500]="w.status === 'poor'"
+                                    >{{ w.word }}</span>
+                                  }
+                                </button>
                               }
                             </div>
                           } @else {
@@ -574,12 +693,14 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         </div>
                       </div>
 
-                      @if (recognizedSpeech()) {
-                        <div class="bg-white rounded-2xl p-3.5 border border-slate-200 text-left space-y-1 shadow-xs">
-                          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bạn đã nói:</div>
-                          <div class="text-sm font-semibold text-slate-800">
-                            "{{ recognizedSpeech() }}"
-                          </div>
+                      @if (isAssessing()) {
+                        <div class="text-xs font-medium text-[#286FB4] flex items-center justify-center gap-2 py-1">
+                          <span class="w-3.5 h-3.5 border-2 border-[#286FB4] border-t-transparent rounded-full animate-spin"></span>
+                          Đang chấm phát âm...
+                        </div>
+                      } @else if (assessError()) {
+                        <div class="bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2 text-xs font-medium text-rose-700">
+                          {{ assessError() }}
                         </div>
                       }
 
@@ -587,6 +708,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                         <button
                           type="button"
                           class="w-20 h-20 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl relative"
+                          [disabled]="isAssessing()"
                           [class]="isListening() ? 'bg-rose-500 text-white scale-110 ring-4 ring-rose-200 animate-pulse' : 'bg-[#286FB4] text-white hover:bg-[#1d5a94] shadow-[#286FB4]/30 active:scale-95'"
                           (click)="toggleMicrophone()"
                         >
@@ -601,7 +723,7 @@ function buildMcqOptions(correct: string, distractors: string[]): { text: string
                           }
                         </button>
                         <span class="text-xs text-slate-400 font-medium">
-                          {{ isListening() ? 'Đang lắng nghe bạn nói...' : 'Nói hoàn thiện cả câu' }}
+                          {{ isListening() ? 'Đang ghi âm... Nhấn lại để chấm điểm' : 'Nói hoàn thiện cả câu' }}
                         </span>
 
                         @if (userAudioUrl()) {
@@ -727,7 +849,7 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
   readonly appState = inject(AppStateService);
-  readonly speechService = inject(SpeechRecognitionService);
+  private readonly audioCapture = inject(AudioCaptureService);
 
   readonly stage = signal<CoachStage>('overview');
   readonly drillChunkIdx = signal(0);
@@ -744,17 +866,17 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
   readonly mcqAnswered = signal(false);
   readonly selectedOption = signal<{ text: string; correct: boolean } | null>(null);
 
-  // Pronunciation & Recording state
+  // Pronunciation & Recording state (Azure Speech Syllable Assessment)
   readonly circleCircumference = 2 * Math.PI * 40;
   readonly pronunciationScore = signal<number | null>(null);
-  readonly evaluatedWordTokens = signal<WordPronunciationScore[]>([]);
+  readonly assessedResult = signal<PronunciationAssessResponse | null>(null);
+  readonly lastChunkAssessment = signal<PronunciationAssessResponse | null>(null);
+  readonly selectedWord = signal<WordPronunciationDetail | null>(null);
   readonly recognizedSpeech = signal('');
   readonly isListening = signal(false);
+  readonly isAssessing = signal(false);
+  readonly assessError = signal<string | null>(null);
   readonly userAudioUrl = signal<string | null>(null);
-
-  private speechSub?: Subscription;
-  private mediaRecorder?: MediaRecorder;
-  private audioChunks: Blob[] = [];
 
   readonly currentChunk = computed<ScenarioChunk | null>(() => {
     const s = this.scenario();
@@ -764,7 +886,14 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
 
   readonly ipaTranscript = computed(() => {
     const chunk = this.currentChunk();
-    return chunk ? `/${getIpaPhonetic(chunk.text)}/` : '';
+    if (!chunk) return '';
+    return chunk.ipa ? `/${chunk.ipa}/` : '';
+  });
+
+  readonly exampleIpaTranscript = computed(() => {
+    const chunk = this.currentChunk();
+    if (!chunk) return '';
+    return chunk.exampleSentenceIpa ? `/${chunk.exampleSentenceIpa}/` : '';
   });
 
   readonly isMcqPhase = computed(() => {
@@ -853,14 +982,10 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
       return;
     }
     this.loadScenario();
-    this.speechSub = this.speechService.speechResult$.subscribe((res) => {
-      this.handleSpokenResult(res.text);
-    });
   }
 
   ngOnDestroy(): void {
-    this.speechSub?.unsubscribe();
-    this.stopMediaRecorder();
+    this.audioCapture.release();
     if (this.userAudioUrl()) {
       URL.revokeObjectURL(this.userAudioUrl()!);
     }
@@ -895,16 +1020,19 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
 
   private resetPhaseState(): void {
     this.pronunciationScore.set(null);
-    this.evaluatedWordTokens.set([]);
+    this.assessedResult.set(null);
+    this.selectedWord.set(null);
     this.recognizedSpeech.set('');
     this.isListening.set(false);
+    this.isAssessing.set(false);
+    this.assessError.set(null);
     this.mcqAnswered.set(false);
     this.selectedOption.set(null);
     if (this.userAudioUrl()) {
       URL.revokeObjectURL(this.userAudioUrl()!);
       this.userAudioUrl.set(null);
     }
-    this.stopMediaRecorder();
+    this.audioCapture.release();
   }
 
   private buildMcqOptions(): void {
@@ -957,13 +1085,34 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
         if (c) setTimeout(() => this.playAudio(c.exampleSentence, c.audioUrl), 300);
       }
     } else {
-      // Chunk completed
+      // Chunk completed — persist drill with acoustic telemetry when available
       const s = this.scenario();
       const chunk = this.currentChunk();
       if (s && chunk) {
         this.practicedChunkIds.update((set) => new Set([...set, chunk.id]));
-        this.scenarioService.recordDrill(s.id, { chunkId: chunk.id, isSkipped: false }).subscribe();
+        const last = this.lastChunkAssessment();
+        const phonemeErrors = (last?.words ?? []).flatMap((w) =>
+          (w.phonemes ?? [])
+            .filter((p) => p.accuracyScore < 70)
+            .map((p) => ({
+              word: w.word,
+              ipa: p.ipa,
+              accuracyScore: p.accuracyScore,
+              heardAs: p.heardAs ?? null,
+            }))
+        );
+        this.scenarioService
+          .recordDrill(s.id, {
+            chunkId: chunk.id,
+            isSkipped: false,
+            accuracyScore: last?.accuracyScore ?? undefined,
+            fluencyScore: last?.fluencyScore ?? undefined,
+            prosodyScore: last?.prosodyScore ?? undefined,
+            phonemeErrors,
+          })
+          .subscribe();
       }
+      this.lastChunkAssessment.set(null);
 
       if (this.drillChunkIdx() < (s?.chunks.length ?? 0) - 1) {
         this.drillChunkIdx.update((i) => i + 1);
@@ -980,71 +1129,61 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     this.advancePhase();
   }
 
-  handleSpokenResult(spokenText: string): void {
-    this.recognizedSpeech.set(spokenText);
-    this.isListening.set(false);
-    const chunk = this.currentChunk();
-    if (!chunk) return;
-
-    let target = chunk.text;
-    if (this.currentPhase() === 'listen_repeat' || this.currentPhase() === 'fill_blank') {
-      target = chunk.exampleSentence;
-    }
-
-    const evaluation = evaluatePronunciation(target, spokenText);
-    this.pronunciationScore.set(evaluation.score);
-    this.evaluatedWordTokens.set(evaluation.words);
+  selectAssessedWord(word: WordPronunciationDetail): void {
+    this.selectedWord.update((cur) => (cur === word ? null : word));
   }
 
   toggleMicrophone(): void {
+    if (this.isAssessing()) return;
     if (this.isListening()) {
-      this.speechService.stopListening();
       this.isListening.set(false);
-      this.stopMediaRecorder();
+      const captured = this.audioCapture.stop();
+      this.userAudioUrl.set(captured.audioUrl);
+      this.runPronunciationAssess(captured.wavBlob);
     } else {
       this.recognizedSpeech.set('');
       this.pronunciationScore.set(null);
-      this.evaluatedWordTokens.set([]);
+      this.assessedResult.set(null);
+      this.selectedWord.set(null);
+      this.assessError.set(null);
       if (this.userAudioUrl()) {
         URL.revokeObjectURL(this.userAudioUrl()!);
         this.userAudioUrl.set(null);
       }
       this.isListening.set(true);
-      this.startMediaRecorder();
-      this.speechService.startListening('en-US').catch(() => {
+      void this.audioCapture.start().catch(() => {
         this.isListening.set(false);
-        this.stopMediaRecorder();
+        this.assessError.set('Không thể truy cập micro. Vui lòng cấp quyền micro.');
       });
     }
   }
 
-  private startMediaRecorder(): void {
-    if (!navigator.mediaDevices?.getUserMedia) return;
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        this.audioChunks = [];
-        this.mediaRecorder = new MediaRecorder(stream);
-        this.mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) this.audioChunks.push(e.data);
-        };
-        this.mediaRecorder.onstop = () => {
-          const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
-          const url = URL.createObjectURL(blob);
-          this.userAudioUrl.set(url);
-          stream.getTracks().forEach((t) => t.stop());
-        };
-        this.mediaRecorder.start();
-      })
-      .catch(() => {
-        // microphone error handled gracefully
-      });
-  }
+  private runPronunciationAssess(wavBlob: Blob): void {
+    const chunk = this.currentChunk();
+    if (!chunk) return;
+    const isSentence =
+      this.currentPhase() === 'listen_repeat' || this.currentPhase() === 'fill_blank';
+    const target = isSentence ? chunk.exampleSentence : chunk.text;
+    const mode = this.currentPhase() === 'listen_repeat' ? 'shadowing' : 'scripted';
 
-  private stopMediaRecorder(): void {
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop();
-    }
+    this.isAssessing.set(true);
+    this.scenarioService.assessPronunciation(wavBlob, target, mode).subscribe({
+      next: (res) => {
+        this.isAssessing.set(false);
+        this.assessedResult.set(res);
+        this.lastChunkAssessment.set(res);
+        this.recognizedSpeech.set(res.transcript);
+        this.pronunciationScore.set(res.displayScore);
+        const weakest = res.words.find((w) => w.status === 'poor') ?? null;
+        this.selectedWord.set(weakest);
+      },
+      error: (err) => {
+        this.isAssessing.set(false);
+        this.assessError.set(
+          err?.error?.message || 'Dịch vụ chấm phát âm tạm thời không khả dụng.'
+        );
+      },
+    });
   }
 
   playUserAudio(): void {
@@ -1057,8 +1196,8 @@ export class ScenarioDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  playAudio(text: string, audioUrl?: string | null): void {
-    this.scenarioService.playChunkAudio(text, audioUrl, false);
+  playAudio(text: string, audioUrl?: string | null, slow = false): void {
+    this.scenarioService.playChunkAudio(text, audioUrl, slow);
   }
 
   isChunkPracticed(chunkId: string): boolean {

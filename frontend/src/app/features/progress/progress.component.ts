@@ -9,7 +9,9 @@ import {
   ProgressSkillItem,
   ProgressHistoryItem,
   GamificationSummaryResponse,
+  LearnerModelResponse,
 } from '../../core/models/gamification.models';
+import { SkillRadarChartComponent } from '../../shared/components/skill-radar-chart.component';
 
 export interface MilestoneItem {
   id: number;
@@ -29,7 +31,7 @@ export interface StageItem {
 @Component({
   selector: 'app-progress',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SkillRadarChartComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="p-4 sm:p-6 md:p-8 max-w-5xl mx-auto space-y-6">
@@ -177,6 +179,92 @@ export interface StageItem {
               </div>
             </div>
           </div>
+
+          <!-- Longitudinal CEFR Learner Model & Adaptive Recommendations -->
+          @if (learnerModel(); as lm) {
+            <div class="card p-6 border border-blue-200/80 bg-gradient-to-br from-white to-sky-50/40 shadow-xs space-y-5">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-[#286FB4]">
+                      Ước lượng năng lực CEFR dài hạn
+                    </span>
+                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#286FB4]">
+                      Độ tin cậy: {{ lm.confidence }}
+                    </span>
+                    <span class="text-[11px] font-mono text-slate-400">
+                      {{ lm.modelVersion }}
+                    </span>
+                  </div>
+                  <div class="flex items-baseline gap-3">
+                    <span class="text-3xl font-black text-slate-900">{{ lm.estimatedCefr }}</span>
+                    <span class="text-sm font-bold text-[#286FB4]">{{ lm.continuousScore }}/100</span>
+                    <span class="text-xs text-slate-500">({{ lm.sessionCount }} phiên tích lũy)</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">{{ lm.explanationVi }}</p>
+                  @if (lm.scriptedPronunciation !== null && lm.scriptedPronunciation !== undefined || lm.unscriptedPronunciation !== null && lm.unscriptedPronunciation !== undefined) {
+                    <div class="flex flex-wrap gap-3 pt-1 text-xs text-slate-600">
+                      <span>Phát âm Đọc mẫu (Scripted): <strong>{{ lm.scriptedPronunciation ?? 'N/A' }}</strong></span>
+                      <span>·</span>
+                      <span>Phát âm Hội thoại (Unscripted): <strong>{{ lm.unscriptedPronunciation ?? 'N/A' }}</strong></span>
+                    </div>
+                  }
+                </div>
+                <div class="shrink-0 flex justify-center">
+                  <app-skill-radar-chart [scores]="lm.calibratedDimensions" [size]="165" />
+                </div>
+              </div>
+
+              @if (lm.phonemeTroubleSpots.length > 0) {
+                <div class="pt-3 border-t border-slate-200/70 space-y-2">
+                  <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Âm vị cần cải thiện nhiều nhất</div>
+                  <div class="flex flex-wrap gap-2">
+                    @for (ph of lm.phonemeTroubleSpots; track ph.ipaPhoneme) {
+                      <span class="text-xs font-mono px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700">
+                        /{{ ph.ipaPhoneme }}/ · {{ ph.avgAccuracy }}% ({{ ph.errorCount }}/{{ ph.attemptCount }} lỗi)
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (lm.snapshots.length > 1) {
+                <div class="pt-3 border-t border-slate-200/70 space-y-2">
+                  <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Quỹ đạo tiến bộ CEFR gần đây</div>
+                  <div class="flex items-center gap-2 overflow-x-auto pb-1">
+                    @for (snap of lm.snapshots; track $index) {
+                      <div class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs shrink-0">
+                        <span class="font-extrabold text-[#286FB4]">{{ snap.estimatedCefr }}</span>
+                        <span class="text-slate-500 ml-1">{{ snap.continuousScore }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (lm.recommendations.length > 0) {
+                <div class="pt-3 border-t border-slate-200/70 space-y-2">
+                  <div class="text-xs font-bold text-slate-700 uppercase tracking-wider">Lộ trình cá nhân hóa đề xuất</div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @for (rec of lm.recommendations; track rec.targetId) {
+                      <button
+                        type="button"
+                        class="p-3 rounded-xl bg-white hover:bg-sky-50 border border-slate-200 hover:border-sky-300 text-left transition cursor-pointer"
+                        (click)="openRecommendation(rec.kind)"
+                      >
+                        <div class="flex items-center justify-between text-xs font-bold text-[#286FB4] mb-0.5">
+                          <span>{{ rec.kind === 'SCENARIO' ? '🎭 Tình huống' : '🎙️ AI Coach' }} · {{ rec.level }}</span>
+                          <span>Bắt đầu →</span>
+                        </div>
+                        <div class="text-sm font-bold text-slate-900">{{ rec.title }}</div>
+                        <div class="text-xs text-slate-500 mt-0.5">{{ rec.reasonVi }}</div>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
 
           <!-- In-depth Diagnostic Skill Cards -->
           <div class="space-y-4">
@@ -644,6 +732,7 @@ export class ProgressComponent implements OnInit {
   readonly historyNextCursor = signal<string | null>(null);
   readonly historyHasMore = signal<boolean>(false);
   readonly gamificationSummary = signal<GamificationSummaryResponse | null>(null);
+  readonly learnerModel = signal<LearnerModelResponse | null>(null);
 
   readonly topSkill = computed(() => {
     const list = this.skills().filter(s => s.current !== null);
@@ -724,6 +813,11 @@ export class ProgressComponent implements OnInit {
         const level = sum.currentLevel ?? sum.level ?? 'A1';
         this.appState.updateGamification(xp, streak, level);
       }
+    });
+
+    this.gamificationService.getLearnerModel().subscribe({
+      next: (model) => this.learnerModel.set(model),
+      error: () => undefined,
     });
   }
 
@@ -820,6 +914,10 @@ export class ProgressComponent implements OnInit {
     } else {
       this.appState.go('ai-coach');
     }
+  }
+
+  openRecommendation(kind: 'COACH' | 'SCENARIO'): void {
+    this.appState.go(kind === 'SCENARIO' ? 'scenarios' : 'ai-coach');
   }
 
   isCurrentLevel(lvl: string): boolean {

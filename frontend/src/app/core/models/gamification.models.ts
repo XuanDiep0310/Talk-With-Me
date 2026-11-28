@@ -170,3 +170,46 @@ export interface NotificationItem {
   isRead?: boolean;
   createdAt: string;
 }
+
+export interface PhonemeTroubleSpotItem {
+  ipaPhoneme: string;
+  attemptCount: number;
+  errorCount: number;
+  avgAccuracy: number;
+}
+
+export interface CefrSnapshotItem {
+  sourceType: string;
+  estimatedCefr: string;
+  continuousScore: number;
+  confidence: string;
+  createdAt: string;
+}
+
+export interface AdaptiveRecommendationItem {
+  kind: 'COACH' | 'SCENARIO';
+  targetId: string;
+  title: string;
+  reasonVi: string;
+  level: string;
+}
+
+export interface LearnerModelResponse {
+  estimatedCefr: string;
+  continuousScore: number;
+  confidence: string;
+  modelVersion: string;
+  sessionCount: number;
+  scriptedCount: number;
+  unscriptedCount: number;
+  avgResponseLatencyMs?: number | null;
+  scriptedPronunciation?: number | null;
+  unscriptedPronunciation?: number | null;
+  rawDimensions: Record<string, number | null>;
+  calibratedDimensions: Record<string, number | null>;
+  limitingDimensions: string[];
+  explanationVi: string;
+  phonemeTroubleSpots: PhonemeTroubleSpotItem[];
+  snapshots: CefrSnapshotItem[];
+  recommendations: AdaptiveRecommendationItem[];
+}

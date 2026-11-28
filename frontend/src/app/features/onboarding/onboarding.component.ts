@@ -10,13 +10,17 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { AudioCaptureService } from '../../core/services/audio-capture.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
   OnboardingService,
   OptionItem,
   PlacementTestResponse,
+  PlacementCompleteResponse,
   AnswerResponse,
+  ScriptedPlacementPrompt,
 } from '../../core/services/onboarding.service';
+import { PronunciationAssessResponse, ScenarioService } from '../../core/services/scenario.service';
 import { AppStateService } from '../../core/services/app-state.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -131,79 +135,107 @@ const LEVEL_DETAILS: Record<Level, { title: string; description: string; emoji: 
 
           @case ('test') {
             <div class="space-y-4">
-              <!-- Minimal Question Status Header (No "Tier" jargon) -->
-              <div class="flex items-center justify-between pb-2 border-b border-slate-800">
-                <h1 class="text-lg font-700 text-slate-100">Voice Test</h1>
-                <span class="text-xs px-2.5 py-1 rounded-full font-500 bg-slate-800 text-slate-300 border border-slate-700">
-                  Câu {{ currentQuestionIndex() + 1 }} / {{ testQuestions().length || 5 }}
+              <!-- Minimal Stage + Question Status Header -->
+              <div class="flex items-center justify-between pb-2 border-b border-slate-800 gap-2">
+                <h1 class="text-base sm:text-lg font-700 text-slate-100">
+                  @if (placementStage() === 1) {
+                    Giai đoạn 1/2: Phát âm chuẩn câu mẫu
+                  } @else {
+                    Giai đoạn 2/2: Hội thoại với Coach Alex
+                  }
+                </h1>
+                <span class="text-xs px-2.5 py-1 rounded-full font-500 bg-slate-800 text-slate-300 border border-slate-700 shrink-0">
+                  @if (placementStage() === 1) {
+                    Câu {{ currentScriptedIdx() + 1 }} / {{ scriptedPrompts().length || 3 }}
+                  } @else {
+                    Câu {{ currentQuestionIndex() + 1 }} / {{ testQuestions().length || 5 }}
+                  }
                 </span>
               </div>
 
-              <!-- Coach Alex Question Card -->
-              <div class="rounded-2xl p-4 sm:p-5 bg-slate-800 border border-slate-700/80 shadow-md">
-                <div class="flex items-center justify-between gap-2 mb-2">
-                  <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-bold shadow">
-                      A
+              @if (placementStage() === 1 && currentScriptedPrompt(); as sp) {
+                <!-- STAGE 1: Scripted Pronunciation Card -->
+                <div class="rounded-2xl p-4 sm:p-5 bg-slate-800 border border-slate-700/80 shadow-md space-y-3">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[11px] font-700 px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                      Mục tiêu {{ sp.targetBand }} · Đọc thành tiếng
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        class="px-2.5 py-1 rounded-lg text-xs font-500 bg-slate-700 hover:bg-slate-600 text-slate-200 transition cursor-pointer"
+                        (click)="playScriptedSample(sp.text, false)"
+                      >
+                        🔈 Nghe mẫu
+                      </button>
+                      <button
+                        type="button"
+                        class="px-2.5 py-1 rounded-lg text-xs font-500 bg-slate-700 hover:bg-slate-600 text-slate-200 transition cursor-pointer"
+                        (click)="playScriptedSample(sp.text, true)"
+                      >
+                        🐌 Chậm
+                      </button>
                     </div>
-                    <span class="text-xs font-700 text-sky-300">Coach Alex</span>
                   </div>
 
-                  <!-- Quick Action Buttons: Replay & Translate -->
-                  <div class="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      class="px-2.5 py-1 rounded-lg text-xs font-500 transition cursor-pointer flex items-center gap-1"
-                      [ngClass]="showQuestionTranslation() ? 'bg-sky-500/30 text-sky-200 border border-sky-400/40' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'"
-                      title="Xem bản dịch tiếng Việt"
-                      (click)="toggleQuestionTranslation()"
-                    >
-                      <span>🌐</span>
-                      <span>Dịch</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      class="px-2.5 py-1 rounded-lg text-xs font-500 transition cursor-pointer flex items-center gap-1"
-                      [ngClass]="isPlayingAi() ? 'bg-amber-400 text-slate-900 font-bold animate-pulse' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'"
-                      title="Nghe lại câu hỏi"
-                      (click)="toggleAiAudio()"
-                    >
-                      <span>{{ isPlayingAi() ? '🔊' : '🔈' }}</span>
-                      <span>{{ isPlayingAi() ? 'Đang đọc...' : 'Nghe lại' }}</span>
-                    </button>
+                  <div class="text-lg sm:text-xl font-bold leading-relaxed text-slate-100">
+                    @if (scriptedAssessResult(); as res) {
+                      <div class="flex flex-wrap gap-x-2 gap-y-1">
+                        @for (w of res.words; track $index) {
+                          <span class="inline-flex items-baseline">
+                            @if (w.syllables.length > 0) {
+                              @for (syl of w.syllables; track $index) {
+                                <span
+                                  [class.text-emerald-400]="syl.status === 'good'"
+                                  [class.text-amber-300]="syl.status === 'fair'"
+                                  [class.text-rose-400]="syl.status === 'poor'"
+                                >{{ syl.text }}</span>
+                              }
+                            } @else {
+                              <span
+                                [class.text-emerald-400]="w.status === 'good'"
+                                [class.text-amber-300]="w.status === 'fair'"
+                                [class.text-rose-400]="w.status === 'poor'"
+                              >{{ w.word }}</span>
+                            }
+                          </span>
+                        }
+                      </div>
+                    } @else {
+                      {{ sp.text }}
+                    }
                   </div>
+
+                  @if (sp.ipa) {
+                    <div class="ipa-phonetic text-sm font-medium text-sky-300">/{{ sp.ipa }}/</div>
+                  }
+                  <div class="text-xs text-slate-400">{{ sp.translation }}</div>
                 </div>
 
-                <p class="text-base sm:text-lg font-600 text-slate-100 leading-relaxed">
-                  {{ currentQuestionText() }}
-                </p>
-
-                @if (showQuestionTranslation()) {
-                  <div class="mt-2.5 pt-2 border-t border-slate-700 text-xs sm:text-sm text-sky-200 italic leading-relaxed">
-                    {{ currentQuestionTranslation() }}
+                @if (recordState() === 'done' && scriptedAssessResult(); as res) {
+                  <div class="rounded-2xl px-4 py-3 bg-sky-950/60 border border-sky-600/35 flex items-center justify-between text-xs">
+                    <span class="font-semibold text-slate-300">Điểm phát âm</span>
+                    <span class="text-base font-extrabold text-emerald-400">{{ res.displayScore ?? '--' }}/100</span>
                   </div>
                 }
-              </div>
-
-              <!-- User Spoken Answer Card (shown when recorded) -->
-              @if (recordState() === 'done') {
-                <div class="rounded-2xl p-4 bg-sky-950/70 border border-sky-600/40 shadow-sm">
-                  <div class="flex items-center justify-between gap-2 mb-1.5">
+              } @else {
+                <!-- STAGE 2: Unscripted Coach Alex Question Card -->
+                <div class="rounded-2xl p-4 sm:p-5 bg-slate-800 border border-slate-700/80 shadow-md">
+                  <div class="flex items-center justify-between gap-2 mb-2">
                     <div class="flex items-center gap-2">
-                      <div class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold">
-                        👤
+                      <div class="w-7 h-7 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-bold shadow">
+                        A
                       </div>
-                      <span class="text-xs font-700 text-slate-300">Bạn</span>
+                      <span class="text-xs font-700 text-sky-300">Coach Alex</span>
                     </div>
 
                     <div class="flex items-center gap-1.5">
                       <button
                         type="button"
                         class="px-2.5 py-1 rounded-lg text-xs font-500 transition cursor-pointer flex items-center gap-1"
-                        [ngClass]="showAnswerTranslation() ? 'bg-sky-500/40 text-sky-100 border border-sky-400' : 'bg-sky-900 hover:bg-sky-800 text-sky-200'"
-                        title="Dịch câu nói của bạn"
-                        (click)="toggleAnswerTranslation()"
+                        [ngClass]="showQuestionTranslation() ? 'bg-sky-500/30 text-sky-200 border border-sky-400/40' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'"
+                        title="Xem bản dịch tiếng Việt"
+                        (click)="toggleQuestionTranslation()"
                       >
                         <span>🌐</span>
                         <span>Dịch</span>
@@ -212,34 +244,81 @@ const LEVEL_DETAILS: Record<Level, { title: string; description: string; emoji: 
                       <button
                         type="button"
                         class="px-2.5 py-1 rounded-lg text-xs font-500 transition cursor-pointer flex items-center gap-1"
-                        [ngClass]="isPlayingUser() ? 'bg-amber-400 text-slate-900 font-bold animate-pulse' : 'bg-sky-900 hover:bg-sky-800 text-sky-200'"
-                        title="Nghe lại giọng thật của bạn"
-                        (click)="playUserVoice()"
+                        [ngClass]="isPlayingAi() ? 'bg-amber-400 text-slate-900 font-bold animate-pulse' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'"
+                        title="Nghe lại câu hỏi"
+                        (click)="toggleAiAudio()"
                       >
-                        <span>{{ isPlayingUser() ? '🔊' : '🔈' }}</span>
-                        <span>{{ isPlayingUser() ? 'Đang phát...' : 'Nghe lại' }}</span>
+                        <span>{{ isPlayingAi() ? '🔊' : '🔈' }}</span>
+                        <span>{{ isPlayingAi() ? 'Đang đọc...' : 'Nghe lại' }}</span>
                       </button>
                     </div>
                   </div>
 
-                  <div class="text-xs text-slate-400 font-500 mb-0.5">Transcript nhận dạng được:</div>
-                  <p class="text-sm sm:text-base text-slate-100 italic leading-relaxed">
-                    “{{ lastTranscript() }}”
+                  <p class="text-base sm:text-lg font-600 text-slate-100 leading-relaxed">
+                    {{ currentQuestionText() }}
                   </p>
 
-                  @if (showAnswerTranslation()) {
-                    <div class="mt-2 pt-2 border-t border-sky-800/80 text-xs text-sky-200 italic leading-relaxed">
-                      @if (loadingAnswerTranslation()) {
-                        <span class="animate-pulse">Đang dịch...</span>
-                      } @else {
-                        <span>{{ answerTranslation() || 'Không thể lấy bản dịch' }}</span>
-                      }
+                  @if (showQuestionTranslation()) {
+                    <div class="mt-2.5 pt-2 border-t border-slate-700 text-xs sm:text-sm text-sky-200 italic leading-relaxed">
+                      {{ currentQuestionTranslation() }}
                     </div>
                   }
                 </div>
+
+                @if (recordState() === 'done') {
+                  <div class="rounded-2xl p-4 bg-sky-950/70 border border-sky-600/40 shadow-sm">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                      <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold">
+                          👤
+                        </div>
+                        <span class="text-xs font-700 text-slate-300">Bạn</span>
+                      </div>
+
+                      <div class="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          class="px-2.5 py-1 rounded-lg text-xs font-500 transition cursor-pointer flex items-center gap-1"
+                          [ngClass]="showAnswerTranslation() ? 'bg-sky-500/40 text-sky-100 border border-sky-400' : 'bg-sky-900 hover:bg-sky-800 text-sky-200'"
+                          title="Dịch câu nói của bạn"
+                          (click)="toggleAnswerTranslation()"
+                        >
+                          <span>🌐</span>
+                          <span>Dịch</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          class="px-2.5 py-1 rounded-lg text-xs font-500 transition cursor-pointer flex items-center gap-1"
+                          [ngClass]="isPlayingUser() ? 'bg-amber-400 text-slate-900 font-bold animate-pulse' : 'bg-sky-900 hover:bg-sky-800 text-sky-200'"
+                          title="Nghe lại giọng thật của bạn"
+                          (click)="playUserVoice()"
+                        >
+                          <span>{{ isPlayingUser() ? '🔊' : '🔈' }}</span>
+                          <span>{{ isPlayingUser() ? 'Đang phát...' : 'Nghe lại' }}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="text-xs text-slate-400 font-500 mb-0.5">Transcript từ Azure Speech:</div>
+                    <p class="text-sm sm:text-base text-slate-100 italic leading-relaxed">
+                      “{{ lastTranscript() }}”
+                    </p>
+
+                    @if (showAnswerTranslation()) {
+                      <div class="mt-2 pt-2 border-t border-sky-800/80 text-xs text-sky-200 italic leading-relaxed">
+                        @if (loadingAnswerTranslation()) {
+                          <span class="animate-pulse">Đang dịch...</span>
+                        } @else {
+                          <span>{{ answerTranslation() || 'Không thể lấy bản dịch' }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
               }
 
-              <!-- Central Single Microphone Button ("The Coach" Style) -->
+              <!-- Central Single Microphone Button -->
               <div class="py-4 flex flex-col items-center justify-center gap-2">
                 <div class="relative flex items-center justify-center">
                   @if (recordState() === 'recording') {
@@ -261,7 +340,6 @@ const LEVEL_DETAILS: Record<Level, { title: string; description: string; emoji: 
                     (click)="toggleSpeakingTurn()"
                   >
                     @if (recordState() === 'recording') {
-                      <!-- Jumping Equalizer Sound Waves (Consistent with AI Coach) -->
                       <div class="flex items-center gap-1" title="Nhấn để hoàn tất câu nói">
                         <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite]"></span>
                         <span class="w-1.5 h-7 bg-white rounded-full animate-[bounce_0.8s_infinite_0.15s]"></span>
@@ -277,30 +355,37 @@ const LEVEL_DETAILS: Record<Level, { title: string; description: string; emoji: 
                   </button>
                 </div>
 
-                <!-- Status indicator text below the mic -->
                 @if (recordState() === 'recording') {
                   <p class="text-xs text-rose-300 font-500 animate-pulse text-center">
-                    Đang lắng nghe câu trả lời... (Nhấn micro lần nữa để hoàn tất)
+                    Đang thu âm... (Nhấn micro lần nữa để chấm điểm)
                   </p>
                 } @else if (recordState() === 'processing') {
                   <p class="text-xs text-sky-300 font-500 animate-pulse text-center">
-                    Đang xử lý âm thanh...
+                    Đang phân tích giọng nói...
                   </p>
                 } @else if (recordState() === 'done') {
                   <p class="text-xs text-slate-400 font-500 text-center">
-                    Đã ghi nhận câu trả lời. Bạn có thể nhấn micro để nói lại nếu muốn.
+                    Đã chấm xong! Nhấn micro để nói lại nếu muốn.
                   </p>
                 } @else {
                   <p class="text-xs text-slate-400 font-500 text-center">
-                    Nhấn vào micro để bắt đầu nói
+                    Nhấn vào micro để nói
                   </p>
                 }
               </div>
 
-              <!-- Next Action Button (when answer is recorded) -->
+              <!-- Next Action Button -->
               @if (recordState() === 'done') {
                 <div class="pt-2 border-t border-slate-800">
-                  @if (isConverged() || !hasMoreQuestions()) {
+                  @if (placementStage() === 1) {
+                    <button
+                      type="button"
+                      class="btn-primary w-full py-3 px-6 rounded-2xl font-700 text-sm text-white bg-sky-600 hover:bg-sky-500 transition shadow-md cursor-pointer"
+                      (click)="nextScriptedOrEnterStage2()"
+                    >
+                      {{ currentScriptedIdx() < scriptedPrompts().length - 1 ? 'Câu mẫu tiếp theo →' : 'Sang Giai đoạn 2: Hội thoại với Coach Alex →' }}
+                    </button>
+                  } @else if (isConverged() || !hasMoreQuestions()) {
                     <button
                       type="button"
                       class="btn-primary w-full py-3 px-6 rounded-2xl font-700 text-sm text-white bg-emerald-600 hover:bg-emerald-500 transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
@@ -340,12 +425,23 @@ const LEVEL_DETAILS: Record<Level, { title: string; description: string; emoji: 
           @case ('result') {
             <div class="text-center py-3">
               <div class="text-6xl mb-3">{{ levelDetails[assessedLevel()].emoji }}</div>
-              <h1 class="text-2xl font-800 mb-2 text-slate-100">
+              <h1 class="text-2xl font-800 mb-1 text-slate-100">
                 Level đề xuất: <span class="text-sky-400">{{ assessedLevel() }}</span>
+                @if (placementCompleteData()?.continuousBand; as band) {
+                  <span class="text-sm font-semibold text-slate-400 ml-2">({{ band }}/100)</span>
+                }
               </h1>
-              <p class="text-sm mb-6 text-slate-300 max-w-md mx-auto leading-relaxed">
+              <p class="text-sm mb-4 text-slate-300 max-w-md mx-auto leading-relaxed">
                 {{ levelDetails[assessedLevel()].description }}
               </p>
+
+              @if (placementCompleteData(); as pdata) {
+                @if (pdata.explanationVi) {
+                  <div class="p-3.5 rounded-2xl mb-4 text-left text-xs bg-slate-800/90 text-slate-200 border border-slate-700 max-w-md mx-auto leading-relaxed">
+                    {{ pdata.explanationVi }}
+                  </div>
+                }
+              }
 
               @if (isInsufficientData()) {
                 <div class="p-3.5 rounded-2xl mb-5 text-left text-xs bg-amber-950/40 text-amber-300 border border-amber-500/40 max-w-md mx-auto">
@@ -559,8 +655,18 @@ export class OnboardingComponent implements OnInit, OnDestroy {
   private readonly onboardingService = inject(OnboardingService);
   private readonly appState = inject(AppStateService);
   private readonly toast = inject(ToastService);
+  private readonly audioCapture = inject(AudioCaptureService);
+  private readonly scenarioService = inject(ScenarioService);
 
   readonly phase = signal<Phase>('intro');
+  readonly placementStage = signal<1 | 2>(1);
+  readonly scriptedPrompts = signal<ScriptedPlacementPrompt[]>([]);
+  readonly currentScriptedIdx = signal(0);
+  readonly currentScriptedPrompt = computed<ScriptedPlacementPrompt | null>(
+    () => this.scriptedPrompts()[this.currentScriptedIdx()] ?? null
+  );
+  readonly scriptedAssessResult = signal<PronunciationAssessResponse | null>(null);
+  readonly placementCompleteData = signal<PlacementCompleteResponse | null>(null);
   readonly recordState = signal<RecordState>('idle');
   readonly micReady = signal(false);
   readonly loading = signal(false);
@@ -607,21 +713,8 @@ export class OnboardingComponent implements OnInit, OnDestroy {
   readonly userAudioUrl = signal<string | null>(null);
   private currentAudioElement: HTMLAudioElement | null = null;
 
-  // Real Mic & Speech Recording
-  private mediaStream: MediaStream | null = null;
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
-  private speechRecognition: {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    onresult: (event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
-    onerror: (err: unknown) => void;
-    start: () => void;
-    stop: () => void;
-  } | null = null;
-  private currentRecognizedText = '';
   private recordingStartMs = 0;
+  private stage2PromptShownAtMs = 0;
   private autoSpeakTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private pendingNextQuestion: string | null = null;
@@ -695,22 +788,7 @@ export class OnboardingComponent implements OnInit, OnDestroy {
       this.autoSpeakTimeout = null;
     }
     this.stopAudioPlayback();
-    this.releaseMediaStream();
-    if (this.speechRecognition) {
-      try {
-        this.speechRecognition.stop();
-      } catch {
-        // Ignore speech recognition stop errors
-      }
-      this.speechRecognition = null;
-    }
-  }
-
-  private releaseMediaStream(): void {
-    if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach((track) => track.stop());
-      this.mediaStream = null;
-    }
+    this.audioCapture.release();
   }
 
   loadCatalogOptions(): void {
@@ -721,6 +799,9 @@ export class OnboardingComponent implements OnInit, OnDestroy {
         this.weakPointOptions.set(opts.weakPoints);
         if (opts.placementQuestions?.length) {
           this.testQuestions.set(opts.placementQuestions);
+        }
+        if (opts.scriptedPrompts?.length) {
+          this.scriptedPrompts.set(opts.scriptedPrompts);
         }
       },
       error: () => {
@@ -792,6 +873,7 @@ export class OnboardingComponent implements OnInit, OnDestroy {
 
   initPlacementTest(): void {
     this.loading.set(true);
+    this.error.set('');
     this.onboardingService.createPlacementTest().subscribe({
       next: (resp: PlacementTestResponse) => {
         this.loading.set(false);
@@ -799,6 +881,14 @@ export class OnboardingComponent implements OnInit, OnDestroy {
         if (resp.questions?.length) {
           this.testQuestions.set(resp.questions);
         }
+        if (resp.scriptedPrompts?.length) {
+          this.scriptedPrompts.set(resp.scriptedPrompts);
+        }
+        const startInStage1 = this.scriptedPrompts().length > 0;
+        this.placementStage.set(startInStage1 ? 1 : 2);
+        this.currentScriptedIdx.set(0);
+        this.scriptedAssessResult.set(null);
+        this.placementCompleteData.set(null);
         this.currentQuestionIndex.set(0);
         const qText =
           resp.initialQuestion ??
@@ -819,26 +909,23 @@ export class OnboardingComponent implements OnInit, OnDestroy {
         this.recordState.set('idle');
         this.phase.set('test');
 
-        // Automatically read question with AI voice when test starts
-        this.autoSpeakTimeout = setTimeout(() => {
-          this.speakAiQuestion(qText);
-        }, 500);
+        if (!startInStage1) {
+          this.stage2PromptShownAtMs = Date.now();
+          this.autoSpeakTimeout = setTimeout(() => {
+            this.speakAiQuestion(qText);
+          }, 400);
+        }
       },
       error: () => {
         this.loading.set(false);
-        this.placementTestId.set('mock-test-id');
-        this.currentQuestionIndex.set(0);
-        this.totalAnswered.set(0);
-        this.recordState.set('idle');
-        this.phase.set('test');
-        this.autoSpeakTimeout = setTimeout(() => {
-          this.speakAiQuestion(this.currentQuestionText());
-        }, 500);
+        this.toast.error('Không thể khởi tạo bài kiểm tra trình độ. Vui lòng thử lại.');
       },
     });
   }
 
-  // --- Push-to-Talk / Toggle Speaking Turn ("The Coach" Style) ---
+  playScriptedSample(text: string, slow = false): void {
+    this.scenarioService.playChunkAudio(text, null, slow);
+  }
 
   async toggleSpeakingTurn(): Promise<void> {
     if (this.recordState() === 'recording') {
@@ -852,72 +939,20 @@ export class OnboardingComponent implements OnInit, OnDestroy {
     this.stopAudioPlayback();
     this.recordState.set('recording');
     this.recordingStartMs = Date.now();
-    this.currentRecognizedText = '';
     this.lastTranscript.set('');
-    this.userAudioUrl.set(null);
+    this.scriptedAssessResult.set(null);
+    if (this.userAudioUrl()) {
+      URL.revokeObjectURL(this.userAudioUrl()!);
+      this.userAudioUrl.set(null);
+    }
     this.showAnswerTranslation.set(false);
     this.answerTranslation.set('');
 
     try {
-      // 1. Capture real audio stream via MediaRecorder
-      if (!this.mediaStream || !this.mediaStream.active) {
-        this.mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
-      }
-
-      this.audioChunks = [];
-      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: mime });
-      this.mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) this.audioChunks.push(e.data);
-      };
-      this.mediaRecorder.start(100);
-
-      // 2. Real-time Speech-To-Text via browser Web Speech API
-      const win = window as unknown as Record<
-        string,
-        new () => NonNullable<typeof this.speechRecognition>
-      >;
-      const SpeechRecognitionClass =
-        win['SpeechRecognition'] || win['webkitSpeechRecognition'];
-
-      if (SpeechRecognitionClass) {
-        this.speechRecognition = new SpeechRecognitionClass();
-        this.speechRecognition.continuous = true;
-        this.speechRecognition.interimResults = true;
-        this.speechRecognition.lang = 'en-US';
-
-        this.speechRecognition.onresult = (event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => {
-          let full = '';
-          for (const res of Array.from(event.results)) {
-            full += res[0].transcript;
-          }
-          const trimmed = full.trim();
-          if (trimmed) {
-            this.currentRecognizedText = trimmed;
-            this.lastTranscript.set(trimmed);
-          }
-        };
-
-        this.speechRecognition.onerror = (err: unknown) => {
-          console.warn('Speech recognition warning:', err);
-        };
-
-        try {
-          this.speechRecognition.start();
-        } catch (e) {
-          console.warn('Speech recognition start error:', e);
-        }
-      }
-    } catch (err) {
-      console.warn('Microphone error:', err);
+      await this.audioCapture.start();
+    } catch {
+      this.recordState.set('idle');
+      this.toast.error('Không thể truy cập micro. Vui lòng cấp quyền micro.');
     }
   }
 
@@ -925,102 +960,59 @@ export class OnboardingComponent implements OnInit, OnDestroy {
     if (this.recordState() !== 'recording') return;
     this.recordState.set('processing');
 
-    const elapsedSeconds = Math.max(1.5, (Date.now() - this.recordingStartMs) / 1000);
+    const captured = this.audioCapture.stop();
+    this.userAudioUrl.set(captured.audioUrl);
 
-    // Stop Speech Recognition
-    if (this.speechRecognition) {
-      try {
-        this.speechRecognition.stop();
-      } catch {
-        // Ignore speech recognition stop errors
-      }
-      this.speechRecognition = null;
-    }
-
-    // Stop MediaRecorder and build in-memory blob URL for authentic user voice playback
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      await new Promise<void>((resolve) => {
-        if (!this.mediaRecorder) {
-          resolve();
-          return;
-        }
-        this.mediaRecorder.onstop = () => {
-          if (this.audioChunks.length > 0) {
-            const blob = new Blob(this.audioChunks, {
-              type: this.mediaRecorder?.mimeType || 'audio/webm',
-            });
-            const url = URL.createObjectURL(blob);
-            this.userAudioUrl.set(url);
-          }
-          resolve();
-        };
-        try {
-          this.mediaRecorder.stop();
-        } catch {
-          resolve();
-        }
-      });
-      this.mediaRecorder = null;
-    }
-
-    // Determine actual transcript
-    let transcriptText = this.currentRecognizedText.trim();
-    if (!transcriptText) {
-      transcriptText = this.lastTranscript().trim();
-    }
-
-    // Check if mic captured anything
-    if (!transcriptText) {
-      // In headless browser automated tests (e.g. CI / Playwright test runner where no physical microphone exists), supply a test response
-      if (typeof navigator !== 'undefined' && Boolean((navigator as unknown as Record<string, unknown>)['webdriver'])) {
-        transcriptText = 'I really enjoy traveling and learning new languages with TalkWithMe.';
-      } else {
-        // Real user: Mic did not capture audio or user was silent. DO NOT mock!
-        this.recordState.set('idle');
-        this.toast.error('Chưa nhận diện được giọng nói. Bạn vui lòng nói to rõ ràng hơn hoặc kiểm tra micro và thử lại nhé!');
-        return;
-      }
-    }
-
-    this.lastTranscript.set(transcriptText);
-
-    // Submit answer to server
     const testId = this.placementTestId();
-    const qIndex = this.currentQuestionIndex();
-    const clientUuid =
+    if (!testId) {
+      this.recordState.set('idle');
+      this.toast.error('Phiên kiểm tra chưa sẵn sàng.');
+      return;
+    }
+
+    const requestId =
       typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()
-        : `req-${Date.now()}-${qIndex}`;
+        : `req-${Date.now()}-${this.currentQuestionIndex()}`;
 
-    if (testId && testId !== 'mock-test-id') {
-      this.onboardingService
-        .submitAnswer(testId, {
-          requestId: clientUuid,
-          questionIndex: qIndex,
-          transcript: transcriptText,
-          sttConfidence: 0.94,
-          speakingDurationSeconds: elapsedSeconds,
-          responseLatencySeconds: 1.5,
-        })
-        .subscribe({
-          next: (ans: AnswerResponse) => {
-            this.handleAnswerSuccess(ans, transcriptText);
-          },
-          error: () => {
-            this.handleAnswerFallback(transcriptText);
-          },
-        });
-    } else {
-      setTimeout(() => {
-        this.handleAnswerFallback(transcriptText);
-      }, 500);
-    }
+    const stage = this.placementStage();
+    const promptId = stage === 1 ? this.currentScriptedPrompt()?.id : undefined;
+    const questionIndex = stage === 1 ? this.currentScriptedIdx() : this.currentQuestionIndex();
+    const latencySeconds =
+      stage === 2 && this.stage2PromptShownAtMs > 0
+        ? Math.max(0.2, (this.recordingStartMs - this.stage2PromptShownAtMs) / 1000)
+        : undefined;
+
+    this.onboardingService
+      .submitAudioAnswer(testId, {
+        audioWav: captured.wavBlob,
+        requestId,
+        stage,
+        questionIndex,
+        promptId,
+        responseLatencySeconds: latencySeconds,
+      })
+      .subscribe({
+        next: (ans: AnswerResponse) => {
+          this.handleAnswerSuccess(ans, ans.transcript || '');
+        },
+        error: (err) => {
+          this.recordState.set('idle');
+          this.toast.error(
+            err?.error?.message ||
+              'Chưa nhận diện được giọng nói rõ ràng. Vui lòng nói to rõ hơn và thử lại!'
+          );
+        },
+      });
   }
 
   private handleAnswerSuccess(ans: AnswerResponse, fallbackTranscript: string): void {
     const transcriptText = ans.transcript || fallbackTranscript;
     this.lastTranscript.set(transcriptText);
 
+    if (ans.pronunciation) {
+      this.scriptedAssessResult.set(ans.pronunciation);
+    }
     if (ans.isConverged !== undefined) this.isConverged.set(ans.isConverged);
     if (ans.canFinishEarly !== undefined) this.canFinishEarly.set(ans.canFinishEarly);
     if (ans.totalAnswered !== undefined) this.totalAnswered.set(ans.totalAnswered);
@@ -1033,16 +1025,27 @@ export class OnboardingComponent implements OnInit, OnDestroy {
     this.recordState.set('done');
   }
 
-  private handleAnswerFallback(fallbackTranscript: string): void {
-    this.lastTranscript.set(fallbackTranscript);
-    this.totalAnswered.update((n) => n + 1);
-    if (this.totalAnswered() >= 3) {
-      this.canFinishEarly.set(true);
+  nextScriptedOrEnterStage2(): void {
+    this.stopAudioPlayback();
+    this.scriptedAssessResult.set(null);
+    this.lastTranscript.set('');
+    this.userAudioUrl.set(null);
+    this.recordState.set('idle');
+
+    if (this.currentScriptedIdx() < this.scriptedPrompts().length - 1) {
+      this.currentScriptedIdx.update((i) => i + 1);
+      return;
     }
-    if (this.totalAnswered() >= 5) {
-      this.isConverged.set(true);
+
+    this.placementStage.set(2);
+    this.currentQuestionIndex.set(0);
+    this.stage2PromptShownAtMs = Date.now();
+    const qText = this.currentQuestionText();
+    if (qText) {
+      this.autoSpeakTimeout = setTimeout(() => {
+        this.speakAiQuestion(qText);
+      }, 400);
     }
-    this.recordState.set('done');
   }
 
   nextQuestionOrFinish(): void {
@@ -1083,8 +1086,8 @@ export class OnboardingComponent implements OnInit, OnDestroy {
     this.showAnswerTranslation.set(false);
     this.answerTranslation.set('');
     this.recordState.set('idle');
+    this.stage2PromptShownAtMs = Date.now();
 
-    // Automatically read the next question out loud
     if (nextQText) {
       this.autoSpeakTimeout = setTimeout(() => {
         this.speakAiQuestion(nextQText);
@@ -1095,13 +1098,8 @@ export class OnboardingComponent implements OnInit, OnDestroy {
   finishPlacementTest(): void {
     this.stopAudioPlayback();
     const testId = this.placementTestId();
-    if (!testId || testId === 'mock-test-id') {
-      const levelToSet = (LEVELS.includes(this.currentEstimatedLevel() as Level)
-        ? this.currentEstimatedLevel()
-        : 'B1') as Level;
-      this.assessedLevel.set(levelToSet);
-      this.selectedLevel.set(levelToSet);
-      this.phase.set('result');
+    if (!testId) {
+      this.toast.error('Không tìm thấy phiên kiểm tra.');
       return;
     }
 
@@ -1109,9 +1107,10 @@ export class OnboardingComponent implements OnInit, OnDestroy {
     this.onboardingService.completePlacementTest(testId).subscribe({
       next: (res) => {
         this.loading.set(false);
+        this.placementCompleteData.set(res);
         const lvl = (LEVELS.includes(res.estimatedLevel as Level)
           ? res.estimatedLevel
-          : 'B1') as Level;
+          : 'A1') as Level;
         this.assessedLevel.set(lvl);
         this.selectedLevel.set(lvl);
         this.isInsufficientData.set(res.isInsufficientData);
@@ -1119,9 +1118,7 @@ export class OnboardingComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.loading.set(false);
-        this.assessedLevel.set('B1');
-        this.selectedLevel.set('B1');
-        this.phase.set('result');
+        this.toast.error('Không thể hoàn tất đánh giá trình độ. Vui lòng thử lại.');
       },
     });
   }

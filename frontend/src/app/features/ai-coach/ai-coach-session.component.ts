@@ -46,17 +46,12 @@ import { ToastService } from '../../core/services/toast.service';
             </h1>
             <div class="flex items-center gap-2 mt-0.5">
               <span
-                class="badge text-[11px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5"
+                class="badge text-[11px] px-2.5 py-0.5 rounded-full font-semibold flex items-center gap-1.5"
                 [ngClass]="stateBadgeClass()"
               >
                 <span class="w-1.5 h-1.5 rounded-full" [ngClass]="stateDotClass()"></span>
                 {{ stateText() }}
               </span>
-              @if (voiceService.isMockMode()) {
-                <span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-                  Dev Mock
-                </span>
-              }
             </div>
           </div>
         </div>
@@ -94,17 +89,6 @@ import { ToastService } from '../../core/services/toast.service';
             </span>
           </button>
 
-          <!-- Dev Mock Switch (D-08) -->
-          <label class="hidden md:flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              class="rounded border-slate-600 text-blue-600 focus:ring-0"
-              [checked]="voiceService.isMockMode()"
-              (change)="toggleMockMode()"
-            />
-            <span>Mock Mic</span>
-          </label>
-
           <!-- End Session Action Button -->
           <button
             type="button"
@@ -138,96 +122,84 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       }
 
+      @if (voiceService.audioUnlockNeeded()) {
+        <button
+          type="button"
+          class="w-full bg-sky-600/90 hover:bg-sky-500 text-white text-xs font-medium px-4 py-2 text-center cursor-pointer transition border-0"
+          (click)="voiceService.resumeBlockedAudio()"
+        >
+          Chạm vào đây để bật âm thanh tự động từ Coach Alex
+        </button>
+      }
+
       <!-- Main Content Area: Flex layout for Live Script (left) & Desktop Hint Panel (right) -->
       <div class="flex-1 flex min-h-0 relative overflow-hidden bg-slate-950">
         <!-- Conversation Live Script (Scrollable Area) -->
         <section
           #transcriptContainer
-          class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 max-w-3xl w-full mx-auto space-y-4"
+          class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 max-w-2xl w-full mx-auto space-y-3"
           aria-label="Hội thoại Live Script"
           aria-live="polite"
           (scroll)="onUserScroll()"
         >
           @if (liveTranscripts().length === 0) {
             <div class="text-center py-20 text-slate-500">
-              <div class="w-16 h-16 mx-auto rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-blue-500 mb-4 shadow-inner">
-                <svg width="30" height="30" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <div class="w-14 h-14 mx-auto rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-blue-500 mb-4">
+                <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                   <line x1="12" y1="19" x2="12" y2="22" />
                 </svg>
               </div>
-              <p class="text-base font-semibold text-slate-300">Đang khởi tạo hội thoại cùng Coach Alex</p>
-              <p class="text-xs text-slate-500 mt-1">Nhấn vào nút Micro bên dưới để bắt đầu luyện nói bất kỳ lúc nào.</p>
+              <p class="text-sm font-semibold text-slate-300">Đang kết nối với Coach Alex...</p>
             </div>
           }
 
           @for (item of liveTranscripts(); track item.id) {
             <article
-              class="flex items-start gap-3 my-3"
+              class="flex items-start gap-2.5 my-2.5"
               [class.justify-end]="item.speaker === 'USER'"
               [class.speaker-ai]="item.speaker === 'AI'"
               [class.speaker-user]="item.speaker === 'USER'"
             >
               @if (item.speaker === 'AI') {
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 text-xs font-extrabold shadow-sm">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shrink-0 text-[11px] font-bold">
                   AI
                 </div>
               }
 
               <div
-                class="max-w-xl rounded-2xl p-4 text-sm leading-relaxed shadow-sm transition-all"
+                class="max-w-xl rounded-2xl px-4 py-3 text-sm leading-relaxed transition-colors"
                 [ngClass]="
                   item.speaker === 'AI'
-                    ? 'bg-slate-900 border border-slate-800 text-slate-100'
+                    ? 'bg-slate-900 border border-slate-800/90 text-slate-100'
                     : 'bg-blue-600 text-white'
                 "
-                [class.opacity-70]="item.isPartial"
+                [class.opacity-75]="item.isPartial"
                 [class.border-sky-400]="item.isPartial || voiceService.playingSegmentId() === item.id"
               >
-                <div class="flex items-center justify-between gap-4 text-[11px] mb-1.5 opacity-80">
-                  <div class="flex items-center gap-2">
-                    <span class="font-bold">{{ item.speaker === 'AI' ? 'Coach Alex' : 'Bạn' }}</span>
+                <div class="flex items-center justify-between gap-4 text-[11px] mb-1 opacity-75">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-semibold">{{ item.speaker === 'AI' ? 'Coach Alex' : 'Bạn' }}</span>
                     <span>•</span>
-                    <span>{{ item.time }}</span>
+                    <span class="tabular-nums">{{ item.time }}</span>
                   </div>
 
-                  <!-- Action Buttons: Translate & Replay -->
+                  <!-- Action Button: Translate Only (continuous voice flow) -->
                   @if (!item.isPartial) {
-                    <div class="flex items-center gap-1.5">
-                      <!-- Translate Toggle Button -->
-                      <button
-                        type="button"
-                        class="w-7 h-7 flex items-center justify-center rounded-lg text-xs font-medium transition cursor-pointer"
-                        [ngClass]="showTranslation()[item.id] ? 'bg-sky-500/30 text-sky-200 border border-sky-400/40' : 'bg-white/10 hover:bg-white/20 text-slate-300'"
-                        [title]="showTranslation()[item.id] ? 'Ẩn bản dịch' : 'Xem bản dịch tiếng Việt'"
-                        (click)="toggleTranslation(item)"
-                      >
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <circle cx="12" cy="12" r="10" />
-                          <line x1="2" y1="12" x2="22" y2="12" />
-                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                        </svg>
-                      </button>
-
-                      <!-- Replay Audio Button -->
-                      <button
-                        type="button"
-                        class="w-7 h-7 flex items-center justify-center rounded-lg text-xs transition cursor-pointer"
-                        [ngClass]="
-                          voiceService.playingSegmentId() === item.id
-                            ? 'bg-amber-400 text-slate-950 shadow-sm animate-pulse'
-                            : 'bg-white/10 hover:bg-white/20 text-slate-200'
-                        "
-                        [title]="voiceService.playingSegmentId() === item.id ? 'Đang phát âm thanh...' : 'Nghe lại'"
-                        (click)="replaySegment(item)"
-                      >
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-                        </svg>
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      class="w-6 h-6 flex items-center justify-center rounded-md text-xs transition cursor-pointer"
+                      [ngClass]="showTranslation()[item.id] ? 'bg-sky-500/30 text-sky-200' : 'hover:bg-white/15 text-slate-300'"
+                      [title]="showTranslation()[item.id] ? 'Ẩn bản dịch' : 'Xem bản dịch tiếng Việt'"
+                      (click)="toggleTranslation(item)"
+                    >
+                      <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                      </svg>
+                    </button>
                   }
                 </div>
 
@@ -421,37 +393,82 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       }
 
-      <!-- Bottom Single-Mic Control Studio Footer -->
+      <!-- Bottom Hands-Free Continuous Studio Footer -->
       <footer
-        class="py-4 px-4 sm:px-6 flex flex-col items-center justify-center gap-2 bg-slate-900 border-t border-slate-800"
+        class="py-4 px-4 sm:px-6 flex flex-col items-center justify-center gap-2.5 bg-slate-900 border-t border-slate-800"
       >
-        <!-- Horizontal Row: Left Spacer | Central Mic | Right Hint Button -->
-        <div class="w-full max-w-sm sm:max-w-md flex items-center justify-between relative px-2">
-          <!-- Left spacer for balance -->
-          <div class="w-11 sm:w-12"></div>
+        <div class="w-full max-w-md flex items-center justify-between relative px-2">
+          <!-- Left: Pause / Resume Button -->
+          <button
+            type="button"
+            data-testid="coach-pause-btn"
+            class="h-11 px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition cursor-pointer border"
+            [ngClass]="
+              voiceService.isPaused()
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+            "
+            [title]="voiceService.isPaused() ? 'Tiếp tục hội thoại' : 'Tạm dừng nghe'"
+            (click)="onTogglePause()"
+          >
+            @if (voiceService.isPaused()) {
+              <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span>Tiếp tục</span>
+            } @else {
+              <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="6" y="4" width="4" height="16" rx="1" />
+                <rect x="14" y="4" width="4" height="16" rx="1" />
+              </svg>
+              <span>Tạm dừng</span>
+            }
+          </button>
 
-          <!-- Central Microphone Button -->
+          <!-- Center: Reactive Hands-Free Voice Orb (Click toggles Mute/Unmute) -->
           <div class="relative flex items-center justify-center">
-            @if (voiceService.isRecordingTurn()) {
-              <span class="absolute w-24 h-24 rounded-full bg-rose-500/25 animate-ping pointer-events-none"></span>
-              <span class="absolute w-20 h-20 rounded-full bg-rose-500/40 animate-pulse pointer-events-none"></span>
+            @if (!voiceService.isMuted() && !voiceService.isPaused()) {
+              <span
+                class="absolute w-20 h-20 rounded-full transition-transform duration-100 pointer-events-none"
+                [ngClass]="
+                  voiceService.uxState() === 'user_speaking'
+                    ? 'bg-rose-500/35'
+                    : voiceService.uxState() === 'ai_speaking'
+                      ? 'bg-sky-500/30 animate-pulse'
+                      : 'bg-emerald-500/20'
+                "
+                [style.transform]="'scale(' + (1 + (voiceService.micLevel() / 140)) + ')'"
+              ></span>
             }
 
             <button
               type="button"
-              data-testid="coach-mic-btn"
+              data-testid="coach-mic-mute-btn"
               class="relative z-10 w-16 h-16 sm:w-18 sm:h-18 rounded-full flex items-center justify-center transition-all duration-200 shadow-xl cursor-pointer focus:outline-none"
               [ngClass]="
-                voiceService.isRecordingTurn()
-                  ? 'bg-rose-600 hover:bg-rose-500 text-white scale-105 ring-4 ring-rose-400/50 shadow-rose-600/40'
-                  : 'bg-blue-600 hover:bg-blue-500 text-white hover:scale-105 ring-4 ring-blue-400/30 shadow-blue-600/30'
+                voiceService.isMuted() || voiceService.isPaused()
+                  ? 'bg-slate-700 hover:bg-slate-600 text-slate-300 ring-4 ring-slate-600/40'
+                  : voiceService.uxState() === 'user_speaking'
+                    ? 'bg-rose-600 text-white ring-4 ring-rose-400/50 shadow-rose-600/40'
+                    : voiceService.uxState() === 'ai_speaking'
+                      ? 'bg-sky-600 text-white ring-4 ring-sky-400/40 shadow-sky-600/30'
+                      : voiceService.uxState() === 'processing'
+                        ? 'bg-purple-600 text-white ring-4 ring-purple-400/40'
+                        : 'bg-emerald-600 hover:bg-emerald-500 text-white ring-4 ring-emerald-400/35 shadow-emerald-600/30'
               "
               [disabled]="voiceService.uxState() === 'connecting' || voiceService.uxState() === 'ending'"
-              [attr.aria-label]="voiceService.isRecordingTurn() ? 'Đang nói - Nhấn để dừng và gửi câu nói' : 'Nhấn để bắt đầu nói'"
-              (click)="onMicButtonClick()"
+              [attr.aria-label]="voiceService.isMuted() ? 'Bật lại micro' : 'Tắt tiếng micro'"
+              (click)="onToggleMute()"
             >
-              @if (voiceService.isRecordingTurn()) {
-                <div class="flex items-center gap-1" title="Nhấn để hoàn tất câu nói">
+              @if (voiceService.isMuted()) {
+                <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                  <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+                  <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+                  <line x1="12" y1="19" x2="12" y2="22" />
+                </svg>
+              } @else if (voiceService.uxState() === 'user_speaking') {
+                <div class="flex items-center gap-1" title="Đang nghe giọng nói của bạn">
                   <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite]"></span>
                   <span class="w-1.5 h-7 bg-white rounded-full animate-[bounce_0.8s_infinite_0.15s]"></span>
                   <span class="w-1.5 h-5 bg-white rounded-full animate-[bounce_0.8s_infinite_0.3s]"></span>
@@ -459,7 +476,7 @@ import { ToastService } from '../../core/services/toast.service';
                   <span class="w-1.5 h-4 bg-white rounded-full animate-[bounce_0.8s_infinite_0.6s]"></span>
                 </div>
               } @else {
-                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                   <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
                   <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                   <line x1="12" y1="19" x2="12" y2="22" />
@@ -495,17 +512,21 @@ import { ToastService } from '../../core/services/toast.service';
         <!-- Instruction Label -->
         <div class="text-center">
           <p class="text-xs sm:text-sm font-bold text-slate-100">
-            @if (voiceService.isRecordingTurn()) {
+            @if (voiceService.isPaused()) {
+              <span class="text-amber-300">Phiên đang tạm dừng · Nhấn Tiếp tục để nói tiếp</span>
+            } @else if (voiceService.isMuted()) {
+              <span class="text-slate-400">Micro đang tắt tiếng · Nhấn vào biểu tượng mic để bật lại</span>
+            } @else if (voiceService.uxState() === 'user_speaking') {
               <span class="text-rose-400 flex items-center justify-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                Đang ghi âm... Nhấn lại micro để hoàn tất câu nói
+                Đang lắng nghe câu nói của bạn (tự động gửi khi hết câu)...
               </span>
             } @else if (voiceService.uxState() === 'processing') {
-              <span class="text-purple-300">Đang xử lý câu nói...</span>
+              <span class="text-purple-300">Đang phản hồi...</span>
             } @else if (voiceService.uxState() === 'ai_speaking') {
-              <span class="text-blue-300">Coach Alex đang nói</span>
+              <span class="text-sky-300">Coach Alex đang nói · Bạn có thể ngắt lời bất kỳ lúc nào</span>
             } @else {
-              <span class="text-slate-300">Nhấn vào micro để nói</span>
+              <span class="text-emerald-300">Đang bật chế độ rảnh tay — hãy nói tự nhiên!</span>
             }
           </p>
         </div>
@@ -600,12 +621,8 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
       if (items.length > 0) {
         this.scrollToBottom();
         for (const item of items) {
-          if (!this.translationMap()[item.id]) {
-            if (item.translation) {
-              this.translationMap.update((m) => ({ ...m, [item.id]: item.translation! }));
-            } else if (!item.isPartial) {
-              this.prefetchTranslation(item);
-            }
+          if (!this.translationMap()[item.id] && item.translation) {
+            this.translationMap.update((m) => ({ ...m, [item.id]: item.translation! }));
           }
         }
       }
@@ -683,7 +700,9 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
             speaker: t.speaker,
             text: t.text,
             isPartial: false,
-            time: '00:00',
+            startMs: t.startMs,
+            endMs: t.endMs,
+            time: this.voiceService.formatTimestamp(t.startMs ?? 0),
             seq: t.seq,
           }));
           this.voiceService.liveTranscripts.set(initialItems);
@@ -702,7 +721,7 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
           error: (err) => console.warn('Could not load suggestions:', err),
         });
 
-        void this.voiceService.startVoiceSession(this.sessionId!);
+        void this.voiceService.startVoiceSession(this.sessionId!, 'continuous');
         this.startTimer();
       },
       error: (err) => {
@@ -718,12 +737,12 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
     this.voiceService.cleanup();
   }
 
-  onMicButtonClick(): void {
-    void this.voiceService.toggleSpeakingTurn();
+  onToggleMute(): void {
+    this.voiceService.toggleMute();
   }
 
-  replaySegment(item: LiveTranscriptItem): void {
-    this.voiceService.playSegmentAudio(item);
+  onTogglePause(): void {
+    this.voiceService.togglePause();
   }
 
   playSampleAudio(text: string): void {
@@ -770,10 +789,6 @@ export class AiCoachSessionComponent implements OnInit, OnDestroy {
         // Ignored
       }
     }, 50);
-  }
-
-  toggleMockMode(): void {
-    this.voiceService.toggleMockMode();
   }
 
   closeEndModal(): void {
