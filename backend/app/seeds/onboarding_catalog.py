@@ -87,7 +87,9 @@ SCRIPTED_PLACEMENT_PROMPTS: list[ScriptedPlacementPrompt] = [
         "target_band": "B2-C1",
         "text": "Although technology evolves rapidly, clear communication remains essential.",
         "translation": "Mặc dù công nghệ phát triển nhanh chóng, giao tiếp rõ ràng vẫn rất thiết yếu.",
-        "ipa": text_to_ipa("Although technology evolves rapidly, clear communication remains essential."),
+        "ipa": text_to_ipa(
+            "Although technology evolves rapidly, clear communication remains essential."
+        ),
         "focus_phonemes": ["ð", "v", "z", "ʃ"],
     },
 ]

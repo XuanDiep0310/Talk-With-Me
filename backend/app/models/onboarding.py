@@ -39,7 +39,9 @@ class PlacementTest(Base, TimestampMixin):
 
     # Computed features stored as JSON text for auditability
     features_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    current_stage: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
+    current_stage: Mapped[int] = mapped_column(
+        Integer, default=1, server_default="1", nullable=False
+    )
     stage1_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     stage2_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     dimension_scores_json: Mapped[str | None] = mapped_column(Text, nullable=True)
