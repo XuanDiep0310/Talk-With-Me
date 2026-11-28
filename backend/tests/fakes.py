@@ -166,9 +166,15 @@ class FakeLlmProvider:
                 "That sounds good to me.",
                 "That works for me. Thank you.",
             ),
+            (
+                "Thank you, have a great day.",
+                "Cảm ơn bạn, chúc một ngày tốt lành.",
+                "Thanks, have a nice day.",
+                "Thank you, have a great day at the hotel.",
+            ),
         ]
         count = data.get("chunkCount")
-        tags = ["OPENING", "REQUEST", "CLARIFY", "AGREE_DECLINE"]
+        tags = ["OPENING", "REQUEST", "CLARIFY", "AGREE_DECLINE", "CLOSING"]
         return {
             "titleVi": data.get("topic"),
             "titleEn": "Practice a conversation",
@@ -178,7 +184,7 @@ class FakeLlmProvider:
             "goals": ["Hỏi và xác nhận thông tin."],
             "chunks": [
                 {
-                    "functionTag": tags[idx],
+                    "functionTag": tags[idx % len(tags)],
                     "text": text,
                     "meaningVi": meaning,
                     "acceptedVariations": [variation],
