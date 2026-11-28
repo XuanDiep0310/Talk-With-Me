@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import uuid
 
-from app.core.providers.stt_provider import SttResult, WordTiming
+from app.core.providers.speech_assessment_provider import AssessedWord, SpeechAssessmentResult
 from app.models.coach_schemas import WsTicketResponse
 from app.models.session import Session, TranscriptSegment
 from app.services.session_state_machine import SessionState, SessionStateMachine
@@ -179,23 +179,29 @@ class TestWsTicketAuthentication:
 class TestAudioStreamingAndStt:
     """Kiểm thử stream audio qua WebSocket, chuyển tiếp sang STT và phản hồi realtime."""
 
-    def test_stt_result_data_structure(self) -> None:
-        """SttResult và WordTiming lưu trữ thông tin nhận dạng giọng nói chuẩn xác."""
+    def test_speech_assessment_result_structure(self) -> None:
+        """SpeechAssessmentResult và AssessedWord lưu trữ thông tin nhận dạng và điểm phát âm."""
         words = [
-            WordTiming(word="Hello", start_ms=0, end_ms=300, confidence=0.95),
-            WordTiming(word="Alex", start_ms=350, end_ms=700, confidence=0.92),
+            AssessedWord(
+                word="Hello", accuracy_score=95.0, offset_ms=0, duration_ms=300, confidence=0.95
+            ),
+            AssessedWord(
+                word="Alex", accuracy_score=92.0, offset_ms=350, duration_ms=350, confidence=0.92
+            ),
         ]
-        result = SttResult(
+        result = SpeechAssessmentResult(
             transcript="Hello Alex",
             confidence=0.935,
             speaking_duration_seconds=0.7,
             words=words,
-            is_final=True,
+            accuracy_score=93.5,
+            fluency_score=88.0,
+            prosody_score=82.0,
         )
 
         assert result.transcript == "Hello Alex"
         assert result.confidence == 0.935
-        assert result.is_final is True
+        assert result.accuracy_score == 93.5
         assert len(result.words) == 2
         assert result.words[0].word == "Hello"
 

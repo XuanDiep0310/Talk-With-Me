@@ -21,10 +21,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.api.deps import get_db, get_redis
+from app.api.deps import get_db, get_llm_provider, get_redis, get_speech_provider
 from app.core.config import Settings, get_settings
 from app.main import app
 from app.models.base import Base
+from tests.fakes import FakeLlmProvider, FakeSpeechAssessmentProvider
 
 
 class FakeRedis:
@@ -121,6 +122,8 @@ async def client(
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = override_get_redis
     app.dependency_overrides[get_settings] = lambda: test_settings
+    app.dependency_overrides[get_llm_provider] = FakeLlmProvider
+    app.dependency_overrides[get_speech_provider] = FakeSpeechAssessmentProvider
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as ac:

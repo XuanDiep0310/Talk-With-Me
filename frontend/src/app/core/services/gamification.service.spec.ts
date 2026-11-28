@@ -138,4 +138,36 @@ describe('GamificationService', () => {
     expect(allReq.request.method).toBe('PATCH');
     allReq.flush({ success: true });
   });
+
+  it('should fetch calibrated longitudinal learner model', () => {
+    service.getLearnerModel().subscribe((res) => {
+      expect(res.estimatedCefr).toBe('B1');
+      expect(res.continuousScore).toBe(3.4);
+      expect(res.recommendations.length).toBe(1);
+    });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/progress/learner-model`);
+    expect(req.request.method).toBe('GET');
+    req.flush({
+      estimatedCefr: 'B1',
+      continuousScore: 3.4,
+      confidence: 'MEDIUM',
+      modelVersion: 'cefr-est-1.0.0',
+      sessionCount: 4,
+      scriptedCount: 2,
+      unscriptedCount: 2,
+      avgResponseLatencyMs: 1400,
+      scriptedPronunciation: 84,
+      unscriptedPronunciation: 74,
+      rawDimensions: { pronunciation: 76, fluency: 74, vocabulary: 70, grammar: 68, interaction: 75 },
+      calibratedDimensions: { pronunciation: 80, fluency: 77, vocabulary: 70, grammar: 68, interaction: 75 },
+      limitingDimensions: ['grammar'],
+      explanationVi: 'Nền tảng B1 vững vàng.',
+      phonemeTroubleSpots: [],
+      snapshots: [],
+      recommendations: [
+        { kind: 'COACH', targetId: 't-1', title: 'Travel', reasonVi: 'Luyện phản xạ', level: 'B1' },
+      ],
+    });
+  });
 });

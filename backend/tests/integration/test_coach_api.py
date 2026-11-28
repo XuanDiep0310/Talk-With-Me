@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.pool import StaticPool
 
-from app.api.deps import get_db, get_redis
+from app.api.deps import get_db, get_llm_provider, get_redis, get_speech_provider
 from app.core.config import Settings, get_settings
 from app.core.security import create_access_token, hash_password
 from app.main import app
@@ -39,6 +39,7 @@ from app.models.auth import User, UserProfile
 from app.models.base import Base
 from app.models.session import Session
 from app.services.session_state_machine import SessionState
+from tests.fakes import FakeLlmProvider, FakeSpeechAssessmentProvider
 
 
 class FakeRedis:
@@ -120,6 +121,8 @@ async def test_env(
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = override_get_redis
     app.dependency_overrides[get_settings] = lambda: test_settings
+    app.dependency_overrides[get_llm_provider] = FakeLlmProvider
+    app.dependency_overrides[get_speech_provider] = FakeSpeechAssessmentProvider
 
     # Seed an onboarded user and a non-onboarded user
     user1_id = uuid.uuid4()
@@ -375,6 +378,11 @@ async def test_ws_ticket_and_websocket_flow(test_env: dict) -> None:
     with (
         patch("app.api.v1.endpoints.ws_session.async_session_factory", test_env["db_factory"]),
         patch("app.api.v1.endpoints.ws_session.get_redis_client", lambda: test_env["fake_redis"]),
+        patch("app.api.v1.endpoints.ws_session.get_llm_provider", FakeLlmProvider),
+        patch(
+            "app.api.v1.endpoints.ws_session.get_speech_assessment_provider",
+            FakeSpeechAssessmentProvider,
+        ),
     ):
         from app.api.v1.endpoints.ws_session import session_websocket_endpoint
 

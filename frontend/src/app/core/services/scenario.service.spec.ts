@@ -2,7 +2,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { ScenarioService, evaluatePronunciation, getIpaPhonetic } from './scenario.service';
+import { ScenarioService } from './scenario.service';
 import { environment } from '../../../environments/environment';
 
 describe('ScenarioService', () => {
@@ -119,16 +119,73 @@ describe('ScenarioService', () => {
     });
   });
 
-  it('should evaluate chunk pronunciation with word matching and score', () => {
-    const res = evaluatePronunciation("I'm looking for", "I am looking for milk");
-    expect(res.score).toBeGreaterThanOrEqual(80);
-    expect(res.isMatch).toBeTrue();
-    expect(res.words.length).toBe(3);
+  it('should post WAV audio and reference text for syllable pronunciation assessment', () => {
+    const wavBlob = new Blob([new Uint8Array([82, 73, 70, 70])], { type: 'audio/wav' });
+    service.assessPronunciation(wavBlob, 'How long have you been working there', 'scripted').subscribe((res) => {
+      expect(res.displayScore).toBe(86);
+      expect(res.words[0].syllables.length).toBe(2);
+    });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/pronunciation/assess`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body instanceof FormData).toBeTrue();
+    const form = req.request.body as FormData;
+    expect(form.get('reference_text')).toBe('How long have you been working there');
+    expect(form.get('mode')).toBe('scripted');
+    req.flush({
+      transcript: 'How long have you been working there',
+      referenceText: 'How long have you been working there',
+      mode: 'scripted',
+      provider: 'azure_sdk',
+      displayScore: 86,
+      accuracyScore: 88,
+      fluencyScore: 85,
+      prosodyScore: 82,
+      completenessScore: 100,
+      ipa: 'wɜːrkɪŋ',
+      words: [
+        {
+          word: 'working',
+          accuracyScore: 72,
+          errorType: 'None',
+          ipa: 'wɜːrkɪŋ',
+          status: 'fair',
+          syllables: [
+            { text: 'wor', accuracyScore: 48, status: 'poor' },
+            { text: 'king', accuracyScore: 95, status: 'good' },
+          ],
+          phonemes: [],
+        },
+      ],
+      coachingTipVi: 'Lưu ý âm /ɜːr/.',
+      passed: true,
+    });
   });
 
-  it('should generate phonetic IPA transcription for chunk words', () => {
-    const ipa = getIpaPhonetic("I'm looking for");
-    expect(ipa).toContain('aɪm');
-    expect(ipa).toContain('fɔːr');
+  it('should record reflex drill with acoustic scores and phoneme errors', () => {
+    service
+      .recordDrill('scen-123', {
+        chunkId: 'chunk-2',
+        isSkipped: false,
+        accuracyScore: 84,
+        fluencyScore: 86,
+        prosodyScore: 80,
+        phonemeErrors: [{ word: 'working', ipa: 'ɜːr', accuracyScore: 42 }],
+      })
+      .subscribe((res) => {
+        expect(res.chunkId).toBe('chunk-2');
+      });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/scenarios/scen-123/drills`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body.accuracyScore).toBe(84);
+    req.flush({
+      attemptId: 'att-2',
+      chunkId: 'chunk-2',
+      scenarioId: 'scen-123',
+      isSkipped: false,
+      practicedChunks: ['chunk-2'],
+      message: 'Recorded',
+    });
   });
 });
