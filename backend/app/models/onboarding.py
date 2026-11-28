@@ -39,6 +39,10 @@ class PlacementTest(Base, TimestampMixin):
 
     # Computed features stored as JSON text for auditability
     features_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    current_stage: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
+    stage1_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stage2_summary_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    dimension_scores_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     answers: Mapped[list["PlacementAnswer"]] = relationship(
         back_populates="test", cascade="all, delete-orphan"
@@ -62,12 +66,21 @@ class PlacementAnswer(Base, TimestampMixin):
     )
     # Idempotency key (client-generated UUID) prevents duplicate submission
     request_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    # 1 = Scripted pronunciation, 2 = Unscripted AI Q&A
+    stage: Mapped[int] = mapped_column(Integer, default=2, server_default="2", nullable=False)
+    prompt_id: Mapped[str | None] = mapped_column(String(30), nullable=True)
     # Index of the question in the test question list (0-based)
     question_index: Mapped[int] = mapped_column(Integer, nullable=False)
     # STT transcript of user's answer
     transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Aggregate STT confidence score (0.0–1.0); null if STT failed
     stt_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Acoustic scores from Azure Pronunciation Assessment
+    accuracy_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fluency_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    prosody_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    completeness_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    phoneme_errors_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Total seconds the user spoke
     speaking_duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     # Seconds from question end to user starting to speak

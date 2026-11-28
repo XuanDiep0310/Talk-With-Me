@@ -25,8 +25,10 @@ class ScenarioChunkSchema(BaseScenarioSchema):
     function_tag: str
     text: str
     meaning_vi: str
+    ipa: str = ""
     audio_url: str | None = None
     example_sentence: str
+    example_sentence_ipa: str = ""
     accepted_variations: list[str] = Field(default_factory=list)
     # MCQ distractors for chunk drill phases
     distractors_en: list[str] = Field(default_factory=list)
@@ -107,6 +109,10 @@ class ScenarioChunksResponse(BaseScenarioSchema):
 class RecordDrillRequest(BaseScenarioSchema):
     chunk_id: uuid.UUID
     is_skipped: bool = False
+    accuracy_score: float | None = Field(default=None, ge=0.0, le=100.0)
+    fluency_score: float | None = Field(default=None, ge=0.0, le=100.0)
+    prosody_score: float | None = Field(default=None, ge=0.0, le=100.0)
+    phoneme_errors: list[dict[str, object]] = Field(default_factory=list)
 
 
 class RecordDrillResponse(BaseScenarioSchema):

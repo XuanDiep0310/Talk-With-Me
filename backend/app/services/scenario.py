@@ -15,9 +15,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.clock import get_clock
 from app.core.config import get_settings
-from app.core.events import RoleplayEvaluated, event_bus
+from app.core.events import DrillAssessed, RoleplayEvaluated, event_bus
 from app.core.providers.llm_provider import get_llm_provider
 from app.core.providers.tts_provider import get_tts_provider
+from app.core.speech.ipa import text_to_ipa
 from app.core.ws_manager import session_ws_manager
 from app.models.coach_schemas import (
     AddTranscriptSegmentRequest,
@@ -180,26 +181,8 @@ class ScenarioService:
         highest_score = progress.highest_score if progress else None
         practiced = progress.practiced_chunks if progress else []
 
-        # Populate audio_url if available via provider
-        tts_provider = get_tts_provider()
-        chunks_schemas: list[ScenarioChunkSchema] = []
-        for c in scenario.chunks:
-            audio_url = c.audio_url
-            if not audio_url:
-                audio_url = await tts_provider.get_audio_url_or_none(c.text)
-            chunks_schemas.append(
-                ScenarioChunkSchema(
-                    id=c.id,
-                    scenario_id=c.scenario_id,
-                    function_tag=c.function_tag,
-                    text=c.text,
-                    meaning_vi=c.meaning_vi,
-                    audio_url=audio_url,
-                    example_sentence=c.example_sentence,
-                    accepted_variations=c.accepted_variations or [],
-                    sort_order=c.sort_order,
-                )
-            )
+        # Populate audio_url and IPA via shared helper
+        chunks_schemas = [await self._build_chunk_schema(c) for c in scenario.chunks]
 
         req_schemas = [
             ScenarioRequirementSchema(
@@ -242,28 +225,31 @@ class ScenarioService:
                 detail=f"Scenario {scenario_id} not found",
             )
 
-        tts_provider = get_tts_provider()
-        chunk_items: list[ScenarioChunkSchema] = []
-        for c in scenario.chunks:
-            audio_url = c.audio_url or await tts_provider.get_audio_url_or_none(c.text)
-            chunk_items.append(
-                ScenarioChunkSchema(
-                    id=c.id,
-                    scenario_id=c.scenario_id,
-                    function_tag=c.function_tag,
-                    text=c.text,
-                    meaning_vi=c.meaning_vi,
-                    audio_url=audio_url,
-                    example_sentence=c.example_sentence,
-                    accepted_variations=c.accepted_variations or [],
-                    sort_order=c.sort_order,
-                )
-            )
+        chunk_items = [await self._build_chunk_schema(c) for c in scenario.chunks]
 
         return ScenarioChunksResponse(
             scenario_id=scenario.id,
             scenario_title=scenario.title_vi,
             chunks=chunk_items,
+        )
+
+    async def _build_chunk_schema(self, c: Any) -> ScenarioChunkSchema:
+        tts_provider = get_tts_provider()
+        audio_url = c.audio_url or await tts_provider.get_audio_url_or_none(c.text)
+        return ScenarioChunkSchema(
+            id=c.id,
+            scenario_id=c.scenario_id,
+            function_tag=c.function_tag,
+            text=c.text,
+            meaning_vi=c.meaning_vi,
+            ipa=text_to_ipa(c.text),
+            audio_url=audio_url,
+            example_sentence=c.example_sentence,
+            example_sentence_ipa=text_to_ipa(c.example_sentence),
+            accepted_variations=c.accepted_variations or [],
+            distractors_en=c.distractors_en or [],
+            distractors_vi=c.distractors_vi or [],
+            sort_order=c.sort_order,
         )
 
     async def record_drill(
@@ -284,6 +270,10 @@ class ScenarioService:
             scenario_id=scenario_id,
             chunk_id=data.chunk_id,
             is_skipped=data.is_skipped,
+            accuracy_score=data.accuracy_score,
+            fluency_score=data.fluency_score,
+            prosody_score=data.prosody_score,
+            phoneme_errors=data.phoneme_errors or None,
         )
 
         progress = await self.scenario_repo.upsert_user_progress(
@@ -293,6 +283,19 @@ class ScenarioService:
             practiced_chunk_id=str(data.chunk_id),
             last_attempt_at=self.clock.now(),
         )
+
+        if not data.is_skipped and data.accuracy_score is not None:
+            await event_bus.publish(
+                DrillAssessed(
+                    user_id=user_id,
+                    scenario_id=scenario_id,
+                    chunk_id=data.chunk_id,
+                    accuracy_score=data.accuracy_score,
+                    fluency_score=data.fluency_score,
+                    prosody_score=data.prosody_score,
+                    phoneme_errors=data.phoneme_errors,
+                )
+            )
 
         return RecordDrillResponse(
             attempt_id=attempt.id,
@@ -376,21 +379,7 @@ class ScenarioService:
             last_attempt_at=now,
         )
 
-        tts_provider = get_tts_provider()
-        chunk_items = [
-            ScenarioChunkSchema(
-                id=c.id,
-                scenario_id=c.scenario_id,
-                function_tag=c.function_tag,
-                text=c.text,
-                meaning_vi=c.meaning_vi,
-                audio_url=c.audio_url or await tts_provider.get_audio_url_or_none(c.text),
-                example_sentence=c.example_sentence,
-                accepted_variations=c.accepted_variations or [],
-                sort_order=c.sort_order,
-            )
-            for c in scenario.chunks
-        ]
+        chunk_items = [await self._build_chunk_schema(c) for c in scenario.chunks]
 
         return RoleplaySessionResponse(
             session_id=session_id,

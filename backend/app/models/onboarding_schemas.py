@@ -1,8 +1,6 @@
-"""
-Pydantic v2 schemas for onboarding endpoints.
+"""Pydantic v2 schemas for two-stage onboarding and placement endpoints."""
 
-All public-facing schemas use camelCase (via alias_generator) per API convention.
-"""
+from __future__ import annotations
 
 import uuid
 from datetime import datetime
@@ -10,6 +8,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.models.pronunciation_schemas import PronunciationAssessResponse
 from app.seeds.onboarding_catalog import (
     GOAL_KEYS,
     INTEREST_KEYS,
@@ -18,22 +17,24 @@ from app.seeds.onboarding_catalog import (
 
 
 class _CamelModel(BaseModel):
-    """Base schema with camelCase aliases and populate-by-name support."""
-
     model_config = ConfigDict(
         populate_by_name=True,
         alias_generator=to_camel,
     )
 
 
-# ---------------------------------------------------------------------------
-# Onboarding options
-# ---------------------------------------------------------------------------
-
-
 class OptionItemSchema(_CamelModel):
     key: str
     label: str
+
+
+class ScriptedPlacementPromptSchema(_CamelModel):
+    id: str
+    target_band: str
+    text: str
+    translation: str
+    ipa: str
+    focus_phonemes: list[str] = Field(default_factory=list)
 
 
 class TieredQuestionSchema(_CamelModel):
@@ -50,12 +51,8 @@ class OnboardingOptionsResponse(_CamelModel):
     weak_points: list[OptionItemSchema]
     cefr_levels: list[str]
     placement_questions: list[str]
+    scripted_prompts: list[ScriptedPlacementPromptSchema] = Field(default_factory=list)
     tiered_questions: list[TieredQuestionSchema] = Field(default_factory=list)
-
-
-# ---------------------------------------------------------------------------
-# Preferences
-# ---------------------------------------------------------------------------
 
 
 class UpdatePreferencesRequest(_CamelModel):
@@ -64,7 +61,7 @@ class UpdatePreferencesRequest(_CamelModel):
     weak_points: list[str] = Field(..., min_length=1)
 
     @model_validator(mode="after")
-    def validate_keys(self) -> "UpdatePreferencesRequest":
+    def validate_keys(self) -> UpdatePreferencesRequest:
         _check_keys(self.interests, INTEREST_KEYS, "interests")
         _check_keys(self.goals, GOAL_KEYS, "goals")
         _check_keys(self.weak_points, WEAK_POINT_KEYS, "weakPoints")
@@ -77,18 +74,14 @@ class PreferencesResponse(_CamelModel):
     weak_points: list[str]
 
 
-# ---------------------------------------------------------------------------
-# Placement Test
-# ---------------------------------------------------------------------------
-
-
 class PlacementTestResponse(_CamelModel):
     id: uuid.UUID
     user_id: uuid.UUID
     status: str
+    current_stage: int = 1
     questions: list[str]
+    scripted_prompts: list[ScriptedPlacementPromptSchema] = Field(default_factory=list)
     created_at: datetime
-    # Adaptive placement test fields (D-25)
     initial_tier: int = 1
     initial_tier_label: str = "Cơ bản (A1–A2)"
     initial_question: str = (
@@ -100,12 +93,16 @@ class PlacementTestResponse(_CamelModel):
 
 
 class SubmitAnswerRequest(_CamelModel):
-    request_id: str = Field(
-        ..., min_length=1, max_length=36, description="Client-generated UUID for idempotency"
-    )
+    request_id: str = Field(..., min_length=1, max_length=36)
+    stage: int = Field(default=2, ge=1, le=2)
+    prompt_id: str | None = Field(default=None, max_length=30)
     question_index: int = Field(..., ge=0)
     transcript: str | None = Field(default=None, max_length=5000)
     stt_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    accuracy_score: float | None = Field(default=None, ge=0.0, le=100.0)
+    fluency_score: float | None = Field(default=None, ge=0.0, le=100.0)
+    prosody_score: float | None = Field(default=None, ge=0.0, le=100.0)
+    completeness_score: float | None = Field(default=None, ge=0.0, le=100.0)
     speaking_duration_seconds: float | None = Field(default=None, ge=0.0)
     response_latency_seconds: float | None = Field(default=None, ge=0.0)
 
@@ -114,11 +111,12 @@ class AnswerResponse(_CamelModel):
     id: uuid.UUID
     test_id: uuid.UUID
     request_id: str
+    stage: int = 2
+    prompt_id: str | None = None
     question_index: int
     transcript: str | None
     word_count: int | None
     created_at: datetime
-    # Adaptive placement test progression (D-25)
     current_tier: int = 1
     current_tier_label: str = "Cơ bản (A1–A2)"
     next_question: str | None = None
@@ -130,6 +128,9 @@ class AnswerResponse(_CamelModel):
     can_finish_early: bool = False
     total_answered: int = 1
     current_estimated_level: str = "A1"
+    pronunciation: PronunciationAssessResponse | None = None
+    next_stage: int = 2
+    stage1_completed: bool = False
 
 
 class PlacementCompleteResponse(_CamelModel):
@@ -137,33 +138,22 @@ class PlacementCompleteResponse(_CamelModel):
     estimated_level: str
     is_insufficient_data: bool
     needs_reassessment: bool
-    # Score is internal; exposed for transparency but labeled as reference
     score: float
-
-
-# ---------------------------------------------------------------------------
-# Level assignment
-# ---------------------------------------------------------------------------
+    continuous_band: float = 1.0
+    dimension_scores: dict[str, float | None] = Field(default_factory=dict)
+    limiting_dimensions: list[str] = Field(default_factory=list)
+    explanation_vi: str = ""
 
 
 class SetLevelRequest(_CamelModel):
     level: str = Field(..., description="CEFR level: A1, A2, B1, B2, C1")
-    source: str = Field(
-        ...,
-        description="How level was determined: PLACEMENT | SELF | DEFAULT",
-        pattern="^(PLACEMENT|SELF|DEFAULT)$",
-    )
+    source: str = Field(..., pattern="^(PLACEMENT|SELF|DEFAULT)$")
 
 
 class LevelResponse(_CamelModel):
     cefr_level: str
     level_source: str
     needs_reassessment: bool
-
-
-# ---------------------------------------------------------------------------
-# Onboarding completion
-# ---------------------------------------------------------------------------
 
 
 class OnboardingCompleteResponse(_CamelModel):
@@ -174,11 +164,6 @@ class OnboardingCompleteResponse(_CamelModel):
     interests: list[str]
     goals: list[str]
     weak_points: list[str]
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 
 def _check_keys(values: list[str], valid: frozenset[str], field: str) -> None:

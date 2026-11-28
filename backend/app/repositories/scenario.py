@@ -160,6 +160,10 @@ class ScenarioRepository:
         scenario_id: uuid.UUID,
         chunk_id: uuid.UUID,
         is_skipped: bool = False,
+        accuracy_score: float | None = None,
+        fluency_score: float | None = None,
+        prosody_score: float | None = None,
+        phoneme_errors: list[dict[str, object]] | None = None,
     ) -> DrillAttempt:
         attempt = DrillAttempt(
             id=uuid.uuid4(),
@@ -167,6 +171,10 @@ class ScenarioRepository:
             scenario_id=scenario_id,
             chunk_id=chunk_id,
             is_skipped=is_skipped,
+            accuracy_score=accuracy_score,
+            fluency_score=fluency_score,
+            prosody_score=prosody_score,
+            phoneme_errors=phoneme_errors,
         )
         self.db.add(attempt)
         await self.db.commit()

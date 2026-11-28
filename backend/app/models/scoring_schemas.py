@@ -1,6 +1,4 @@
-"""
-Pydantic schemas for post-session scoring, feedback APIs, and structured LLM evaluation.
-"""
+"""Pydantic schemas for post-session scoring v2.0.0 and structured Gemini evaluation."""
 
 import uuid
 from datetime import datetime
@@ -20,44 +18,28 @@ class BaseScoringSchema(BaseModel):
     )
 
 
-class PostSessionLlmEvaluation(BaseScoringSchema):
-    """Structured LLM output for qualitative assessment and comprehension/context scores."""
+class GrammarErrorItem(BaseScoringSchema):
+    """Representative grammar correction surfaced after session completion."""
 
-    response_relevance: float = Field(
-        ...,
-        ge=0.0,
-        le=100.0,
-        description="Relevance of user reply to AI question (0-100)",
-    )
-    task_completion: float = Field(
-        ...,
-        ge=0.0,
-        le=100.0,
-        description="Fulfillment of the communicative task (0-100)",
-    )
-    context_relevance: float = Field(
-        ...,
-        ge=0.0,
-        le=100.0,
-        description="Contextual appropriateness of vocabulary (0-100)",
-    )
-    strengths: list[str] = Field(
-        ...,
-        min_length=2,
-        max_length=3,
-        description="2-3 specific communication strengths in Vietnamese",
-    )
-    improvements: list[str] = Field(
-        ...,
-        min_length=1,
-        max_length=3,
-        description="Up to 3 constructive areas for improvement in Vietnamese",
-    )
-    next_practice: str = Field(
-        ...,
-        min_length=5,
-        description="Actionable next practice recommendation in Vietnamese",
-    )
+    original: str
+    correction: str
+    explanation_vi: str
+    severity: str = "moderate"  # minor | moderate | major
+
+
+class PostSessionLlmEvaluation(BaseScoringSchema):
+    """Structured Gemini output for semantic assessment (Vocabulary, Grammar, Interaction & Coherence)."""
+
+    vocabulary_score: float = Field(..., ge=0.0, le=100.0)
+    vocabulary_cefr_band: str = Field(default="B1", pattern="^(A1|A2|B1|B2|C1)$")
+    grammar_score: float = Field(..., ge=0.0, le=100.0)
+    grammar_cefr_band: str = Field(default="B1", pattern="^(A1|A2|B1|B2|C1)$")
+    grammar_errors: list[GrammarErrorItem] = Field(default_factory=list, max_length=3)
+    interaction_score: float = Field(..., ge=0.0, le=100.0)
+    coherence_score: float = Field(..., ge=0.0, le=100.0)
+    strengths: list[str] = Field(..., min_length=2, max_length=3)
+    improvements: list[str] = Field(..., min_length=1, max_length=3)
+    next_practice: str = Field(..., min_length=5)
 
 
 class SkillScoreResponse(BaseScoringSchema):
@@ -76,7 +58,7 @@ class SessionFeedbackResponse(BaseScoringSchema):
 
     session_id: uuid.UUID
     status: str  # PENDING | FEEDBACK_READY | INSUFFICIENT_DATA | FAILED
-    formula_version: str = "1.0.0"
+    formula_version: str = "2.0.0"
     overall_score: float | None = None
     partial: bool = False
     retryable: bool = False

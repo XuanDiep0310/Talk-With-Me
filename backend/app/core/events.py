@@ -1,7 +1,7 @@
 """
 In-process asynchronous domain event bus.
 Enables loose coupling between modules (e.g. Coach/Scoring emitting FeedbackGenerated,
-RoleplayEvaluated, Gamification listening to grant XP in Sprint 6).
+RoleplayEvaluated, DrillAssessed; Gamification and LearnerAssessment listening).
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import logging
 import uuid
 from collections import defaultdict
 from collections.abc import Callable, Coroutine
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,9 @@ class FeedbackGenerated(Event):
     overall_score: float | None
     partial: bool
     skill_scores: dict[str, float | None]
+    average_latency_ms: float | None = None
+    phoneme_errors: list[dict[str, Any]] = field(default_factory=list)
+    modality: str = "UNSCRIPTED"
 
 
 @dataclass
@@ -51,6 +54,19 @@ class RoleplayEvaluated(Event):
     overall_score: float | None
 
 
+@dataclass
+class DrillAssessed(Event):
+    """Event emitted when a scripted drill includes acoustic pronunciation metrics."""
+
+    user_id: uuid.UUID
+    scenario_id: uuid.UUID
+    chunk_id: uuid.UUID
+    accuracy_score: float
+    fluency_score: float | None
+    prosody_score: float | None
+    phoneme_errors: list[dict[str, Any]]
+
+
 EventHandler = Callable[[Any], Coroutine[Any, Any, None]]
 
 
@@ -61,16 +77,13 @@ class EventBus:
         self._subscribers: dict[type[Event], list[EventHandler]] = defaultdict(list)
 
     def subscribe(self, event_type: type[Event], handler: EventHandler) -> None:
-        """Register an async handler for a given event type."""
         self._subscribers[event_type].append(handler)
 
     def unsubscribe(self, event_type: type[Event], handler: EventHandler) -> None:
-        """Unregister an async handler."""
         if handler in self._subscribers[event_type]:
             self._subscribers[event_type].remove(handler)
 
     async def publish(self, event: Event) -> None:
-        """Publish an event to all registered async handlers."""
         handlers = self._subscribers.get(type(event), [])
         for handler in handlers:
             try:
@@ -81,5 +94,4 @@ class EventBus:
                 logger.error("Error executing event handler %s for %s: %s", handler, event, exc)
 
 
-# Global singleton instance for app-wide domain events
 event_bus = EventBus()
