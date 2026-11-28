@@ -191,16 +191,23 @@ async def scenario_test_env(
         algorithm=test_settings.JWT_ALGORITHM,
     )
 
+    from unittest.mock import patch
+
+    fake_llm = FakeLlmProvider()
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-        yield {
-            "client": client,
-            "token": token,
-            "other_token": other_token,
-            "user_id": user_id,
-            "other_user_id": other_user_id,
-            "db_factory": scenario_db,
-        }
+    with (
+        patch("app.services.scenario.get_llm_provider", return_value=fake_llm),
+        patch("app.services.scoring.service.get_llm_provider", return_value=fake_llm),
+    ):
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            yield {
+                "client": client,
+                "token": token,
+                "other_token": other_token,
+                "user_id": user_id,
+                "other_user_id": other_user_id,
+                "db_factory": scenario_db,
+            }
 
     app.dependency_overrides.clear()
 
@@ -1072,8 +1079,20 @@ async def test_session_qa_scopes_pagination_and_serializes_retry(
                     confidence=0.8,
                     speaking_duration_seconds=1.2,
                     words=[
-                        AssessedWord(word="Um", offset_ms=0, duration_ms=600, confidence=0.8),
-                        AssessedWord(word="hello", offset_ms=2200, duration_ms=600, confidence=0.8),
+                        AssessedWord(
+                            word="Um",
+                            accuracy_score=80.0,
+                            offset_ms=0,
+                            duration_ms=600,
+                            confidence=0.8,
+                        ),
+                        AssessedWord(
+                            word="hello",
+                            accuracy_score=80.0,
+                            offset_ms=2200,
+                            duration_ms=600,
+                            confidence=0.8,
+                        ),
                     ],
                     word_times_measured=True,
                     measured_confidence=0.8,
@@ -1702,7 +1721,7 @@ async def test_admin_qa_note_and_reevaluation_preserve_published_scores(
     )
     assert recalculated.status_code == 200, recalculated.text
     assert recalculated.json()["status"] == "FEEDBACK_READY"
-    assert recalculated.json()["formulaVersion"] == "1.1.0"
+    assert recalculated.json()["formulaVersion"] == "2.0.0"
     feedback = (
         await client.get(f"/api/v1/coach/sessions/{session_id}/feedback", headers=learner)
     ).json()
