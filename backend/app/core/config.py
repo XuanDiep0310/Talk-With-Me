@@ -125,8 +125,8 @@ class Settings(BaseSettings):
     AVATAR_ALLOWED_TYPES: list[str] = ["image/jpeg", "image/png", "image/webp"]
     UPLOAD_DIR: str = "uploads"
 
-    # Email (Fake by default for dev)
-    EMAIL_PROVIDER: str = "fake"  # "fake" | "smtp"
+    # Email
+    EMAIL_PROVIDER: str = "smtp"  # "smtp" (fake only via test overrides)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
@@ -135,45 +135,51 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
 
     # Google OAuth
-    GOOGLE_TOKEN_VERIFIER: str = "fake"  # "fake" | "real"
+    GOOGLE_TOKEN_VERIFIER: str = "real"
     GOOGLE_CLIENT_ID: str = ""
 
     # Storage
     STORAGE_PROVIDER: str = "local"  # "local" | "s3"
 
-    # STT (Speech-to-Text)
-    STT_PROVIDER: str = "fake"  # "fake" | "groq" | "deepgram" | "google" | "azure"
-    DEEPGRAM_API_KEY: str = ""
-    GROQ_API_KEY: str = ""
+    # Azure AI Speech (Unified STT + Pronunciation Assessment)
+    SPEECH_ASSESSMENT_PROVIDER: str = "azure_sdk"  # "azure_sdk" | "azure_rest"
+    AZURE_SPEECH_KEY: str = ""
+    AZURE_SPEECH_REGION: str = ""
+    AZURE_SPEECH_LANGUAGE: str = "en-US"
+
+    # Text-to-Speech
+    TTS_PROVIDER: str = "azure"
 
     # Coach Session & Turn-Taking
     SESSION_RECONNECT_TIMEOUT_SECONDS: int = 60
-    TURN_TAKING_SILENCE_MS: int = 1500
+    TURN_TAKING_SILENCE_MS: int = 1300
     WS_TICKET_EXPIRE_SECONDS: int = 30
 
-    # LLM provider for placement level evaluation and AI Coach
-    LLM_PROVIDER: str = "fake"  # "fake" | "openai" | "gemini"
+    # LLM provider (gemini | groq | cerebras | openrouter | openai | openai_compatible)
+    LLM_PROVIDER: str = "gemini"
     LLM_API_KEY: str = ""
-    LLM_MODEL: str = "gemini-3.5-flash-lite"
+    LLM_MODEL: str = "gemini-2.5-flash"
+    LLM_BASE_URL: str = ""
+    LLM_FALLBACK_PROVIDER: str = ""
+    LLM_FALLBACK_API_KEY: str = ""
+    LLM_FALLBACK_MODEL: str = ""
+    LLM_FALLBACK_BASE_URL: str = ""
 
     # Placement Test thresholds
-    # Minimum answers required before we attempt level estimation
-    PLACEMENT_MIN_ANSWERS: int = 3
-    # Minimum total word count across all answers
-    PLACEMENT_MIN_WORDS: int = 30
-    # Level score thresholds (inclusive lower bound for each level)
-    # Score range is 0.0–1.0; A1 is the fallback (< A2_THRESHOLD)
-    PLACEMENT_A2_THRESHOLD: float = 0.20
-    PLACEMENT_B1_THRESHOLD: float = 0.40
-    PLACEMENT_B2_THRESHOLD: float = 0.60
-    PLACEMENT_C1_THRESHOLD: float = 0.80
+    PLACEMENT_MIN_STAGE1_PROMPTS: int = 2
+    PLACEMENT_MIN_ANSWERS: int = 2
+    PLACEMENT_MIN_WORDS: int = 25
+    PLACEMENT_A2_THRESHOLD: float = 0.25
+    PLACEMENT_B1_THRESHOLD: float = 0.45
+    PLACEMENT_B2_THRESHOLD: float = 0.65
+    PLACEMENT_C1_THRESHOLD: float = 0.82
 
-    # Scoring Engine & Post-Session Feedback (Sprint 4)
-    SCORING_FORMULA_VERSION: str = "1.0.0"
-    SCORING_MEASURED_FORMULA_VERSION: str = "1.1.0"
+    # Scoring Engine v2.0.0 & Longitudinal CEFR Model
+    SCORING_FORMULA_VERSION: str = "2.0.0"
+    CEFR_MODEL_VERSION: str = "cefr-est-1.0.0"
     SCORING_MIN_USER_WORDS: int = 5
     SCORING_MIN_USER_TURNS: int = 1
-    SCORING_MIN_SPOKEN_SECONDS: float = 5.0
+    SCORING_MIN_SPOKEN_SECONDS: float = 4.0
     CONTINUITY_TARGET_RATIO: float = 0.85
     PAUSE_THRESHOLD_MS: int = 1500
     PAUSE_PENALTY_PER_MIN: float = 12.0
