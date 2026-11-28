@@ -28,7 +28,7 @@ export const FAQS: FaqItem[] = [
   },
   {
     q: "Điểm giao tiếp được tính như thế nào?",
-    a: "Điểm giao tiếp tổng hợp là trung bình cộng của 5 chỉ số: Fluency (nói trơn tru), Listening (nghe hiểu), Vocabulary (từ vựng), Tốc độ P.H (phản hồi nhanh) và Phát âm."
+    a: "Điểm giao tiếp tổng hợp v2.0.0 đánh giá 5 trụ cột: Pronunciation (Accuracy + Prosody từ Azure Speech), Fluency (độ trôi chảy & ngắt nghỉ), Vocabulary (độ đa dạng & từ vựng ngữ cảnh), Grammar (độ chính xác ngữ pháp) và Interaction (tương tác & tốc độ phản hồi)."
   },
   {
     q: "Streak là gì và tại sao quan trọng?",
@@ -37,7 +37,7 @@ export const FAQS: FaqItem[] = [
 ];
 
 export const QUICK_GUIDES: QuickGuide[] = [
-  { emoji: "🎙️", title: "Bắt đầu buổi AI Coach", steps: ["Vào trang AI Coach", "Chọn chủ đề phù hợp", "Nhấn 'Bắt đầu nói'", "Cho phép quyền micro", "Luyện nói tự nhiên!"] },
+  { emoji: "🎙️", title: "Bắt đầu buổi AI Coach", steps: ["Vào trang AI Coach", "Chọn chủ đề phù hợp", "Cho phép quyền micro", "Nói tự nhiên (chế độ rảnh tay, có thể ngắt lời AI bất kỳ lúc nào)!"] },
   { emoji: "🎭", title: "Luyện tình huống Roleplay", steps: ["Vào Thư viện tình huống", "Chọn tình huống phù hợp trình độ", "Đọc bối cảnh và mẫu câu", "Nhấn 'Bắt đầu roleplay'", "Hoàn thành các nhiệm vụ"] },
 ];
 

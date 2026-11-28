@@ -58,6 +58,9 @@ class PlacementTestRepository(BaseRepository[PlacementTest]):
         is_insufficient_data: bool,
         features_json: str,
         completed_at: datetime,
+        stage1_summary_json: str | None = None,
+        stage2_summary_json: str | None = None,
+        dimension_scores_json: str | None = None,
     ) -> None:
         await self.session.execute(
             update(PlacementTest)
@@ -67,8 +70,17 @@ class PlacementTestRepository(BaseRepository[PlacementTest]):
                 estimated_level=estimated_level,
                 is_insufficient_data=is_insufficient_data,
                 features_json=features_json,
+                stage1_summary_json=stage1_summary_json,
+                stage2_summary_json=stage2_summary_json,
+                dimension_scores_json=dimension_scores_json,
                 completed_at=completed_at,
             )
+        )
+        await self.session.flush()
+
+    async def set_stage(self, test_id: uuid.UUID, stage: int) -> None:
+        await self.session.execute(
+            update(PlacementTest).where(PlacementTest.id == test_id).values(current_stage=stage)
         )
         await self.session.flush()
 
@@ -96,14 +108,29 @@ class PlacementAnswerRepository(BaseRepository[PlacementAnswer]):
         speaking_duration_seconds: float | None,
         response_latency_seconds: float | None,
         word_count: int | None,
+        *,
+        stage: int = 2,
+        prompt_id: str | None = None,
+        accuracy_score: float | None = None,
+        fluency_score: float | None = None,
+        prosody_score: float | None = None,
+        completeness_score: float | None = None,
+        phoneme_errors_json: str | None = None,
     ) -> PlacementAnswer:
         answer = PlacementAnswer(
             id=uuid.uuid4(),
             test_id=test_id,
             request_id=request_id,
+            stage=stage,
+            prompt_id=prompt_id,
             question_index=question_index,
             transcript=transcript,
             stt_confidence=stt_confidence,
+            accuracy_score=accuracy_score,
+            fluency_score=fluency_score,
+            prosody_score=prosody_score,
+            completeness_score=completeness_score,
+            phoneme_errors_json=phoneme_errors_json,
             speaking_duration_seconds=speaking_duration_seconds,
             response_latency_seconds=response_latency_seconds,
             word_count=word_count,

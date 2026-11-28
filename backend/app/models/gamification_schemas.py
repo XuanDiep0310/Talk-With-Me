@@ -287,3 +287,46 @@ class DashboardResponse(BaseSchema):
     skills: list[DashboardSkillOverview]
     recent_sessions: list[DashboardRecentSession]
     motivational_card: MotivationalCard
+
+
+class PhonemeTroubleSpotSchema(BaseSchema):
+    ipa_phoneme: str
+    attempt_count: int
+    error_count: int
+    avg_accuracy: float
+
+
+class CefrSnapshotItemSchema(BaseSchema):
+    source_type: str
+    estimated_cefr: str
+    continuous_score: float
+    confidence: str
+    created_at: datetime
+
+
+class AdaptiveRecommendationSchema(BaseSchema):
+    kind: str  # COACH | SCENARIO
+    target_id: str
+    title: str
+    reason_vi: str
+    level: str
+
+
+class LearnerModelResponse(BaseSchema):
+    estimated_cefr: str
+    continuous_score: float
+    confidence: str
+    model_version: str
+    session_count: int
+    scripted_count: int
+    unscripted_count: int
+    avg_response_latency_ms: float | None = None
+    scripted_pronunciation: float | None = None
+    unscripted_pronunciation: float | None = None
+    raw_dimensions: dict[str, float | None]
+    calibrated_dimensions: dict[str, float | None]
+    limiting_dimensions: list[str]
+    explanation_vi: str
+    phoneme_trouble_spots: list[PhonemeTroubleSpotSchema] = []
+    snapshots: list[CefrSnapshotItemSchema] = []
+    recommendations: list[AdaptiveRecommendationSchema] = []

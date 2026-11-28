@@ -1,15 +1,8 @@
-"""
-Onboarding catalog seed data.
-
-Contains the canonical lists of interests, goals, weak_points, and
-placement test questions. These are seeded into the database at startup
-and referenced by the GET /onboarding/options endpoint.
-
-All labels are in Vietnamese (UI language).
-All keys are in English (stored in DB and API).
-"""
+"""Onboarding catalog seed data (including Stage 1 Scripted + Stage 2 Unscripted prompts)."""
 
 from typing import TypedDict
+
+from app.core.speech.ipa import text_to_ipa
 
 
 class OptionItem(TypedDict):
@@ -17,7 +10,6 @@ class OptionItem(TypedDict):
     label: str
 
 
-# Interests to display in UI — 8 options
 INTERESTS: list[OptionItem] = [
     {"key": "travel", "label": "Du lịch"},
     {"key": "technology", "label": "Công nghệ"},
@@ -31,7 +23,6 @@ INTERESTS: list[OptionItem] = [
 
 INTEREST_KEYS: frozenset[str] = frozenset(item["key"] for item in INTERESTS)
 
-# Learning goals — 5 options
 GOALS: list[OptionItem] = [
     {"key": "daily_conversation", "label": "Giao tiếp hằng ngày tự nhiên"},
     {"key": "work_presentation", "label": "Thuyết trình công việc"},
@@ -42,7 +33,6 @@ GOALS: list[OptionItem] = [
 
 GOAL_KEYS: frozenset[str] = frozenset(item["key"] for item in GOALS)
 
-# Skills to improve — 5 options
 WEAK_POINTS: list[OptionItem] = [
     {"key": "pronunciation", "label": "Phát âm"},
     {"key": "response_speed", "label": "Tốc độ phản hồi"},
@@ -53,11 +43,9 @@ WEAK_POINTS: list[OptionItem] = [
 
 WEAK_POINT_KEYS: frozenset[str] = frozenset(item["key"] for item in WEAK_POINTS)
 
-# CEFR levels in order
 CEFR_LEVELS: list[str] = ["A1", "A2", "B1", "B2", "C1"]
 CEFR_LEVEL_SET: frozenset[str] = frozenset(CEFR_LEVELS)
 
-# Level source values
 LEVEL_SOURCE_PLACEMENT = "PLACEMENT"
 LEVEL_SOURCE_SELF = "SELF"
 LEVEL_SOURCE_DEFAULT = "DEFAULT"
@@ -65,6 +53,46 @@ LEVEL_SOURCE_DEFAULT = "DEFAULT"
 LEVEL_SOURCES: frozenset[str] = frozenset(
     [LEVEL_SOURCE_PLACEMENT, LEVEL_SOURCE_SELF, LEVEL_SOURCE_DEFAULT]
 )
+
+
+class ScriptedPlacementPrompt(TypedDict):
+    id: str
+    target_band: str
+    text: str
+    translation: str
+    ipa: str
+    focus_phonemes: list[str]
+
+
+# Stage 1 Scripted prompts targeting Vietnamese L1 phonological challenges (/θ/, /ð/, /r/, clusters)
+SCRIPTED_PLACEMENT_PROMPTS: list[ScriptedPlacementPrompt] = [
+    {
+        "id": "s1_1",
+        "target_band": "A1-A2",
+        "text": "I usually drink warm tea in the morning before work.",
+        "translation": "Tôi thường uống trà ấm vào buổi sáng trước khi làm việc.",
+        "ipa": text_to_ipa("I usually drink warm tea in the morning before work."),
+        "focus_phonemes": ["ʒ", "ŋ", "w", "ɜːr"],
+    },
+    {
+        "id": "s1_2",
+        "target_band": "B1",
+        "text": "How long have you been working with this international team?",
+        "translation": "Bạn đã làm việc với nhóm quốc tế này bao lâu rồi?",
+        "ipa": text_to_ipa("How long have you been working with this international team?"),
+        "focus_phonemes": ["ð", "θ", "ɜːr", "ʃ"],
+    },
+    {
+        "id": "s1_3",
+        "target_band": "B2-C1",
+        "text": "Although technology evolves rapidly, clear communication remains essential.",
+        "translation": "Mặc dù công nghệ phát triển nhanh chóng, giao tiếp rõ ràng vẫn rất thiết yếu.",
+        "ipa": text_to_ipa(
+            "Although technology evolves rapidly, clear communication remains essential."
+        ),
+        "focus_phonemes": ["ð", "v", "z", "ʃ"],
+    },
+]
 
 
 class PlacementQuestionItem(TypedDict):
@@ -75,9 +103,8 @@ class PlacementQuestionItem(TypedDict):
     translation: str
 
 
-# Adaptive tiered placement questions (D-25)
+# Stage 2 Unscripted adaptive questions
 TIERED_PLACEMENT_QUESTIONS: list[PlacementQuestionItem] = [
-    # Tier 1 (A1 - A2: Familiar daily topics & habits)
     {
         "id": "q1_1",
         "tier": 1,
@@ -99,7 +126,6 @@ TIERED_PLACEMENT_QUESTIONS: list[PlacementQuestionItem] = [
         "text": "What is your favorite food or drink, and where do you usually enjoy it?",
         "translation": "Món ăn hoặc đồ uống yêu thích của bạn là gì, và bạn thường thưởng thức nó ở đâu?",
     },
-    # Tier 2 (B1 - B2: Experiences, opinions, and thoughts)
     {
         "id": "q2_1",
         "tier": 2,
@@ -121,7 +147,6 @@ TIERED_PLACEMENT_QUESTIONS: list[PlacementQuestionItem] = [
         "text": "How do you think modern technology has changed the way people communicate with each other?",
         "translation": "Bạn nghĩ công nghệ hiện đại đã thay đổi cách mọi người giao tiếp với nhau như thế nào?",
     },
-    # Tier 3 (C1: Complex discussions, abstract topics, and critical analysis)
     {
         "id": "q3_1",
         "tier": 3,
@@ -145,5 +170,4 @@ TIERED_PLACEMENT_QUESTIONS: list[PlacementQuestionItem] = [
     },
 ]
 
-# Placement test questions — backward compatible list of question texts
 PLACEMENT_QUESTIONS: list[str] = [item["text"] for item in TIERED_PLACEMENT_QUESTIONS]

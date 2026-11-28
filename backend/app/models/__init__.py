@@ -20,6 +20,11 @@ from app.models.gamification import (
     XpRule,
     XpTransaction,
 )
+from app.models.learner_profile import (
+    LearnerCefrSnapshot,
+    LearnerPhonemeStat,
+    LearnerSkillProfile,
+)
 from app.models.onboarding import LevelHistory, PlacementAnswer, PlacementTest
 from app.models.scenario import (
     ChunkBank,
@@ -47,6 +52,9 @@ __all__ = [
     "PlacementTest",
     "PlacementAnswer",
     "LevelHistory",
+    "LearnerSkillProfile",
+    "LearnerCefrSnapshot",
+    "LearnerPhonemeStat",
     "CoachTopic",
     "Session",
     "TranscriptSegment",

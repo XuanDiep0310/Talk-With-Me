@@ -1,9 +1,9 @@
 export const skillLabels: Record<string, string> = {
-  fluency: 'Độ lưu loát',
-  listening: 'Nghe hiểu',
-  vocabulary: 'Từ vựng theo ngữ cảnh',
-  response_speed: 'Tốc độ phản hồi',
   pronunciation: 'Phát âm',
+  fluency: 'Độ lưu loát',
+  vocabulary: 'Từ vựng',
+  grammar: 'Ngữ pháp',
+  interaction: 'Tương tác & Phản xạ',
 };
 
 export const sessionStatuses: Record<string, string> = {

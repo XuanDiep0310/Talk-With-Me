@@ -28,7 +28,9 @@ INTEREST_KEYWORDS: dict[str, list[str]] = {
 # Mapping user weak points to target skill labels
 WEAK_POINT_SKILL_MAP: dict[str, list[str]] = {
     "pronunciation": ["Pronunciation", "Fluency"],
+    "fluency": ["Fluency"],
     "response_speed": ["Response Speed", "Fluency"],
+    "interaction": ["Response Speed", "Fluency", "Listening"],
     "grammar": ["Grammar", "Accuracy"],
     "vocabulary": ["Vocabulary"],
     "listening": ["Listening"],

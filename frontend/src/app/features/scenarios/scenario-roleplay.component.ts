@@ -471,14 +471,10 @@ export class ScenarioRoleplayComponent implements OnInit, OnDestroy {
         }
       }, 80);
 
-      // Eagerly prefetch translations for quick display upon toggle
+      // Sync pre-supplied translations without burning extra LLM calls per turn
       for (const item of list) {
-        if (!this.translationMap()[item.id] && !item.isPartial) {
-          if (item.translation) {
-            this.translationMap.update((m) => ({ ...m, [item.id]: item.translation! }));
-          } else {
-            this.prefetchTranslation(item);
-          }
+        if (!this.translationMap()[item.id] && item.translation) {
+          this.translationMap.update((m) => ({ ...m, [item.id]: item.translation! }));
         }
       }
     });

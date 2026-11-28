@@ -13,6 +13,7 @@ import { Subscription, interval } from 'rxjs';
 import { AppStateService } from '../../core/services/app-state.service';
 import { CoachService, SessionFeedback, CoachSession } from '../../core/services/coach.service';
 import { GamificationService } from '../../core/services/gamification.service';
+import { SkillRadarChartComponent } from '../../shared/components/skill-radar-chart.component';
 
 interface SkillDisplay {
   name: string;
@@ -26,7 +27,7 @@ interface SkillDisplay {
 @Component({
   selector: 'app-ai-coach-report',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, SkillRadarChartComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="p-5 md:p-8 max-w-4xl mx-auto space-y-6">
@@ -89,7 +90,7 @@ interface SkillDisplay {
               AI đang phân tích cuộc hội thoại...
             </h2>
             <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
-              Đang tính toán 5 chỉ số giao tiếp theo chuẩn CEFR (Độ trôi chảy, Thấu hiểu, Từ vựng, Tốc độ phản xạ, Phát âm) và tổng hợp nhận xét cá nhân hóa.
+              Đang tính toán 5 chỉ số giao tiếp theo chuẩn CEFR (Phát âm, Độ lưu loát, Từ vựng, Ngữ pháp, Tương tác) và tổng hợp nhận xét cá nhân hóa.
             </p>
           </div>
           <div class="w-48 h-2 bg-slate-100 rounded-full mx-auto overflow-hidden">
@@ -275,15 +276,20 @@ interface SkillDisplay {
           </div>
         </section>
 
-        <!-- 5 Communication Skills Breakdown -->
+        <!-- 5 Communication Skills Breakdown + Radar -->
         <section class="card p-6 md:p-8 rounded-3xl space-y-5">
-          <div>
-            <h2 class="font-bold text-base md:text-lg text-slate-900 tracking-tight">
-              Chi tiết 5 kỹ năng giao tiếp cốt lõi
-            </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
-              Đánh giá đa chiều theo chuẩn CEFR & SRS F-03 (Công thức TalkWithMe v{{ formulaVersion() }})
-            </p>
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="font-bold text-base md:text-lg text-slate-900 tracking-tight">
+                Chi tiết 5 kỹ năng giao tiếp cốt lõi
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Đánh giá đa chiều (Azure Speech Acoustic + Gemini Semantic · v{{ formulaVersion() }})
+              </p>
+            </div>
+            <div class="shrink-0 flex justify-center">
+              <app-skill-radar-chart [scores]="radarScores()" [size]="155" />
+            </div>
           </div>
 
           <div class="space-y-4">
@@ -295,7 +301,7 @@ interface SkillDisplay {
                       {{ s.label }}
                     </span>
                     @if (s.isReference) {
-                      <span class="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full border border-slate-200" title="Đánh giá tham khảo dựa trên STT confidence">
+                      <span class="text-[10px] bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full border border-slate-200" title="Chỉ số tham khảo từ Azure Speech">
                         Tham khảo
                       </span>
                     }
@@ -328,6 +334,23 @@ interface SkillDisplay {
               </div>
             }
           </div>
+
+          @if (grammarErrors().length > 0) {
+            <div class="pt-4 border-t border-slate-100 space-y-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Gợi ý sửa ngữ pháp tiêu biểu</h3>
+              <div class="space-y-2">
+                @for (ge of grammarErrors(); track $index) {
+                  <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                    <div>
+                      <span class="line-through text-rose-500 mr-2">{{ ge.original }}</span>
+                      <span class="font-bold text-emerald-700">→ {{ ge.correction }}</span>
+                    </div>
+                    <div class="text-slate-600">{{ ge.explanationVi }}</div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </section>
 
         <!-- Strengths & Improvements Grid -->
@@ -487,7 +510,22 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
   readonly strengths = computed(() => this.feedback()?.strengths ?? []);
   readonly improvements = computed(() => this.feedback()?.improvements ?? []);
   readonly nextPractice = computed(() => this.feedback()?.nextPractice ?? null);
-  readonly formulaVersion = computed(() => this.feedback()?.formulaVersion ?? '1.0.0');
+  readonly formulaVersion = computed(() => this.feedback()?.formulaVersion ?? '2.0.0');
+
+  readonly radarScores = computed<Record<string, number | null>>(() => {
+    const out: Record<string, number | null> = {};
+    for (const s of this.skillsList()) {
+      out[s.name] = s.score;
+    }
+    return out;
+  });
+
+  readonly grammarErrors = computed(() => {
+    const grammarSkill = this.feedback()?.skills?.find((s) => s.skillName === 'grammar');
+    const errs = grammarSkill?.components?.['grammarErrors'];
+    if (!Array.isArray(errs)) return [];
+    return errs as { original: string; correction: string; explanationVi: string }[];
+  });
 
   readonly topicTitle = computed(() => {
     return (
@@ -511,19 +549,19 @@ export class AiCoachReportComponent implements OnInit, OnDestroy {
 
   readonly skillsList = computed<SkillDisplay[]>(() => {
     const defaultColorMap: Record<string, string> = {
-      fluency: '#2563EB',
-      listening: '#059669',
-      vocabulary: '#7C3AED',
-      response_speed: '#EA580C',
       pronunciation: '#0284C7',
+      fluency: '#2563EB',
+      vocabulary: '#059669',
+      grammar: '#7C3AED',
+      interaction: '#EA580C',
     };
 
     const defaultLabels: Record<string, string> = {
-      fluency: 'Độ trôi chảy (Fluency)',
-      listening: 'Khả năng hiểu (Listening)',
-      vocabulary: 'Từ vựng & Ngữ pháp (Vocabulary)',
-      response_speed: 'Tốc độ phản xạ (Response Speed)',
-      pronunciation: 'Độ chuẩn phát âm (Pronunciation)',
+      pronunciation: 'Phát âm (Pronunciation)',
+      fluency: 'Độ lưu loát (Fluency)',
+      vocabulary: 'Từ vựng (Vocabulary)',
+      grammar: 'Ngữ pháp (Grammar)',
+      interaction: 'Tương tác & Phản xạ (Interaction)',
     };
 
     const fb = this.feedback();

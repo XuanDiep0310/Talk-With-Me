@@ -20,6 +20,7 @@ from app.models.coach_schemas import (
     SessionResponse,
     TranscriptSegmentResponse,
 )
+from app.models.learner_profile import LearnerSkillProfile
 from app.models.session import CoachTopic, Session, TranscriptSegment
 from app.repositories.scenario_category import ScenarioCategoryRepository
 from app.repositories.session import CoachTopicRepository, SessionRepository, TranscriptRepository
@@ -75,6 +76,18 @@ class CoachService:
                 )
             except Exception:
                 user_weak_points = []
+
+        # Combine onboarding weak_points with measured longitudinal weak dimensions
+        from sqlalchemy import select as sa_select
+
+        lp_res = await self.db.execute(
+            sa_select(LearnerSkillProfile).where(LearnerSkillProfile.user_id == user_id)
+        )
+        lp = lp_res.scalar_one_or_none()
+        if lp and lp.limiting_dimensions:
+            for dim in lp.limiting_dimensions:
+                if dim not in user_weak_points:
+                    user_weak_points.append(dim)
 
         # 3. Retrieve active topics (filtered by search query if present)
         topics = await self.topic_repo.list_topics(q=q, active_only=True)

@@ -181,6 +181,16 @@ class TranscriptSegment(Base, TimestampMixin):
     word_count: Mapped[int | None] = mapped_column(Integer)
     filler_count: Mapped[int | None] = mapped_column(Integer)
     response_latency_ms: Mapped[int | None] = mapped_column(Integer)
+    pronunciation_accuracy: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pronunciation_fluency: Mapped[float | None] = mapped_column(Float, nullable=True)
+    pronunciation_prosody: Mapped[float | None] = mapped_column(Float, nullable=True)
+    phoneme_errors: Mapped[list[dict[str, object]] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
+    )
+    is_barge_in: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+    modality: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_final: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     seq: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
