@@ -13,6 +13,7 @@ from app.core.errors import register_exception_handlers, register_trace_middlewa
 from app.core.redis import redis_pool
 from app.core.ws_privacy import PracticeSocketQueryPrivacy
 from app.services.gamification import register_gamification_event_listeners
+from app.services.learner_assessment import register_learner_assessment_listeners
 
 settings = get_settings()
 
@@ -21,8 +22,9 @@ settings = get_settings()
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     # Ensure upload directory exists
     Path(settings.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
-    # Register gamification domain event listeners
+    # Register domain event listeners
     register_gamification_event_listeners()
+    register_learner_assessment_listeners()
     yield
     # Shutdown actions: Close DB engine and Redis connection pool
     await engine.dispose()

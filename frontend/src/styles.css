@@ -29,8 +29,18 @@
   --color-primary-dark: #1D4ED8;
 }
 
-* {
+body {
   font-family: var(--font-sans);
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ipa-phonetic {
+  font-family: 'Noto Sans', 'Segoe UI', 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif;
+  letter-spacing: 0.025em;
+  line-height: 1.5;
 }
 
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
@@ -41,13 +51,6 @@
 :where(button, input, select, textarea):disabled {
   cursor: not-allowed;
   opacity: 0.6;
-}
-
-body {
-  background-color: var(--bg-app);
-  color: var(--text-main);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom minimal scrollbar */

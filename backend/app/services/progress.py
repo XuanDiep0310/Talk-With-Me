@@ -37,30 +37,30 @@ from app.services.gamification import LEVEL_REQUIREMENTS, GamificationService
 logger = logging.getLogger(__name__)
 
 SKILL_CONFIG = {
+    "pronunciation": {
+        "label": "Phát âm",
+        "color": "#286FB4",
+        "desc": "Độ chính xác âm vị, âm tiết và ngữ điệu (Azure Accuracy + Prosody)",
+    },
     "fluency": {
         "label": "Độ lưu loát",
-        "color": "#286FB4",
-        "desc": "Tốc độ nói, ngập ngừng, khoảng lặng và mức độ liền mạch",
-    },
-    "listening": {
-        "label": "Khả năng nghe hiểu",
-        "color": "#DF4C73",
-        "desc": "Mức độ hiểu câu hỏi và phản hồi đúng trọng tâm",
+        "color": "#059669",
+        "desc": "Độ trôi chảy (Azure Fluency), quãng ngừng và hạn chế từ đệm",
     },
     "vocabulary": {
         "label": "Vốn từ vựng",
         "color": "#f59e0b",
-        "desc": "Độ đa dạng từ vựng (MTLD) và sử dụng cụm từ giao tiếp",
+        "desc": "Độ đa dạng từ vựng (MTLD) và mức độ tự nhiên theo ngữ cảnh (Gemini)",
     },
-    "response_speed": {
-        "label": "Tốc độ phản xạ",
-        "color": "#059669",
-        "desc": "Thời gian phản hồi khi nghe câu hỏi",
-    },
-    "pronunciation": {
-        "label": "Độ chính xác phát âm (tham khảo)",
+    "grammar": {
+        "label": "Ngữ pháp",
         "color": "#7c3aed",
-        "desc": "Độ tin cậy nhận diện giọng nói (STT Confidence)",
+        "desc": "Độ chính xác và độ phong phú cấu trúc câu theo khung CEFR (Gemini)",
+    },
+    "interaction": {
+        "label": "Tương tác & Mạch lạc",
+        "color": "#DF4C73",
+        "desc": "Mức độ bám sát ngữ cảnh, dẫn dắt hội thoại và tốc độ phản xạ",
     },
 }
 

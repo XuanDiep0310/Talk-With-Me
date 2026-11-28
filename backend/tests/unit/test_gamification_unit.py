@@ -309,9 +309,9 @@ async def test_level_advancement_b1_to_b2_requires_min_skills() -> None:
             "avg_overall": 75.0,
             "avg_skills": {
                 "fluency": 58.0,
-                "listening": 70.0,
+                "grammar": 70.0,
                 "vocabulary": 80.0,
-                "response_speed": 75.0,
+                "interaction": 75.0,
                 "pronunciation": 72.0,
             },
         }
@@ -328,9 +328,9 @@ async def test_level_advancement_b1_to_b2_requires_min_skills() -> None:
             "avg_overall": 75.0,
             "avg_skills": {
                 "fluency": 65.0,
-                "listening": 70.0,
+                "grammar": 70.0,
                 "vocabulary": 80.0,
-                "response_speed": 75.0,
+                "interaction": 75.0,
                 "pronunciation": 72.0,
             },
         }

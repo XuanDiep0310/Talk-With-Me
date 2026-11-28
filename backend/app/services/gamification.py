@@ -328,12 +328,13 @@ class GamificationService:
         # 4. Average score for each of the 5 core skills over recent sessions
         recent_session_ids = [sess_id for sess_id, _ in recent_rows]
         skill_scores_map: dict[str, list[float]] = {
-            "fluency": [],
-            "listening": [],
-            "vocabulary": [],
-            "response_speed": [],
             "pronunciation": [],
+            "fluency": [],
+            "vocabulary": [],
+            "grammar": [],
+            "interaction": [],
         }
+        speed_scores: list[float] = []
         if recent_session_ids:
             skills_stmt = select(SessionSkillScore).where(
                 SessionSkillScore.session_id.in_(recent_session_ids)
@@ -342,6 +343,10 @@ class GamificationService:
             for sc in scores:
                 if sc.score is not None and sc.skill_name in skill_scores_map:
                     skill_scores_map[sc.skill_name].append(sc.score)
+                if sc.skill_name == "interaction" and isinstance(sc.components, dict):
+                    rs = sc.components.get("response_speed_score")
+                    if rs is not None:
+                        speed_scores.append(float(rs))
 
         avg_skills: dict[str, float] = {}
         for skill_name, vals in skill_scores_map.items():
@@ -352,6 +357,9 @@ class GamificationService:
             "total_scenarios": total_scenarios,
             "avg_overall": avg_overall,
             "avg_skills": avg_skills,
+            "avg_response_speed": round(sum(speed_scores) / len(speed_scores), 1)
+            if speed_scores
+            else 0.0,
         }
 
     async def evaluate_level_advancement(
@@ -440,7 +448,7 @@ class GamificationService:
         )
         max_fluency = (await self._session.execute(fluency_stmt)).scalar_one_or_none() or 0.0
 
-        max_speed = float(stats.get("avg_skills", {}).get("response_speed", 0.0))
+        max_speed = float(stats.get("avg_response_speed", 0.0))
 
         awarded: list[UserBadge] = []
         badge_defs = await self._repo.list_badge_definitions()

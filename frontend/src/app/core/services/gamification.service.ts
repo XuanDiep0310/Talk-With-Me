@@ -12,6 +12,7 @@ import {
   BadgeItem,
   XpHistoryItem,
   NotificationItem,
+  LearnerModelResponse,
 } from '../models/gamification.models';
 
 @Injectable({ providedIn: 'root' })
@@ -29,6 +30,10 @@ export class GamificationService {
 
   getProgressSkills(): Observable<ProgressSkillsResponse> {
     return this.http.get<ProgressSkillsResponse>(`${this.BASE}/progress/skills`);
+  }
+
+  getLearnerModel(): Observable<LearnerModelResponse> {
+    return this.http.get<LearnerModelResponse>(`${this.BASE}/progress/learner-model`);
   }
 
   getProgressHistory(cursor?: string | null, limit = 20, type?: string | null): Observable<ProgressHistoryResponse> {

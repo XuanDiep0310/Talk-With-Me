@@ -24,7 +24,12 @@ from app.core.providers.google_token_verifier import (
     GoogleTokenVerifier,
     RealGoogleTokenVerifier,
 )
-from app.core.providers.llm_provider import FakeLlmProvider, LlmProvider
+from app.core.providers.llm_provider import LlmProvider
+from app.core.providers.llm_provider import get_llm_provider as resolve_llm_provider
+from app.core.providers.speech_assessment_provider import (
+    SpeechAssessmentProvider,
+    get_speech_assessment_provider,
+)
 from app.core.providers.storage_provider import (
     LocalStorageProvider,
     StorageProvider,
@@ -208,11 +213,15 @@ async def require_admin(user: User = Depends(get_current_user)) -> User:
 
 
 def get_llm_provider(settings: Settings = Depends(get_settings)) -> LlmProvider:  # noqa: ARG001
-    """
-    Returns LLM provider based on LLM_PROVIDER setting.
-    Currently only fake is supported; real providers will be added in later sprints.
-    """
-    return FakeLlmProvider()
+    """Return configured real LLM provider."""
+    return resolve_llm_provider()
+
+
+def get_speech_provider(
+    settings: Settings = Depends(get_settings),
+) -> SpeechAssessmentProvider:
+    """Return unified Azure Speech provider (STT + Pronunciation Assessment)."""
+    return get_speech_assessment_provider(settings)
 
 
 def get_onboarding_service(
@@ -226,8 +235,14 @@ def get_placement_service(
     session: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
     llm_provider: LlmProvider = Depends(get_llm_provider),
+    speech_provider: SpeechAssessmentProvider = Depends(get_speech_provider),
 ) -> PlacementService:
-    return PlacementService(session=session, settings=settings, llm_provider=llm_provider)
+    return PlacementService(
+        session=session,
+        settings=settings,
+        llm_provider=llm_provider,
+        speech_provider=speech_provider,
+    )
 
 
 # ---------------------------------------------------------------------------

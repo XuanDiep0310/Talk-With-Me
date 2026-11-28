@@ -22,11 +22,10 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from app.core.providers.llm_provider import FakeLlmProvider
-from app.core.providers.stt_provider import FakeSttProvider
 from app.models.session import Session, TranscriptSegment
 from app.services.session_state_machine import SessionState, SessionStateMachine
 from app.services.turn_taking_policy import TurnTakingPolicy
+from tests.fakes import FakeLlmProvider, FakeSpeechAssessmentProvider
 
 
 class SyncRedisTicketStore:
@@ -87,7 +86,7 @@ class WsSessionOrchestratorSimulator:
         self.redis = redis_store
         self.sessions = sessions
         self.transcripts = transcript_segments
-        self.stt = FakeSttProvider()
+        self.speech = FakeSpeechAssessmentProvider()
         self.llm = FakeLlmProvider()
         self.turn_policy = TurnTakingPolicy(default_silence_threshold_ms=1500)
         self.audio_buffer = bytearray()

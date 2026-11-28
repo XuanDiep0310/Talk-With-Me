@@ -19,3 +19,22 @@ class ServiceUnavailableException(AppException):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=detail,
         )
+
+
+class ProviderUnavailableError(AppException):
+    """Raised when an external AI/Speech provider fails or is unconfigured."""
+
+    def __init__(
+        self,
+        code: str = "PROVIDER_UNAVAILABLE",
+        message: str = "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.",
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": code,
+                "message": message,
+                "details": details or {},
+            },
+        )

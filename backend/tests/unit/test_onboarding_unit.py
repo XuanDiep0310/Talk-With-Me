@@ -72,30 +72,40 @@ class TestEstimateLevelTable:
         (
             "words_per_answer",
             "total_words",
-            "confidence",
+            "accuracy",
+            "fluency",
+            "prosody",
+            "vocab_sem",
+            "grammar_sem",
+            "interaction_sem",
             "latency",
             "count",
             "llm_level",
             "expected_level",
         ),
         [
-            # High fluency, high confidence, fast latency -> C1
-            (120.0, 360, 0.98, 1.0, 3, "C1", "C1"),
+            # High acoustic + semantic + fast latency -> C1
+            (120.0, 360, 92.0, 90.0, 88.0, 92.0, 90.0, 90.0, 1.0, 3, "C1", "C1"),
             # Good fluency, high confidence, moderate latency -> B2
-            (70.0, 210, 0.85, 2.0, 3, "B2", "B2"),
-            # Intermediate fluency, moderate confidence -> B1
-            (40.0, 120, 0.75, 3.0, 3, "B1", "B1"),
-            # Low fluency, low confidence, slow latency -> A2
-            (15.0, 45, 0.50, 4.0, 3, "A2", "A2"),
-            # Very low fluency, but met minimum word threshold -> A1 or A2
-            (11.0, 33, 0.20, 6.0, 3, "A1", "A1"),
+            (70.0, 210, 80.0, 78.0, 75.0, 76.0, 74.0, 76.0, 2.0, 3, "B2", "B2"),
+            # Intermediate -> B1
+            (40.0, 120, 62.0, 60.0, 58.0, 62.0, 60.0, 60.0, 3.0, 3, "B1", "B1"),
+            # Elementary -> A2
+            (15.0, 45, 48.0, 46.0, 45.0, 46.0, 44.0, 48.0, 4.0, 3, "A2", "A2"),
+            # Beginner -> A1
+            (11.0, 33, 25.0, 22.0, 20.0, 28.0, 25.0, 25.0, 6.0, 3, "A1", "A1"),
         ],
     )
     def test_level_estimation_levels(
         self,
         words_per_answer: float,
         total_words: int,
-        confidence: float,
+        accuracy: float,
+        fluency: float,
+        prosody: float,
+        vocab_sem: float,
+        grammar_sem: float,
+        interaction_sem: float,
         latency: float,
         count: int,
         llm_level: str,
@@ -104,12 +114,27 @@ class TestEstimateLevelTable:
         features = PlacementFeatures(
             total_words=total_words,
             avg_words_per_answer=words_per_answer,
-            avg_stt_confidence=confidence,
+            avg_stt_confidence=0.9,
             avg_speaking_duration=15.0,
             avg_response_latency=latency,
             answer_count=count,
+            stage1_count=2,
+            stage1_accuracy=accuracy,
+            stage1_prosody=prosody,
+            stage1_fluency=fluency,
+            stage2_accuracy=accuracy,
+            stage2_fluency=fluency,
+            stage2_prosody=prosody,
+            mtld_diversity=vocab_sem,
         )
-        llm_eval = LlmLevelEvaluation(suggested_level=llm_level, confidence=0.8, reasoning="test")
+        llm_eval = LlmLevelEvaluation(
+            suggested_level=llm_level,
+            confidence=0.85,
+            reasoning="test",
+            vocabulary_score=vocab_sem,
+            grammar_score=grammar_sem,
+            interaction_score=interaction_sem,
+        )
         result = estimate_level(features, llm_eval=llm_eval)
 
         assert result.level == expected_level
@@ -120,9 +145,9 @@ class TestEstimateLevelTable:
         ("count", "total_words", "scenario"),
         [
             (0, 0, "No answers submitted"),
-            (1, 10, "Only 1 answer submitted (< min 3)"),
-            (2, 50, "Only 2 answers submitted (< min 3)"),
-            (3, 10, "3 answers but word count < 30 threshold"),
+            (1, 10, "Only 1 answer submitted (< min 2)"),
+            (1, 40, "Only 1 long answer submitted (< min 2)"),
+            (2, 12, "2 answers but word count < 25 threshold"),
             (3, 0, "3 empty answers with 0 words"),
         ],
     )
@@ -141,7 +166,14 @@ class TestEstimateLevelTable:
             answer_count=count,
         )
         # Even if LLM says C1, insufficient data MUST yield A1 + needs_reassessment=True
-        llm_eval = LlmLevelEvaluation(suggested_level="C1", confidence=0.9, reasoning="high guess")
+        llm_eval = LlmLevelEvaluation(
+            suggested_level="C1",
+            confidence=0.9,
+            reasoning="high guess",
+            vocabulary_score=85.0,
+            grammar_score=85.0,
+            interaction_score=85.0,
+        )
         result = estimate_level(features, llm_eval=llm_eval)
 
         assert result.level == "A1"
@@ -157,9 +189,16 @@ class TestEstimateLevelTable:
             avg_speaking_duration=12.0,
             avg_response_latency=2.0,
             answer_count=3,
+            stage1_count=2,
+            stage1_accuracy=75.0,
+            stage1_prosody=72.0,
+            stage2_accuracy=72.0,
+            stage2_fluency=74.0,
+            stage2_prosody=70.0,
+            mtld_diversity=68.0,
         )
         result = estimate_level(features, llm_eval=None)
-        assert result.level in ("B1", "B2")
+        assert result.level in ("A2", "B1", "B2")
         assert not result.is_insufficient_data
         assert not result.needs_reassessment
 

@@ -6,8 +6,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, require_admin
-from app.core.providers.llm_provider import LlmProvider, get_llm_provider
+from app.api.deps import get_db, get_llm_provider, require_admin
+from app.core.providers.llm_provider import LlmProvider
 from app.models.admin_editor_schemas import (
     GenerateDistractorsRequest,
     GenerateDistractorsResponse,

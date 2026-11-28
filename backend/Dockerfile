@@ -23,11 +23,14 @@ FROM python:3.13-slim AS runner
 
 WORKDIR /app
 
-# Install runtime dependencies for postgresql / curl for healthcheck / gosu for step-down
+# Install runtime dependencies for postgresql / curl / Azure Speech SDK
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
     gosu \
+    libssl3 \
+    ca-certificates \
+    && (apt-get install -y --no-install-recommends libasound2t64 || apt-get install -y --no-install-recommends libasound2 || true) \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtualenv from builder

@@ -1,29 +1,61 @@
-"""Derive session QA and scoring signals while no audio is retained."""
+"""Derive session QA and acoustic assessment signals without retaining raw audio."""
+
+from __future__ import annotations
 
 from math import isfinite
 
-from app.core.providers.stt_provider import SttResult
+from app.core.providers.speech_assessment_provider import SpeechAssessmentResult
 from app.models.session import TranscriptSegment
 from app.services.scoring.metrics import clean_and_tokenize, detect_filler_words
+
+
+def extract_phoneme_errors(stt: SpeechAssessmentResult) -> list[dict[str, object]]:
+    """Collect phoneme-level diagnostics (<= 15 lowest-scoring phonemes) for longitudinal stats."""
+    errors: list[dict[str, object]] = []
+    for word in stt.words:
+        for ph in word.phonemes:
+            if ph.accuracy_score < 70.0:
+                errors.append(
+                    {
+                        "ipa": ph.ipa,
+                        "accuracy": ph.accuracy_score,
+                        "word": word.word,
+                    }
+                )
+    return errors[:15]
 
 
 def apply_speech_features(
     segment: TranscriptSegment,
     *,
     pause_threshold_ms: int,
-    stt: SttResult | None = None,
+    stt: SpeechAssessmentResult | None = None,
     capture_offset_ms: int | None = None,
     playback_end_ms: int | None = None,
+    modality: str = "UNSCRIPTED",
+    is_barge_in: bool = False,
 ) -> None:
     segment.word_count = len(clean_and_tokenize(segment.text))
     segment.filler_count, _ = detect_filler_words(segment.text)
+    segment.modality = modality
+    segment.is_barge_in = is_barge_in
     segment.speech_source = "TEXT" if stt is None else "STT_NO_WORD_TIMES"
+
     confidence = stt.measured_confidence if stt else None
     segment.confidence = (
         confidence
         if confidence is not None and isfinite(confidence) and 0 <= confidence <= 1
         else None
     )
+
+    if stt is not None:
+        segment.pronunciation_accuracy = stt.accuracy_score
+        segment.pronunciation_fluency = stt.fluency_score
+        segment.pronunciation_prosody = stt.prosody_score
+        ph_errors = extract_phoneme_errors(stt)
+        if ph_errors:
+            segment.phoneme_errors = ph_errors
+
     if stt is None or not stt.word_times_measured:
         return
 

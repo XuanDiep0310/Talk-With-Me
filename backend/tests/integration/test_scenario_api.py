@@ -38,9 +38,8 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.schema import CreateSchema, DropSchema
 
-from app.api.deps import get_db, get_redis
+from app.api.deps import get_db, get_llm_provider, get_redis
 from app.core.config import Settings, get_settings
-from app.core.providers.llm_provider import FakeLlmProvider, get_llm_provider
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.models import ChunkBank, Scenario  # noqa: F401
@@ -48,6 +47,7 @@ from app.models.auth import AccountAdminAudit, User, UserProfile
 from app.models.base import Base
 from app.models.scenario import ScenarioAdminAudit, UserScenarioProgress
 from app.seeds.scenario_loader import load_all_scenarios_from_yaml, seed_scenarios
+from tests.fakes import FakeLlmProvider
 
 ADMIN_SCENARIOS = "/api/v1/admin/scenarios"
 
@@ -191,16 +191,23 @@ async def scenario_test_env(
         algorithm=test_settings.JWT_ALGORITHM,
     )
 
+    from unittest.mock import patch
+
+    fake_llm = FakeLlmProvider()
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-        yield {
-            "client": client,
-            "token": token,
-            "other_token": other_token,
-            "user_id": user_id,
-            "other_user_id": other_user_id,
-            "db_factory": scenario_db,
-        }
+    with (
+        patch("app.services.scenario.get_llm_provider", return_value=fake_llm),
+        patch("app.services.scoring.service.get_llm_provider", return_value=fake_llm),
+    ):
+        async with AsyncClient(transport=transport, base_url="http://testserver") as client:
+            yield {
+                "client": client,
+                "token": token,
+                "other_token": other_token,
+                "user_id": user_id,
+                "other_user_id": other_user_id,
+                "db_factory": scenario_db,
+            }
 
     app.dependency_overrides.clear()
 
@@ -1025,7 +1032,7 @@ async def test_session_qa_scopes_pagination_and_serializes_retry(
 ) -> None:
     from unittest.mock import AsyncMock
 
-    from app.core.providers.stt_provider import SttResult, WordTiming
+    from app.core.providers.speech_assessment_provider import AssessedWord, SpeechAssessmentResult
     from app.models.admin_audit import AdminAuditEvent
     from app.models.scoring import SessionFeedback
     from app.models.session import Session, TranscriptSegment
@@ -1067,11 +1074,26 @@ async def test_session_qa_scopes_pagination_and_serializes_retry(
                 pause_threshold_ms=1500,
                 capture_offset_ms=500,
                 playback_end_ms=100,
-                stt=SttResult(
-                    "Um, hello.",
-                    0.8,
-                    1.2,
-                    [WordTiming("Um", 0, 600, 0.8), WordTiming("hello", 2200, 2800, 0.8)],
+                stt=SpeechAssessmentResult(
+                    transcript="Um, hello.",
+                    confidence=0.8,
+                    speaking_duration_seconds=1.2,
+                    words=[
+                        AssessedWord(
+                            word="Um",
+                            accuracy_score=80.0,
+                            offset_ms=0,
+                            duration_ms=600,
+                            confidence=0.8,
+                        ),
+                        AssessedWord(
+                            word="hello",
+                            accuracy_score=80.0,
+                            offset_ms=2200,
+                            duration_ms=600,
+                            confidence=0.8,
+                        ),
+                    ],
                     word_times_measured=True,
                     measured_confidence=0.8,
                 ),
@@ -1699,7 +1721,7 @@ async def test_admin_qa_note_and_reevaluation_preserve_published_scores(
     )
     assert recalculated.status_code == 200, recalculated.text
     assert recalculated.json()["status"] == "FEEDBACK_READY"
-    assert recalculated.json()["formulaVersion"] == "1.1.0"
+    assert recalculated.json()["formulaVersion"] == "2.0.0"
     feedback = (
         await client.get(f"/api/v1/coach/sessions/{session_id}/feedback", headers=learner)
     ).json()

@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     health,
     onboarding,
     progress,
+    pronunciation,
     scenarios,
     users,
     voice,
@@ -30,6 +31,7 @@ api_router.include_router(users.router)
 api_router.include_router(onboarding.router)
 api_router.include_router(coach.router, prefix="/coach", tags=["Coach"])
 api_router.include_router(scenarios.router)
+api_router.include_router(pronunciation.router)
 api_router.include_router(dashboard.router)
 api_router.include_router(progress.router)
 api_router.include_router(gamification.router)

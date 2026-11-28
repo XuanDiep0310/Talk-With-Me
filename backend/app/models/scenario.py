@@ -210,6 +210,12 @@ class DrillAttempt(Base, TimestampMixin):
         index=True,
     )
     is_skipped: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    accuracy_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fluency_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    prosody_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    phoneme_errors: Mapped[list[dict[str, object]] | None] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
+    )
 
     chunk: Mapped[ScenarioChunk] = relationship("ScenarioChunk")
     scenario: Mapped[Scenario] = relationship("Scenario")

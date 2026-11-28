@@ -2,10 +2,20 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { PronunciationAssessResponse } from './scenario.service';
 
 export interface OptionItem {
   key: string;
   label: string;
+}
+
+export interface ScriptedPlacementPrompt {
+  id: string;
+  targetBand: string;
+  text: string;
+  translation: string;
+  ipa: string;
+  focusPhonemes: string[];
 }
 
 export interface OnboardingOptionsResponse {
@@ -14,6 +24,7 @@ export interface OnboardingOptionsResponse {
   weakPoints: OptionItem[];
   cefrLevels: string[];
   placementQuestions: string[];
+  scriptedPrompts: ScriptedPlacementPrompt[];
 }
 
 export interface UpdatePreferencesRequest {
@@ -32,7 +43,9 @@ export interface PlacementTestResponse {
   id: string;
   userId: string;
   status: string;
+  currentStage?: number;
   questions: string[];
+  scriptedPrompts?: ScriptedPlacementPrompt[];
   createdAt: string;
   initialTier?: number;
   initialTierLabel?: string;
@@ -42,6 +55,8 @@ export interface PlacementTestResponse {
 
 export interface SubmitAnswerRequest {
   requestId: string;
+  stage?: number;
+  promptId?: string;
   questionIndex: number;
   transcript?: string;
   sttConfidence?: number;
@@ -53,6 +68,8 @@ export interface AnswerResponse {
   id: string;
   testId: string;
   requestId: string;
+  stage: number;
+  promptId?: string | null;
   questionIndex: number;
   transcript: string | null;
   wordCount: number | null;
@@ -68,6 +85,9 @@ export interface AnswerResponse {
   canFinishEarly?: boolean;
   totalAnswered?: number;
   currentEstimatedLevel?: string;
+  pronunciation?: PronunciationAssessResponse | null;
+  nextStage?: number;
+  stage1Completed?: boolean;
 }
 
 export interface PlacementCompleteResponse {
@@ -76,6 +96,10 @@ export interface PlacementCompleteResponse {
   isInsufficientData: boolean;
   needsReassessment: boolean;
   score: number;
+  continuousBand?: number;
+  dimensionScores?: Record<string, number | null>;
+  limitingDimensions?: string[];
+  explanationVi?: string;
 }
 
 export interface SetLevelRequest {
@@ -118,6 +142,29 @@ export class OnboardingService {
 
   submitAnswer(testId: string, req: SubmitAnswerRequest): Observable<AnswerResponse> {
     return this.http.post<AnswerResponse>(`${this.BASE}/placement-tests/${testId}/answers`, req);
+  }
+
+  submitAudioAnswer(
+    testId: string,
+    payload: {
+      audioWav: Blob;
+      requestId: string;
+      stage: 1 | 2;
+      questionIndex: number;
+      promptId?: string;
+      responseLatencySeconds?: number;
+    }
+  ): Observable<AnswerResponse> {
+    const form = new FormData();
+    form.append('audio', payload.audioWav, 'answer.wav');
+    form.append('request_id', payload.requestId);
+    form.append('stage', String(payload.stage));
+    form.append('question_index', String(payload.questionIndex));
+    if (payload.promptId) form.append('prompt_id', payload.promptId);
+    if (payload.responseLatencySeconds !== undefined) {
+      form.append('response_latency_seconds', String(payload.responseLatencySeconds));
+    }
+    return this.http.post<AnswerResponse>(`${this.BASE}/placement-tests/${testId}/audio-answers`, form);
   }
 
   completePlacementTest(testId: string): Observable<PlacementCompleteResponse> {

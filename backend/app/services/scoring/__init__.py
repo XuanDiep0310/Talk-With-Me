@@ -1,11 +1,10 @@
-"""
-Scoring package exports.
-"""
+"""Scoring package exports (v2.0.0)."""
 
 from app.services.scoring.metrics import (
     compute_filler_word_score,
     compute_fluency_score,
-    compute_listening_score,
+    compute_grammar_score,
+    compute_interaction_score,
     compute_mtld,
     compute_overall_score,
     compute_pause_score,
@@ -29,10 +28,11 @@ __all__ = [
     "compute_pause_score",
     "compute_filler_word_score",
     "compute_fluency_score",
+    "compute_grammar_score",
+    "compute_interaction_score",
     "compute_mtld",
     "compute_vocabulary_diversity",
     "compute_vocabulary_score",
-    "compute_listening_score",
     "compute_response_speed",
     "compute_pronunciation_score",
     "compute_overall_score",

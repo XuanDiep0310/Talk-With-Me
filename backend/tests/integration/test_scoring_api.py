@@ -29,7 +29,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.api.deps import get_db, get_redis
 from app.core.config import Settings, get_settings
-from app.core.providers.llm_provider import FakeLlmProvider
 from app.core.security import create_access_token, hash_password
 from app.main import app
 from app.models.auth import User, UserProfile
@@ -38,6 +37,7 @@ from app.models.scoring import SessionFeedback
 from app.models.session import CoachTopic, Session, TranscriptSegment
 from app.services.scoring.service import ScoringService
 from app.services.session_state_machine import SessionState
+from tests.fakes import FakeLlmProvider
 
 
 class FakeRedis:
@@ -245,6 +245,10 @@ async def test_end_session_triggers_feedback_generation(test_env: dict) -> None:
             start_ms=4500,  # 1.5s latency (<= 2s)
             end_ms=10500,  # 6.0s
             confidence=0.92,
+            pronunciation_accuracy=85.0,
+            pronunciation_fluency=88.0,
+            pronunciation_prosody=82.0,
+            modality="UNSCRIPTED",
             seq=2,
         )
         t3 = TranscriptSegment(
@@ -266,6 +270,10 @@ async def test_end_session_triggers_feedback_generation(test_env: dict) -> None:
             start_ms=15800,  # 1.8s latency (<= 2s)
             end_ms=21300,  # 5.5s
             confidence=0.95,
+            pronunciation_accuracy=87.0,
+            pronunciation_fluency=89.0,
+            pronunciation_prosody=84.0,
+            modality="UNSCRIPTED",
             seq=4,
         )
         db.add_all([t1, t2, t3, t4])

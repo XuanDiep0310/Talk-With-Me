@@ -78,7 +78,7 @@ warn_no_return = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["redis.*", "jose.*", "passlib.*", "arq", "arq.*", "yaml"]
+module = ["redis.*", "jose.*", "passlib.*", "arq", "arq.*", "yaml", "pronouncing", "azure", "azure.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

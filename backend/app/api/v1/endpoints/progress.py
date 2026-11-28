@@ -4,14 +4,17 @@ UI Screens 22, 23, 24.
 """
 
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_progress_service
+from app.api.deps import get_current_user, get_db, get_progress_service
 from app.models.auth import User
 from app.models.gamification_schemas import (
+    LearnerModelResponse,
     ProgressHistoryResponse,
     ProgressSkillsResponse,
     ProgressSummaryResponse,
 )
+from app.services.adaptive_path import AdaptivePathService
 from app.services.progress import ProgressService
 
 router = APIRouter(prefix="/progress", tags=["Progress"])
@@ -62,3 +65,16 @@ async def get_progress_history(
         limit=limit,
         cursor=cursor,
     )
+
+
+@router.get(
+    "/learner-model",
+    response_model=LearnerModelResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get longitudinal CEFR estimation model, phoneme trouble spots, and adaptive path",
+)
+async def get_learner_model(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> LearnerModelResponse:
+    return await AdaptivePathService(db).get_learner_model(current_user.id)
