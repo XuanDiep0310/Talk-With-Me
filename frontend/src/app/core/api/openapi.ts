@@ -311,10 +311,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get onboarding selection catalog
-         * @description Returns lists of selectable interests, goals, and skills for onboarding step.
-         */
+        /** Get onboarding selection catalog */
         get: operations["get_onboarding_options_api_v1_onboarding_options_get"];
         put?: never;
         post?: never;
@@ -332,10 +329,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /**
-         * Save onboarding preferences
-         * @description Save user's selected interests, learning goals, and skills to improve. Requires at least 1 of each. All values must be valid keys from GET /onboarding/options.
-         */
+        /** Save onboarding preferences */
         put: operations["update_preferences_api_v1_me_preferences_put"];
         post?: never;
         delete?: never;
@@ -353,10 +347,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Create a new placement test
-         * @description Initializes a new placement test session. Returns the test ID, question list, and initial adaptive question.
-         */
+        /** Create a new two-stage placement test */
         post: operations["create_placement_test_api_v1_placement_tests_post"];
         delete?: never;
         options?: never;
@@ -373,11 +364,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Submit a placement test answer
-         * @description Submit one voice answer for the placement test with adaptive tier adjustment (D-25). Idempotent: re-sending the same request_id returns the existing answer without creating a duplicate.
-         */
+        /** Submit a placement test answer (JSON metadata) */
         post: operations["submit_placement_answer_api_v1_placement_tests__test_id__answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/placement-tests/{test_id}/audio-answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Stage 1 (Scripted) or Stage 2 (Unscripted) audio answer via Azure Speech */
+        post: operations["submit_placement_audio_answer_api_v1_placement_tests__test_id__audio_answers_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -393,10 +398,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Complete placement test and get level estimate
-         * @description Finalizes the placement test, runs the level estimation algorithm, and saves the resulting CEFR level to the user's profile.
-         */
+        /** Complete two-stage placement test and initialize learner CEFR profile */
         post: operations["complete_placement_test_api_v1_placement_tests__test_id__complete_post"];
         delete?: never;
         options?: never;
@@ -412,10 +414,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /**
-         * Self-assign CEFR level
-         * @description Allows user to manually set their own CEFR level (e.g. when skipping placement test). Source must be 'SELF'.
-         */
+        /** Self-assign CEFR level */
         put: operations["set_level_api_v1_me_level_put"];
         post?: never;
         delete?: never;
@@ -433,10 +432,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Mark onboarding as complete
-         * @description Finishes the onboarding flow. Requires level and preferences to be set. Idempotent: calling twice returns the same completed_at timestamp.
-         */
+        /** Mark onboarding as complete */
         post: operations["complete_onboarding_api_v1_me_onboarding_complete_post"];
         delete?: never;
         options?: never;
@@ -817,6 +813,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pronunciation/ipa": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Convert English text to IPA phonetic transcription */
+        get: operations["get_ipa_api_v1_pronunciation_ipa_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pronunciation/assess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assess scripted/shadowing pronunciation at syllable and phoneme granularity */
+        post: operations["assess_pronunciation_api_v1_pronunciation_assess_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard": {
         parameters: {
             query?: never;
@@ -877,6 +907,23 @@ export interface paths {
         };
         /** Get paginated session practice history (cursor-based) */
         get: operations["get_progress_history_api_v1_progress_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/progress/learner-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get longitudinal CEFR estimation model, phoneme trouble spots, and adaptive path */
+        get: operations["get_learner_model_api_v1_progress_learner_model_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1668,6 +1715,19 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdaptiveRecommendationSchema */
+        AdaptiveRecommendationSchema: {
+            /** Kind */
+            kind: string;
+            /** Targetid */
+            targetId: string;
+            /** Title */
+            title: string;
+            /** Reasonvi */
+            reasonVi: string;
+            /** Level */
+            level: string;
+        };
         /** AddTranscriptSegmentRequest */
         AddTranscriptSegmentRequest: {
             /** Id */
@@ -2854,6 +2914,13 @@ export interface components {
             testId: string;
             /** Requestid */
             requestId: string;
+            /**
+             * Stage
+             * @default 2
+             */
+            stage: number;
+            /** Promptid */
+            promptId?: string | null;
             /** Questionindex */
             questionIndex: number;
             /** Transcript */
@@ -2905,6 +2972,17 @@ export interface components {
              * @default A1
              */
             currentEstimatedLevel: string;
+            pronunciation?: components["schemas"]["PronunciationAssessResponse"] | null;
+            /**
+             * Nextstage
+             * @default 2
+             */
+            nextStage: number;
+            /**
+             * Stage1Completed
+             * @default false
+             */
+            stage1Completed: boolean;
         };
         /** AppHealthResponse */
         AppHealthResponse: {
@@ -2980,6 +3058,34 @@ export interface components {
             /** Totalcount */
             totalCount: number;
         };
+        /** Body_assess_pronunciation_api_v1_pronunciation_assess_post */
+        Body_assess_pronunciation_api_v1_pronunciation_assess_post: {
+            /** Audio */
+            audio: string;
+            /** Reference Text */
+            reference_text: string;
+            /**
+             * Mode
+             * @default scripted
+             * @enum {string}
+             */
+            mode: "scripted" | "shadowing";
+        };
+        /** Body_submit_placement_audio_answer_api_v1_placement_tests__test_id__audio_answers_post */
+        Body_submit_placement_audio_answer_api_v1_placement_tests__test_id__audio_answers_post: {
+            /** Audio */
+            audio: string;
+            /** Request Id */
+            request_id: string;
+            /** Stage */
+            stage: number;
+            /** Question Index */
+            question_index: number;
+            /** Prompt Id */
+            prompt_id?: string | null;
+            /** Response Latency Seconds */
+            response_latency_seconds?: number | null;
+        };
         /** Body_upload_avatar_api_v1_me_avatar_post */
         Body_upload_avatar_api_v1_me_avatar_post: {
             /** File */
@@ -3005,6 +3111,22 @@ export interface components {
         CategoryName: {
             /** Namevi */
             nameVi: string;
+        };
+        /** CefrSnapshotItemSchema */
+        CefrSnapshotItemSchema: {
+            /** Sourcetype */
+            sourceType: string;
+            /** Estimatedcefr */
+            estimatedCefr: string;
+            /** Continuousscore */
+            continuousScore: number;
+            /** Confidence */
+            confidence: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
@@ -3442,6 +3564,63 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** IpaResponse */
+        IpaResponse: {
+            /** Text */
+            text: string;
+            /** Ipa */
+            ipa: string;
+        };
+        /** LearnerModelResponse */
+        LearnerModelResponse: {
+            /** Estimatedcefr */
+            estimatedCefr: string;
+            /** Continuousscore */
+            continuousScore: number;
+            /** Confidence */
+            confidence: string;
+            /** Modelversion */
+            modelVersion: string;
+            /** Sessioncount */
+            sessionCount: number;
+            /** Scriptedcount */
+            scriptedCount: number;
+            /** Unscriptedcount */
+            unscriptedCount: number;
+            /** Avgresponselatencyms */
+            avgResponseLatencyMs?: number | null;
+            /** Scriptedpronunciation */
+            scriptedPronunciation?: number | null;
+            /** Unscriptedpronunciation */
+            unscriptedPronunciation?: number | null;
+            /** Rawdimensions */
+            rawDimensions: {
+                [key: string]: number | null;
+            };
+            /** Calibrateddimensions */
+            calibratedDimensions: {
+                [key: string]: number | null;
+            };
+            /** Limitingdimensions */
+            limitingDimensions: string[];
+            /** Explanationvi */
+            explanationVi: string;
+            /**
+             * Phonemetroublespots
+             * @default []
+             */
+            phonemeTroubleSpots: components["schemas"]["PhonemeTroubleSpotSchema"][];
+            /**
+             * Snapshots
+             * @default []
+             */
+            snapshots: components["schemas"]["CefrSnapshotItemSchema"][];
+            /**
+             * Recommendations
+             * @default []
+             */
+            recommendations: components["schemas"]["AdaptiveRecommendationSchema"][];
+        };
         /** LevelAdvancementCondition */
         LevelAdvancementCondition: {
             /**
@@ -3638,6 +3817,8 @@ export interface components {
             cefrLevels: string[];
             /** Placementquestions */
             placementQuestions: string[];
+            /** Scriptedprompts */
+            scriptedPrompts?: components["schemas"]["ScriptedPlacementPromptSchema"][];
             /** Tieredquestions */
             tieredQuestions?: components["schemas"]["TieredQuestionSchema"][];
         };
@@ -3647,6 +3828,26 @@ export interface components {
             key: string;
             /** Label */
             label: string;
+        };
+        /** PhonemeScoreSchema */
+        PhonemeScoreSchema: {
+            /** Ipa */
+            ipa: string;
+            /** Accuracyscore */
+            accuracyScore: number;
+            /** Heardas */
+            heardAs?: string | null;
+        };
+        /** PhonemeTroubleSpotSchema */
+        PhonemeTroubleSpotSchema: {
+            /** Ipaphoneme */
+            ipaPhoneme: string;
+            /** Attemptcount */
+            attemptCount: number;
+            /** Errorcount */
+            errorCount: number;
+            /** Avgaccuracy */
+            avgAccuracy: number;
         };
         /** PlacementCompleteResponse */
         PlacementCompleteResponse: {
@@ -3663,6 +3864,22 @@ export interface components {
             needsReassessment: boolean;
             /** Score */
             score: number;
+            /**
+             * Continuousband
+             * @default 1
+             */
+            continuousBand: number;
+            /** Dimensionscores */
+            dimensionScores?: {
+                [key: string]: number | null;
+            };
+            /** Limitingdimensions */
+            limitingDimensions?: string[];
+            /**
+             * Explanationvi
+             * @default
+             */
+            explanationVi: string;
         };
         /** PlacementTestResponse */
         PlacementTestResponse: {
@@ -3678,8 +3895,15 @@ export interface components {
             userId: string;
             /** Status */
             status: string;
+            /**
+             * Currentstage
+             * @default 1
+             */
+            currentStage: number;
             /** Questions */
             questions: string[];
+            /** Scriptedprompts */
+            scriptedPrompts?: components["schemas"]["ScriptedPlacementPromptSchema"][];
             /**
              * Createdat
              * Format: date-time
@@ -3749,6 +3973,38 @@ export interface components {
             /** Completedscenarios */
             completedScenarios: number;
         };
+        /** PronunciationAssessResponse */
+        PronunciationAssessResponse: {
+            /** Transcript */
+            transcript: string;
+            /** Referencetext */
+            referenceText: string;
+            /** Mode */
+            mode: string;
+            /** Provider */
+            provider: string;
+            /** Displayscore */
+            displayScore?: number | null;
+            /** Accuracyscore */
+            accuracyScore?: number | null;
+            /** Fluencyscore */
+            fluencyScore?: number | null;
+            /** Prosodyscore */
+            prosodyScore?: number | null;
+            /** Completenessscore */
+            completenessScore?: number | null;
+            /** Ipa */
+            ipa: string;
+            /** Words */
+            words?: components["schemas"]["WordPronunciationSchema"][];
+            /** Coachingtipvi */
+            coachingTipVi: string;
+            /**
+             * Passed
+             * @default false
+             */
+            passed: boolean;
+        };
         /** RecordDrillRequest */
         RecordDrillRequest: {
             /**
@@ -3761,6 +4017,16 @@ export interface components {
              * @default false
              */
             isSkipped: boolean;
+            /** Accuracyscore */
+            accuracyScore?: number | null;
+            /** Fluencyscore */
+            fluencyScore?: number | null;
+            /** Prosodyscore */
+            prosodyScore?: number | null;
+            /** Phonemeerrors */
+            phonemeErrors?: {
+                [key: string]: unknown;
+            }[];
         };
         /** RecordDrillResponse */
         RecordDrillResponse: {
@@ -3915,10 +4181,20 @@ export interface components {
             text: string;
             /** Meaningvi */
             meaningVi: string;
+            /**
+             * Ipa
+             * @default
+             */
+            ipa: string;
             /** Audiourl */
             audioUrl?: string | null;
             /** Examplesentence */
             exampleSentence: string;
+            /**
+             * Examplesentenceipa
+             * @default
+             */
+            exampleSentenceIpa: string;
             /** Acceptedvariations */
             acceptedVariations?: string[];
             /** Distractorsen */
@@ -4075,6 +4351,21 @@ export interface components {
              */
             chunksCount: number;
         };
+        /** ScriptedPlacementPromptSchema */
+        ScriptedPlacementPromptSchema: {
+            /** Id */
+            id: string;
+            /** Targetband */
+            targetBand: string;
+            /** Text */
+            text: string;
+            /** Translation */
+            translation: string;
+            /** Ipa */
+            ipa: string;
+            /** Focusphonemes */
+            focusPhonemes?: string[];
+        };
         /** ServiceHealthResponse */
         ServiceHealthResponse: {
             /**
@@ -4118,7 +4409,7 @@ export interface components {
             status: string;
             /**
              * Formulaversion
-             * @default 1.0.0
+             * @default 2.0.0
              */
             formulaVersion: string;
             /** Overallscore */
@@ -4232,10 +4523,7 @@ export interface components {
              * @description CEFR level: A1, A2, B1, B2, C1
              */
             level: string;
-            /**
-             * Source
-             * @description How level was determined: PLACEMENT | SELF | DEFAULT
-             */
+            /** Source */
             source: string;
         };
         /** SettingsResponse */
@@ -4297,17 +4585,29 @@ export interface components {
         };
         /** SubmitAnswerRequest */
         SubmitAnswerRequest: {
-            /**
-             * Requestid
-             * @description Client-generated UUID for idempotency
-             */
+            /** Requestid */
             requestId: string;
+            /**
+             * Stage
+             * @default 2
+             */
+            stage: number;
+            /** Promptid */
+            promptId?: string | null;
             /** Questionindex */
             questionIndex: number;
             /** Transcript */
             transcript?: string | null;
             /** Sttconfidence */
             sttConfidence?: number | null;
+            /** Accuracyscore */
+            accuracyScore?: number | null;
+            /** Fluencyscore */
+            fluencyScore?: number | null;
+            /** Prosodyscore */
+            prosodyScore?: number | null;
+            /** Completenessscore */
+            completenessScore?: number | null;
             /** Speakingdurationseconds */
             speakingDurationSeconds?: number | null;
             /** Responselatencyseconds */
@@ -4319,6 +4619,15 @@ export interface components {
             text: string;
             /** Translation */
             translation: string;
+        };
+        /** SyllableScoreSchema */
+        SyllableScoreSchema: {
+            /** Text */
+            text: string;
+            /** Accuracyscore */
+            accuracyScore: number;
+            /** Status */
+            status: string;
         };
         /** TTSRequest */
         TTSRequest: {
@@ -4485,6 +4794,23 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WordPronunciationSchema */
+        WordPronunciationSchema: {
+            /** Word */
+            word: string;
+            /** Accuracyscore */
+            accuracyScore: number;
+            /** Errortype */
+            errorType: string;
+            /** Ipa */
+            ipa: string;
+            /** Status */
+            status: string;
+            /** Syllables */
+            syllables?: components["schemas"]["SyllableScoreSchema"][];
+            /** Phonemes */
+            phonemes?: components["schemas"]["PhonemeScoreSchema"][];
         };
         /** WsTicketResponse */
         WsTicketResponse: {
@@ -5216,6 +5542,41 @@ export interface operations {
             };
         };
     };
+    submit_placement_audio_answer_api_v1_placement_tests__test_id__audio_answers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                test_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_submit_placement_audio_answer_api_v1_placement_tests__test_id__audio_answers_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnswerResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     complete_placement_test_api_v1_placement_tests__test_id__complete_post: {
         parameters: {
             query?: never;
@@ -5922,6 +6283,70 @@ export interface operations {
             };
         };
     };
+    get_ipa_api_v1_pronunciation_ipa_get: {
+        parameters: {
+            query: {
+                text: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IpaResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assess_pronunciation_api_v1_pronunciation_assess_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_assess_pronunciation_api_v1_pronunciation_assess_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PronunciationAssessResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_dashboard_api_v1_dashboard_get: {
         parameters: {
             query?: never;
@@ -6014,6 +6439,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_learner_model_api_v1_progress_learner_model_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LearnerModelResponse"];
                 };
             };
         };
